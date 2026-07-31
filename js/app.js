@@ -80,6 +80,14 @@ window.App = (function () {
   }
 
   function render() {
+    // الطرد يتجاوز كل شيء: بلا جلسة حاليّة لا يرى الطالب محتوى أصلًا،
+    // فإبقاؤه في الشاشة العادية يعرض له فراغًا بلا تفسير.
+    if (Store.get().evicted && Api.isSignedIn()) {
+      view.replaceChildren(Screens.evicted());
+      rail.replaceChildren();
+      rail.style.display = 'none';
+      return;
+    }
     const c = cur();
     const fn = Screens[c.name] || Screens.welcome;
     view.replaceChildren(fn(c.params || {}));
@@ -110,10 +118,18 @@ window.App = (function () {
 
     // المحتوى المخزَّن يظهر فورًا، ثم تُحدّثه المزامنة إن توفّرت شبكة
     Sync.applyStored();
-    Sync.syncNow().then((r) => { if (r?.pulled) render(); });
+    const after = (r) => { if (r) render(); };
 
-    setInterval(() => Sync.syncNow({ content: false }), 300_000);
-    addEventListener('online', () => Sync.syncNow());
+    Sync.syncNow().then(after);
+    setInterval(() => Sync.syncNow({ content: false }).then(after), 300_000);
+    addEventListener('online', () => Sync.syncNow().then(after));
+
+    // العودة إلى التطبيق أهمّ لحظة لفحص الجلسة: الطرد يحدث غالبًا بينما
+    // الشاشة مغلقة، فيجب أن يعرف الطالب فور فتحها لا بعد خمس دقائق.
+    addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') Sync.syncNow({ content: false }).then(after);
+    });
+
     // آخر فرصة لإرسال ما تبقّى قبل إغلاق التطبيق
     addEventListener('pagehide', () => Sync.pushProgress());
   }

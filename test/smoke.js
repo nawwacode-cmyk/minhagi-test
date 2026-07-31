@@ -103,7 +103,7 @@ bad.forEach((b) => console.log('   ← ' + b));
 // ANSI يفسد كل النص العربي فيها بصمت. العلامة الفارقة تسلسل «Ø».
 const SRC = ['ui.js', 'store.js', 'components.js', 'app.js',
              'data/seed.js', 'data/api.js', 'data/device.js', 'data/sync.js', 'data/media.js',
-             'screens/onboarding.js', 'screens/main.js', 'screens/course.js', 'screens/exam.js'];
+             'screens/onboarding.js', 'screens/evicted.js', 'screens/main.js', 'screens/course.js', 'screens/exam.js'];
 const corrupt = SRC.filter((f) => /Ø|Ù|Ã˜/.test(fs.readFileSync(dir + f, 'utf8')));
 ok('لا تلف في ترميز ملفات الواجهة', corrupt.length === 0);
 corrupt.forEach((f) => console.log('   ← ترميز تالف: ' + f));

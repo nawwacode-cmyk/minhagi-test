@@ -193,6 +193,19 @@ window.Sync = (function () {
     catch { return null; }
   };
 
+  /** العكس: uuid ← رمز. نبنيه عند الحاجة لأن سحب التقدّم يعود بمعرّفات السيرفر. */
+  function reverseMap(kind) {
+    const out = {};
+    try {
+      const map = JSON.parse(localStorage.getItem(IDMAP_KEY) || '{}');
+      for (const [k, uuid] of Object.entries(map)) {
+        const [t, code] = k.split(':');
+        if (t === kind) out[uuid] = code;
+      }
+    } catch { /* خريطة فارغة */ }
+    return out;
+  }
+
   // ---------------------------------------------------------------------------
   // رفع التقدّم
   // ---------------------------------------------------------------------------
@@ -253,29 +266,139 @@ window.Sync = (function () {
   }
 
   // ---------------------------------------------------------------------------
+  // سحب التقدّم
+  // ---------------------------------------------------------------------------
+
+  /**
+   * يجلب تقدّم الطالب من السيرفر ويدمجه محليًا.
+   *
+   * بدون هذا كان الطالب الذي يبدّل جهازه — أو يعيد تثبيت التطبيق — يجد تقدّمه
+   * صفرًا رغم أنه محفوظ على السيرفر كاملًا. الرفع وحده لا يكفي.
+   *
+   * يُنفَّذ **بعد** تفريغ الطابور: لو سحبنا أولًا لطمس المخزون البعيد نشاطًا
+   * محليًا لم يُرسل بعد.
+   */
+  async function pullProgress() {
+    if (!Api.isSignedIn()) return 0;
+
+    const [lessons, mastery, exams] = await Promise.all([
+      Api.from('lesson_progress',  { select: 'lesson_id,status,completed_at,client_updated_at' }),
+      Api.from('topic_mastery',    { select: 'topic_id,mastery,total_attempts,correct_attempts' }),
+      Api.from('exam_attempts',    { select: 'exam_id,score_percent,submitted_at' }),
+    ]);
+
+    const L = reverseMap('lesson'), T = reverseMap('topic'), E = reverseMap('exam');
+    const s = Store.get();
+
+    // --- الدروس: أحدث تعديل يفوز (نفس قاعدة السيرفر) ---
+    const nextLessons = { ...s.lessons };
+    for (const row of lessons) {
+      const code = L[row.lesson_id];
+      if (!code) continue;
+      // المحلي المكتمل لا يتراجع: قد يكون أُنجز للتوّ ولم يُرفع بعد
+      if (s.lessons[code] === 'done' && row.status !== 'done') continue;
+      nextLessons[code] = row.status;
+    }
+
+    // --- الإتقان: السيرفر مرجع لأنه محسوب من كل المحاولات لا من هذا الجهاز ---
+    const nextMastery = { ...s.mastery };
+    for (const row of mastery) {
+      const code = T[row.topic_id];
+      if (!code) continue;
+      const local = s.mastery[code];
+      // إن كان المحلي أكثر محاولات فهو يحمل نشاطًا لم يُرفع — نُبقيه
+      if (local && local.total > row.total_attempts) continue;
+      nextMastery[code] = {
+        mastery: row.mastery,
+        total: row.total_attempts,
+        correct: row.correct_attempts,
+      };
+    }
+
+    // --- الامتحانات: أفضل نتيجة وعدد المحاولات ---
+    const nextExams = { ...s.exams };
+    for (const row of exams) {
+      const code = E[row.exam_id];
+      if (!code || row.submitted_at === null) continue;
+      const prev = nextExams[code] || { best: 0, taken: 0 };
+      nextExams[code] = {
+        best: Math.max(prev.best, Math.round(row.score_percent || 0)),
+        taken: Math.max(prev.taken, 1),
+      };
+    }
+    // عدد المحاولات الحقيقي من عدّ الصفوف لا من الحد الأدنى
+    const counts = {};
+    exams.forEach((r) => { const c = E[r.exam_id]; if (c) counts[c] = (counts[c] || 0) + 1; });
+    for (const [code, n] of Object.entries(counts)) {
+      if (nextExams[code]) nextExams[code].taken = Math.max(nextExams[code].taken, n);
+    }
+
+    Store.set({ lessons: nextLessons, mastery: nextMastery, exams: nextExams });
+    return lessons.length + mastery.length + exams.length;
+  }
+
+  // ---------------------------------------------------------------------------
+  // حالة الجلسة
+  // ---------------------------------------------------------------------------
+
+  /**
+   * هل ما زالت جلستنا هي النشطة؟
+   *
+   * ضروري لأن RLS تحجب الصفوف **بصمت** بلا خطأ: الطالب المطرود يرى شاشة
+   * فارغة لا رسالة. هذه الدالة تحوّل الصمت إلى سبب يمكن عرضه.
+   */
+  async function sessionOk() {
+    if (!Api.isSignedIn()) return true;
+    try {
+      const r = await Api.rpc('session_status');
+      return r?.current !== false;
+    } catch (e) {
+      // بلا شبكة لا نحكم بالطرد — الطالب يعمل أوفلاين وهذا مشروع
+      return e.code === 'offline' ? true : true;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // الدورة الكاملة
   // ---------------------------------------------------------------------------
   let running = false;
 
-  /** الرفع قبل السحب: لا نريد أن يمحو محتوى جديد تقدّمًا لم يُرسل بعد. */
+  /**
+   * دورة مزامنة كاملة. الترتيب مقصود:
+   *   ١. فحص الجلسة  — لا فائدة من أي شيء بعده إن كنّا مطرودين
+   *   ٢. رفع الطابور — قبل أي سحب، لئلّا يُطمس نشاط لم يُرسل
+   *   ٣. سحب المحتوى ثم التقدّم
+   */
   async function syncNow({ content = true } = {}) {
     if (running || !Api.isSignedIn()) return null;
     running = true;
     try {
-      const push = await pushProgress();
-      let pulled = 0;
-      if (content && navigator.onLine) {
-        const c = await pullContent();
-        applyStored();
-        pulled = Object.keys(c.lessons).length;
+      if (!await sessionOk()) {
+        Store.set({ evicted: true });
+        return { evicted: true };
       }
+      if (Store.get().evicted) Store.set({ evicted: false });
+
+      const push = await pushProgress();
+      let pulled = 0, progress = 0;
+
+      if (navigator.onLine) {
+        if (content) {
+          const c = await pullContent();
+          applyStored();
+          pulled = Object.keys(c.lessons).length;
+        }
+        progress = await pullProgress();
+      }
+
       Store.set({ lastSync: new Date().toISOString() });
-      return { ...push, pulled };
+      return { ...push, pulled, progress };
     } catch (e) {
       console.warn('sync failed', e.code || e.message);
       return null;
     } finally { running = false; }
   }
 
-  return { pullContent, applyStored, pushProgress, syncNow, idOf, CONTENT_KEY };
+  return { pullContent, applyStored, pushProgress, pullProgress,
+           sessionOk, syncNow, idOf, CONTENT_KEY };
 })();
