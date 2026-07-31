@@ -101,6 +101,23 @@ window.App = (function () {
     render();
   }
 
+  /**
+   * المزامنة في الخلفية — لا شاشة تنتظرها.
+   * تعمل عند: الإقلاع · عودة الاتصال · كل خمس دقائق · قبل إغلاق التطبيق.
+   */
+  function startSync() {
+    if (!Api.isSignedIn()) return;
+
+    // المحتوى المخزَّن يظهر فورًا، ثم تُحدّثه المزامنة إن توفّرت شبكة
+    Sync.applyStored();
+    Sync.syncNow().then((r) => { if (r?.pulled) render(); });
+
+    setInterval(() => Sync.syncNow({ content: false }), 300_000);
+    addEventListener('online', () => Sync.syncNow());
+    // آخر فرصة لإرسال ما تبقّى قبل إغلاق التطبيق
+    addEventListener('pagehide', () => Sync.pushProgress());
+  }
+
   function boot() {
     const s = Store.get();
     document.documentElement.setAttribute('data-theme', s.theme);
@@ -120,8 +137,11 @@ window.App = (function () {
     // ظهور الشريط الجانبي أو اختفاؤه عند تغيّر عرض النافذة
     matchMedia('(min-width: 1100px)').addEventListener('change', drawRail);
 
-    stack.push({ name: s.signedIn ? 'home' : 'welcome', params: {} });
+    // الجلسة على السيرفر هي الحكم، لا علامة محلية قد تكون قديمة
+    const signedIn = Api.isSignedIn() && s.signedIn;
+    stack.push({ name: signedIn ? 'home' : 'welcome', params: {} });
     render();
+    startSync();
 
     // service worker يعمل على http(s) فقط — يُتجاهل عند فتح الملف مباشرةً
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

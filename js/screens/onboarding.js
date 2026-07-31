@@ -67,8 +67,8 @@ window.Screens = window.Screens || {};
   // عند فقدان الجهاز، فمسار الدعم يجب أن يكون ظاهرًا في هذه الشاشة نفسها.
   // ===========================================================================
   Screens.auth = () => {
-    const LEN = 7;
-    const boxes = [];
+    /** ١١ محرفًا: FR9 + ثمانية. نفس الطول في tools/gen-codes وفي دالة activate. */
+    const LEN = 11;
     const errBox = h('div');
 
     const userInput = h('input.input', {
@@ -76,63 +76,81 @@ window.Screens = window.Screens || {};
       oninput: () => clearError(),
     });
 
-    const field = h('div.codebox',
-      h('div.codebox__g', ...[0, 1, 2].map(mk)),
-      h('span.codebox__sep', '–'),
-      h('div.codebox__g', ...[3, 4, 5, 6].map(mk)),
-    );
+    /**
+     * حقل واحد بتنسيق تلقائي بدل خانات منفصلة.
+     *
+     * الخانات المنفصلة أجمل لكنها لا تتّسع: ١١ خانة تحتاج ٤٦٠ بكسل ولا تدخل
+     * في هاتف بعرض ٣٦٠. والحقل الواحد يقبل اللصق والكتابة والحذف بسلوك متوقّع
+     * على كل مقاس، ويضيف الشرطات وهو يُكتب.
+     */
+    const codeInput = h('input.codeline', {
+      type: 'text', dir: 'ltr', inputmode: 'latin', autocapitalize: 'characters',
+      autocomplete: 'off', spellcheck: 'false',
+      placeholder: 'FR9-XXXX-XXXX',
+      'aria-label': 'كود التفعيل',
+      oninput: (e) => {
+        const raw = clean(e.target.value);
+        e.target.value = format(raw);
+        e.target.classList.toggle('is-full', raw.length === LEN);
+        clearError();
+      },
+      onkeydown: (e) => { if (e.key === 'Enter') submit(); },
+    });
+
+    const clean = (s) => (s || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, LEN);
+    const format = (r) =>
+      [r.slice(0, 3), r.slice(3, 7), r.slice(7, 11)].filter(Boolean).join('-');
+
+    const field = h('div', codeInput);
 
     function clearError() {
-      field.classList.remove('is-err');
+      codeInput.classList.remove('is-err');
       userInput.classList.remove('is-err');
       errBox.replaceChildren();
     }
 
-    function mk(i) {
-      const inp = h('input', {
-        maxlength: 1, inputmode: 'latin', autocapitalize: 'characters',
-        'aria-label': `خانة الكود ${i + 1}`,
-        oninput: (e) => {
-          e.target.value = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-          e.target.classList.toggle('is-filled', !!e.target.value);
-          if (e.target.value && i < LEN - 1) boxes[i + 1].focus();
-          clearError();
-        },
-        onkeydown: (e) => {
-          if (e.key === 'Backspace' && !e.target.value && i > 0) boxes[i - 1].focus();
-          if (e.key === 'Enter') submit();
-        },
-        onpaste: (e) => {
-          // لصق الكود كاملًا: نُنظّفه ونوزّعه — الشرطات والمسافات مقبولة
-          e.preventDefault();
-          const txt = (e.clipboardData.getData('text') || '')
-            .replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, LEN);
-          [...txt].forEach((ch, k) => {
-            if (!boxes[k]) return;
-            boxes[k].value = ch;
-            boxes[k].classList.add('is-filled');
-          });
-          boxes[Math.min(txt.length, LEN - 1)].focus();
-          clearError();
-        },
-      });
-      boxes.push(inp);
-      return inp;
-    }
-
     function fail(msg, which) {
       if (which === 'user') userInput.classList.add('is-err');
-      else field.classList.add('is-err');
+      else codeInput.classList.add('is-err');
       errBox.replaceChildren(h('div.fb.fb--no', { style: 'margin-top:14px' },
         h('div.fb__h', 'تعذّر تسجيل الدخول'),
         h('div.fb__b', msg)));
     }
 
-    function submit() {
-      const err = Store.signIn(userInput.value, boxes.map((b) => b.value).join(''));
-      if (err) return fail(err, err.includes('اسم المستخدم') ? 'user' : 'code');
-      App.go('home');
+    const btn = h('button.btn.btn--primary.btn--lg.btn--block',
+      { style: 'margin-top:18px' }, 'دخول');
+
+    async function submit() {
+      const username = userInput.value.trim();
+      const code = clean(codeInput.value);
+
+      if (username.length < 3) return fail('اسم المستخدم قصير — ٣ أحرف على الأقل.', 'user');
+      if (code.length !== LEN) return fail('كود التفعيل غير مكتمل — ١١ حرفًا ورقمًا.', 'code');
+
+      btn.disabled = true;
+      btn.textContent = 'جارٍ التحقق…';
+      clearError();
+
+      try {
+        const res = await Api.activate(
+          username, code, await Device.fingerprint(), Device.platform());
+
+        Store.set({
+          signedIn: true, activated: true, username: res.username || username,
+          devices: [{ id: 1, name: Device.label(), meta: 'رُبط اليوم · الجهاز الوحيد المسموح' }],
+        });
+        App.go('home');
+
+      } catch (e) {
+        // الرسائل تأتي بالعربية من الدالة على السيرفر — لا نترجمها هنا
+        fail(e.message || 'تعذّر تسجيل الدخول.',
+             e.code === 'bad_user' ? 'user' : 'code');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'دخول';
+      }
     }
+    btn.addEventListener('click', submit);
 
     const wrap = h('div.screen',
       C.appbar({ title: 'تسجيل الدخول', onBack: () => App.back() }),
@@ -158,19 +176,15 @@ window.Screens = window.Screens || {};
                   'الأحرف الصغيرة والشرطات مقبولة، وتُنظَّف تلقائيًا.')),
 
               errBox,
-
-              h('button.btn.btn--primary.btn--lg.btn--block', {
-                style: 'margin-top:18px', onclick: submit,
-              }, 'دخول'),
+              btn,
             )),
 
           h('aside.dash__side',
             h('div.callout.callout--info',
-              h('div.callout__t', 'أكواد التجربة'),
-              h('div.small', { style: 'line-height:2' },
-                h('span.mono', 'FR97K3M'), ' ← الصف التاسع', h('br'),
-                h('span.mono', 'F12A4XQ'), ' ← البكالوريا', h('br'),
-                h('span.mono', 'FR9USED'), ' ← كود مرتبط بجهاز آخر')),
+              h('div.callout__t', 'تحتاج كودًا حقيقيًا'),
+              h('div.small',
+                'التطبيق موصول بقاعدة بيانات حيّة الآن. الأكواد تُشترى من الموزّع، ',
+                'ولا تعمل أكواد التجربة السابقة.')),
 
             h('div.card.card--pad',
               h('div.row', { style: 'margin-bottom:8px' },

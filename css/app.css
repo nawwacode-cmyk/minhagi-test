@@ -356,6 +356,20 @@ img, svg { max-width: 100%; display: block; }
   padding: 4px 10px; border-radius: var(--r-full);
 }
 
+.video video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+/* --- العلامة المائية ----------------------------------------------------------
+   شفافة بما يكفي ألّا تزعج المشاهدة، وظاهرة بما يكفي أن يلتقطها أي تسجيل شاشة.
+   pointer-events:none حتى لا تحجب أزرار المشغّل. */
+.wm { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+.wm__t {
+  position: absolute;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+  color: rgba(255,255,255,.34);
+  text-shadow: 0 1px 3px rgba(0,0,0,.55);
+  transition: top 1.2s var(--ease), inset-inline-start 1.2s var(--ease);
+}
+
 /* --- نص الدرس --------------------------------------------------------------- */
 .prose { padding: 18px 20px; font-size: 16px; line-height: var(--lh-body); }
 .prose h3 { font-size: 18px; margin: 22px 0 10px; }
@@ -482,6 +496,21 @@ img, svg { max-width: 100%; display: block; }
 .input:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
 .input.is-err { border-color: var(--err); }
 .hint { font-size: 12px; color: var(--txm); margin-top: 6px; }
+
+/* حقل الكود: واحد بتنسيق تلقائي بدل خانات منفصلة — يتّسع لأي شاشة ويقبل
+   اللصق والحذف بسلوك متوقّع. تباعد الأحرف يجعله يُقرأ كبطاقة مطبوعة. */
+.codeline {
+  width: 100%; height: 58px; padding: 0 14px;
+  font-family: var(--mono); font-size: clamp(17px, 5.2vw, 22px); font-weight: 700;
+  letter-spacing: .12em; text-align: center; text-transform: uppercase;
+  color: var(--acc-tx); background: var(--surf);
+  border: 1.5px solid var(--brd2); border-radius: var(--r-md);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.codeline::placeholder { color: var(--txf); font-weight: 400; letter-spacing: .08em; }
+.codeline:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
+.codeline.is-full { border-color: var(--acc); background: var(--acc-soft); }
+.codeline.is-err  { border-color: var(--err); background: var(--err-soft); color: var(--err); }
 
 .codebox { display: flex; gap: 8px; direction: ltr; justify-content: center; }
 .codebox__g { display: flex; gap: 6px; }

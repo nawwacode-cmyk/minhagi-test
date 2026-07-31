@@ -20,16 +20,18 @@ window.C = (function () {
   // معلوماتية تطمئن ولا تحذّر.
   function syncBanner() {
     const s = Store.get();
+    const queued = Store.pending();
+
     if (!s.online) {
       return h('div.banner.banner--off', icon.wifiOff(20),
         h('div', h('b', 'تعمل دون إنترنت'),
-          h('span', s.pendingSync
-            ? `${ar(s.pendingSync)} نشاطًا محفوظًا سيُرسل عند عودة الاتصال.`
+          h('span', queued
+            ? `${ar(queued)} نشاطًا محفوظًا سيُرسل عند عودة الاتصال.`
             : 'كل تقدّمك محفوظ على جهازك.')));
     }
-    if (s.pendingSync > 0) {
+    if (queued > 0) {
       return h('div.banner.banner--sync', icon.sync(20),
-        h('div', h('b', `جارٍ مزامنة ${ar(s.pendingSync)} نشاطًا…`),
+        h('div', h('b', `جارٍ مزامنة ${ar(queued)} نشاطًا…`),
           h('span', 'تقدر تتابع الدراسة أثناء ذلك.')));
     }
     return null;
@@ -186,7 +188,8 @@ window.C = (function () {
         onclick: () => {
           if (!checked) {
             checked = true;
-            Store.recordAttempt(q.topic, isCorrect());
+            Store.recordAttempt(q.topic, isCorrect(), q.id,
+                                hideFeedback ? 'exam' : 'practice');
             // في الامتحان لا توجد مرحلة «مراجعة الشرح»، فننتقل مباشرةً
             if (hideFeedback) { onNext(isCorrect()); return; }
             render();

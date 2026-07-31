@@ -37,9 +37,14 @@ window.Store = (function () {
     // الدروس المنزَّلة للاستخدام دون إنترنت
     downloaded: ['articles-definis'],
 
-    // حالة الشبكة (محاكاة في هذا الإصدار)
+    // حالة الشبكة والمزامنة
     online: true,
-    pendingSync: 0,
+    lastSync: null,
+    /**
+     * طابور الرفع. كل نشاط يُقيَّد هنا لحظة حدوثه ويبقى حتى يُؤكَّد وصوله.
+     * عدم تفريغه لا يفقد شيئًا — يؤخّر ظهوره على السيرفر فقط.
+     */
+    outbox: [],
   });
 
   let state = load();
@@ -75,12 +80,26 @@ window.Store = (function () {
   // التقدّم
   // ---------------------------------------------------------------------------
 
+  // --- طابور الرفع -----------------------------------------------------------
+  let seq = 0;
+  const uid = () => `${Date.now().toString(36)}-${(seq++).toString(36)}`;
+
+  function enqueue(item) {
+    set((s) => ({ outbox: [...s.outbox, { key: uid(), ...item }] }));
+  }
+
+  function clearOutbox(keys) {
+    const done = new Set(keys);
+    set((s) => ({ outbox: s.outbox.filter((x) => !done.has(x.key)) }));
+  }
+
+  const pending = () => state.outbox.length;
+
   function completeLesson(id) {
     if (state.lessons[id] === 'done') return;
-    set((s) => ({
-      lessons: { ...s.lessons, [id]: 'done' },
-      pendingSync: s.online ? 0 : s.pendingSync + 1,
-    }));
+    set((s) => ({ lessons: { ...s.lessons, [id]: 'done' } }));
+    enqueue({ entity: 'lesson', lessonId: id, status: 'done',
+              at: new Date().toISOString() });
   }
 
   function startLesson(id) {
@@ -96,23 +115,28 @@ window.Store = (function () {
    * البداية 50 محايدة — أول إجابة صحيحة ترفع إلى 65، وأول خطأ ينزل إلى 35.
    * أي اختلاف بين الاثنين يجعل المؤشر يقفز عند عودة الإنترنت.
    */
-  function recordAttempt(topicId, isCorrect) {
-    if (!topicId) return;
-    set((s) => {
-      const prev = s.mastery[topicId] || { mastery: 50, total: 0, correct: 0 };
-      const next = Math.round(0.7 * prev.mastery + 0.3 * (isCorrect ? 100 : 0));
-      return {
-        mastery: {
-          ...s.mastery,
-          [topicId]: {
-            mastery: Math.max(0, Math.min(100, next)),
-            total: prev.total + 1,
-            correct: prev.correct + (isCorrect ? 1 : 0),
+  function recordAttempt(topicId, isCorrect, questionId, kind = 'practice') {
+    if (topicId) {
+      set((s) => {
+        const prev = s.mastery[topicId] || { mastery: 50, total: 0, correct: 0 };
+        const next = Math.round(0.7 * prev.mastery + 0.3 * (isCorrect ? 100 : 0));
+        return {
+          mastery: {
+            ...s.mastery,
+            [topicId]: {
+              mastery: Math.max(0, Math.min(100, next)),
+              total: prev.total + 1,
+              correct: prev.correct + (isCorrect ? 1 : 0),
+            },
           },
-        },
-        pendingSync: s.online ? 0 : s.pendingSync + 1,
-      };
-    });
+        };
+      });
+    }
+    // المعرّف يولّده العميل ⇒ إعادة الإرسال بعد انقطاع لا تُنشئ صفًا مكررًا
+    if (questionId) {
+      enqueue({ entity: 'attempt', id: crypto.randomUUID(), questionId,
+                correct: isCorrect, kind, at: new Date().toISOString() });
+    }
   }
 
   function recordExam(examId, percent) {
@@ -125,6 +149,8 @@ window.Store = (function () {
         },
       };
     });
+    enqueue({ entity: 'exam', id: crypto.randomUUID(), examId, percent,
+              at: new Date().toISOString() });
   }
 
   function toggleDownload(lessonId) {
@@ -246,6 +272,7 @@ window.Store = (function () {
   return {
     get, set, subscribe, reset, MAX_DEVICES,
     signIn, signOut, removeDevice, deviceLabel,
+    enqueue, clearOutbox, pending,
     completeLesson, startLesson, recordAttempt, recordExam,
     toggleDownload, setTheme, toggleOnline,
     subjectProgress, unitProgress, weakestTopic,

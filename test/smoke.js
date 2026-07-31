@@ -101,11 +101,21 @@ bad.forEach((b) => console.log('   ← ' + b));
 // --- سلامة الترميز: كشف مبكر لتلف UTF-8 في ملفات الواجهة ---------------------
 // هذا الاختبار موجود لأن تحرير هذه الملفات بأدوات ويندوز التي تفترض ترميز
 // ANSI يفسد كل النص العربي فيها بصمت. العلامة الفارقة تسلسل «Ø».
-const SRC = ['ui.js', 'store.js', 'components.js', 'app.js', 'data/seed.js',
+const SRC = ['ui.js', 'store.js', 'components.js', 'app.js',
+             'data/seed.js', 'data/api.js', 'data/device.js', 'data/sync.js', 'data/media.js',
              'screens/onboarding.js', 'screens/main.js', 'screens/course.js', 'screens/exam.js'];
 const corrupt = SRC.filter((f) => /Ø|Ù|Ã˜/.test(fs.readFileSync(dir + f, 'utf8')));
 ok('لا تلف في ترميز ملفات الواجهة', corrupt.length === 0);
 corrupt.forEach((f) => console.log('   ← ترميز تالف: ' + f));
+
+// الصفحة والأنماط أيضًا: تلفهما لا يظهر في اختبارات المنطق فيمرّ صامتًا
+// إلى أن يراه المستخدم على الشاشة.
+const ROOT = require('node:path').join(__dirname, '..');
+const DOCS = ['index.html', 'css/app.css', 'css/tokens.css', 'sw.js'];
+const badDocs = DOCS.filter((f) =>
+  /Ø§Ù„|Ù…Ù†|Ã˜/.test(fs.readFileSync(require('node:path').join(ROOT, f), 'utf8')));
+ok('لا تلف في ترميز الصفحة والأنماط', badDocs.length === 0);
+badDocs.forEach((f) => console.log('   ← ترميز تالف: ' + f));
 
 console.log('\n' + (fail.length ? `${fail.length} فشل` : 'كل الاختبارات نجحت'));
 process.exit(fail.length ? 1 : 0);

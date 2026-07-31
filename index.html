@@ -3,8 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#2F6F73" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0E1616" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#047B86">
   <title>منهاجي — منهاجك السوري بين يديك</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/img/icon-192.png" type="image/png">
@@ -34,10 +33,15 @@
 <body>
   <div id="app"></div>
 
-  <!-- scripts عادية لا ES modules: تعمل بفتح الملف مباشرةً (file://) وعلى السيرفر معًا -->
+  <!-- scripts عادية لا ES modules: تعمل بفتح الملف مباشرةً (file://) وعلى السيرفر معًا.
+       الترتيب مقصود: api و device قبل store، و sync بعدهما لأنه يعتمد عليهما. -->
   <script src="js/ui.js"></script>
+  <script src="js/data/api.js"></script>
+  <script src="js/data/device.js"></script>
   <script src="js/data/seed.js"></script>
   <script src="js/store.js"></script>
+  <script src="js/data/sync.js"></script>
+  <script src="js/data/media.js"></script>
   <script src="js/components.js"></script>
   <script src="js/screens/onboarding.js"></script>
   <script src="js/screens/main.js"></script>
