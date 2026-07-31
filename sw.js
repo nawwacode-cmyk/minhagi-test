@@ -13,7 +13,7 @@ const SHELL = [
   './js/ui.js', './js/data/seed.js', './js/store.js', './js/components.js',
   './js/screens/onboarding.js', './js/screens/main.js',
   './js/screens/course.js', './js/screens/exam.js', './js/app.js',
-  './assets/img/hero.svg', './assets/img/cover-fr.jpg',
+  './assets/img/welcome.jpg', './assets/img/cover-fr.jpg',
   './assets/img/video-thumb.svg', './assets/img/empty-download.svg',
   './assets/img/icon-192.png',
   './assets/img/icon-512.png',

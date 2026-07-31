@@ -6,7 +6,7 @@ window.Screens = window.Screens || {};
 (function () {
   const { h, fr, ar, icon, svg } = UI;
 
-  const check = () => svg('<path d="m4 12 5 5L20 6"/>', 18);
+  const check = (s = 18) => svg('<path d="m4 12 5 5L20 6"/>', s, { width: 2.6 });
 
   // ===========================================================================
   // ١. الترحيب
@@ -23,37 +23,38 @@ window.Screens = window.Screens || {};
       ['يعمل دون إنترنت', 'نزّل الدروس مرة واحدة وادرسها في أي وقت.'],
     ];
 
+    // ترتيب DOM: الصورة أولًا (فوق على الهاتف)، واللوحة ثانيًا.
+    // على اللابتوب يقلبهما CSS بـ order فتصير اللوحة يمينًا والصورة يسارًا.
     return h('div.screen.welcome',
       h('div.welcome__art',
-        h('img', { src: 'assets/img/hero.svg', alt: 'طالب يدرس ليلًا' }),
-        h('div.hero__scrim'),
-        h('div.welcome__over.row',
-          h('img', { src: 'assets/img/icon-192.png', alt: '', width: 52, height: 52,
-                     style: 'border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.3)' }),
-          h('div',
-            h('div.hero__logo', 'منهاجي'),
-            h('div.hero__tag', 'منهاجك السوري بين يديك')))),
+        h('img', { src: 'assets/img/welcome.jpg', alt: 'طلاب يدرسون على أجهزتهم' })),
 
       h('div.welcome__panel',
         h('div.welcome__inner',
+          h('div.welcome__brand',
+            h('img', { src: 'assets/img/icon-192.png', alt: '' }),
+            h('div',
+              h('div.welcome__name', 'منهاجي'),
+              h('div.welcome__tag', 'منهاجك السوري بين يديك'))),
+
           h('div.welcome__pitch',
             'كل مواد منهاجك في تطبيق واحد — دروس، تمارين، وامتحانات وزارية.'),
 
           h('div.welcome__list',
             ...bullets.map(([t, s]) => h('div.wfeat',
-              h('span.wfeat__i', check()),
+              h('span.wfeat__i', check(13)),
               h('div',
                 h('div.wfeat__t', t),
                 h('div.wfeat__s', s))))),
 
           h('div.welcome__actions',
-            h('button.btn.btn--primary.btn--lg.btn--block', { onclick: () => App.go('auth') },
+            h('button.btn.btn--primary.btn--block', { onclick: () => App.go('auth') },
               'دخول بكود التفعيل'),
             h('button.btn.btn--ghost.btn--block', {
               style: 'margin-top:6px',
               onclick: () => { Store.set({ signedIn: true, username: 'زائر' }); App.go('home'); },
             }, 'جرّب التطبيق قبل الاشتراك'),
-            h('div.center.faint', { style: 'font-size:12px;margin-top:10px' },
+            h('div.center.faint', { style: 'font-size:11.5px;margin-top:10px' },
               'الإصدار ١٫٠٫٠')))),
     );
   };

@@ -113,8 +113,8 @@ img, svg { max-width: 100%; display: block; }
   .screen__body > *, .screen__foot > * { max-width: 820px; margin-inline: auto; width: 100%; }
   .prose { max-width: 68ch; margin-inline: auto; padding-inline: 24px; }
   .seg { max-width: 820px; margin-inline: auto; }
-  .hero__content { padding-inline: max(22px, calc(50% - 300px)); }
-  .hero__content > * { max-width: 600px; }
+  /* الترحيب مستثنى: تخطيطه مستقل بعرضه الخاص */
+  .welcome .screen__body > * { max-width: none; }
 }
 
 /* الشاشات ذات العمودين تحتاج مساحة أكبر من حدّ القراءة */
@@ -217,7 +217,6 @@ img, svg { max-width: 100%; display: block; }
 .btn--lg        { height: 54px; font-size: 17px; border-radius: var(--r-lg); }
 .btn--sm        { height: 38px; font-size: 13px; padding: 0 14px; border-radius: var(--r-sm); }
 .btn--pill      { border-radius: var(--r-full); }
-.btn--onhero    { background: transparent; color: #fff; border-color: rgba(255,255,255,.85); }
 
 /* --- البطاقات -------------------------------------------------------------- */
 .card {
@@ -523,63 +522,93 @@ img, svg { max-width: 100%; display: block; }
 .empty__t { font-weight: 700; font-size: 17px; margin-bottom: 6px; }
 .empty__s { color: var(--txm); font-size: 14px; line-height: 1.7; max-width: 32ch; margin: 0 auto 16px; }
 
-.hero { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #0C1717; }
-.hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.hero__scrim {
-  position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(6,14,14,.94) 0%, rgba(6,14,14,.6) 45%, rgba(6,14,14,.1) 78%);
-}
-.hero__content {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
-  padding: 24px 22px calc(26px + env(safe-area-inset-bottom));
-}
-.hero__logo { color: #fff; font-size: 26px; font-weight: 700; letter-spacing: -.5px; }
-.hero__tag { color: rgba(255,255,255,.78); font-size: 14px; margin-top: 2px; }
-.hero__pitch { color: #fff; font-size: 22px; font-weight: 700; line-height: 1.5; margin-bottom: 20px; }
+/* =============================================================================
+   شاشة الترحيب
+   الصورة ساطعة (غرفة بيضاء)، فلا نضع نصًّا فوقها ولا طبقة تعتيم: الصورة شريط
+   مستقل والمحتوى تحته على خلفية التطبيق. النتيجة أن الصورة تبقى نظيفة والنص
+   مقروءًا بلا حِيَل تباين.
 
-/* --- شاشة الترحيب -------------------------------------------------------------
-   هاتف: صورة ملء الشاشة والمحتوى فوقها.
-   لابتوب: عمودان — الصورة يمينًا ولوحة المحتوى يسارًا، فلا تمتد الصورة بلا
-   داعٍ ولا يطفو النص وسط فراغ. */
-.welcome { position: relative; }
-.welcome__art { position: absolute; inset: 0; overflow: hidden; background: #0C1717; }
-.welcome__art img { width: 100%; height: 100%; object-fit: cover; }
-.welcome__over { position: absolute; inset-inline-start: 22px; top: calc(24px + env(safe-area-inset-top)); }
+   مقياس واحد لكل الأجهزة، يتغيّر التخطيط لا الأحجام:
+     الشعار 38 · الاسم 19 · العبارة 16 · عنوان النقطة 14 · شرحها 12.5
+   ============================================================================= */
+.welcome { display: flex; flex-direction: column; }
+
+.welcome__art {
+  flex: 0 0 42dvh; min-height: 220px; max-height: 380px;
+  overflow: hidden; background: var(--surf2); position: relative;
+}
+/* 45٪ رأسيًا: وجوه الطلاب أعلى من مركز الصورة قليلًا، فالتمركز التام يقصّها */
+.welcome__art img { width: 100%; height: 100%; object-fit: cover; object-position: center 45%; }
+
+/* تلاشٍ سفلي خفيف يذيب حدّ الصورة في خلفية اللوحة بدل خطّ فاصل حادّ */
+.welcome__art::after {
+  content: ''; position: absolute; inset-inline: 0; bottom: -1px; height: 30%;
+  background: linear-gradient(to top, var(--bg) 6%, transparent 100%);
+  pointer-events: none;
+}
 
 .welcome__panel {
-  position: relative; z-index: 1;
-  flex: 1; display: flex; flex-direction: column; justify-content: flex-end;
-  padding: 24px 22px calc(26px + env(safe-area-inset-bottom));
-  overflow-y: auto; scrollbar-width: none;
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; background: var(--bg);
+  padding: 4px 22px calc(18px + env(safe-area-inset-bottom));
+  scrollbar-width: none;
 }
 .welcome__panel::-webkit-scrollbar { display: none; }
-.welcome__inner { width: 100%; }
-.welcome__pitch { color: #fff; font-size: 22px; font-weight: 700; line-height: 1.5; margin-bottom: 18px; }
+.welcome__inner { width: 100%; max-width: 460px; margin-inline: auto;
+                  flex: 1; display: flex; flex-direction: column; }
 
-.welcome__list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
+.welcome__brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.welcome__brand img { width: 38px; height: 38px; flex: 0 0 38px; border-radius: 11px; }
+.welcome__name { font-size: 19px; font-weight: 700; line-height: 1.2; }
+/* مسافة صريحة: السطران كانا ملتصقين لأن ارتفاع السطر وحده لا يفصلهما */
+.welcome__tag  { font-size: 12px; color: var(--txm); line-height: 1.4; margin-top: 5px; }
+
+.welcome__pitch { font-size: 16px; font-weight: 600; line-height: 1.7; margin-bottom: 18px; }
+
+/* margin-bottom:auto يدفع الأزرار إلى الأسفل مهما قلّت النقاط أو كثرت */
+.welcome__list { display: flex; flex-direction: column; gap: 11px; margin-bottom: auto; }
 .wfeat { display: flex; gap: 10px; align-items: flex-start; }
 .wfeat__i {
-  width: 26px; height: 26px; flex: 0 0 26px; border-radius: var(--r-full);
+  width: 22px; height: 22px; flex: 0 0 22px; border-radius: var(--r-full);
   display: grid; place-items: center;
-  background: rgba(255,255,255,.16); color: #fff;
+  background: var(--acc-soft); color: var(--acc-tx);
 }
-.wfeat__t { color: #fff; font-weight: 600; font-size: 15px; }
-.wfeat__s { color: rgba(255,255,255,.72); font-size: 13px; line-height: 1.6; }
+.wfeat__t { font-size: 14px; font-weight: 600; line-height: 1.5; }
+.wfeat__s { font-size: 12.5px; color: var(--txm); line-height: 1.55; }
 
-@media (min-width: 900px) {
-  .welcome { display: grid; grid-template-columns: 1fr 1fr; }
-  .welcome__art { position: relative; inset: auto; }
-  .welcome__over { inset-inline-start: 32px; top: 32px; }
+.welcome__actions { padding-top: 20px; }
+
+/* الشاشات القصيرة (هاتف أفقي أو شاشة صغيرة): الصورة تتراجع لتبقى الأزرار ظاهرة */
+@media (max-height: 680px) {
+  .welcome__art { flex-basis: 32dvh; min-height: 150px; }
+  .welcome__list { gap: 9px; }
+}
+
+/* --- لوحي: نفس الترتيب بعمود أوسع وهوامش أريح ------------------------------- */
+@media (min-width: 700px) and (max-width: 1099px) {
+  .welcome__art { flex-basis: 36dvh; max-height: 340px; }
+  .welcome__panel { padding: 8px 32px calc(26px + env(safe-area-inset-bottom)); }
+  .welcome__inner { max-width: 520px; }
+}
+
+/* --- لابتوب: عمودان ---------------------------------------------------------
+   في RTL يبدأ محور flex من اليمين، والعنصر الأول في DOM هو الصورة.
+   نستعمل order لنقل اللوحة إلى اليمين (حيث تبدأ القراءة) والصورة إلى اليسار. */
+@media (min-width: 1100px) {
+  .welcome { flex-direction: row; }
   .welcome__panel {
-    justify-content: center; background: var(--bg); padding: 40px;
+    order: 1; flex: 1 1 46%;
+    justify-content: center; padding: 40px 48px;
   }
-  .welcome__inner { max-width: 460px; margin-inline: auto; }
-  .welcome__pitch { color: var(--tx); font-size: 26px; }
-  .wfeat__i { background: var(--acc-soft); color: var(--acc-tx); }
-  .wfeat__t { color: var(--tx); }
-  .wfeat__s { color: var(--txm); }
-  .welcome__panel .btn--ghost { color: var(--acc-tx); }
-  .welcome__panel .faint { color: var(--txf); }
+  .welcome__art {
+    order: 2; flex: 1 1 54%;
+    min-height: 0; max-height: none;
+  }
+  /* الصورة هنا عمود كامل بجانب اللوحة لا شريط فوقها، فالتلاشي السفلي بلا معنى */
+  .welcome__art::after { display: none; }
+  .welcome__inner { flex: 0 1 auto; max-width: 420px; margin-inline: 0; }
+  .welcome__list { margin-bottom: 0; }
+  .welcome__actions { padding-top: 26px; }
 }
 
 .rowlink { display: flex; align-items: center; gap: 12px; padding: 14px 16px; width: 100%;
