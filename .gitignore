@@ -1,0 +1,20 @@
+# نظام التشغيل والمحرّرات
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+
+# Node (لأدوات التطوير فقط — التطبيق نفسه بلا اعتماديات)
+node_modules/
+package-lock.json
+
+# Capacitor — يُولَّد بالأمر ولا يُحرَّر يدويًا
+android/
+ios/
+.capacitor/
+
+# أسرار — لا يوجد أي منها في التطبيق حاليًا، والقاعدة وقائية
+.env
+.env.*
+*.key

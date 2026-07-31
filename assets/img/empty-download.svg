@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 200" width="260" height="200" role="img" aria-label="لا توجد دروس منزَّلة">
+  <!-- ألوان صريحة لا currentColor: هذا الملف يُعرض داخل <img> فلا يرث لون النص،
+       و currentColor فيه يسقط إلى الأسود ويختفي على الخلفية الداكنة. الرمادي
+       المحايد أدناه مقروء في الوضعين معًا. -->
+  <g fill="none" stroke="#8B9797" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".5">
+    <path d="M62 92 a34 34 0 0 1 34 -34 a44 44 0 0 1 84 6 a30 30 0 0 1 -4 60 H70 a30 30 0 0 1 -8 -32 z"/>
+  </g>
+  <g fill="none" stroke="#7FB4B7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M130 108 v52"/>
+    <path d="M108 140 l22 22 l22 -22"/>
+  </g>
+  <rect x="82" y="176" width="96" height="8" rx="4" fill="#8B9797" opacity=".35"/>
+</svg>

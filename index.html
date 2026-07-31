@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2F6F73" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0E1616" media="(prefers-color-scheme: dark)">
+  <title>منهاجي — منهاجك السوري بين يديك</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/img/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/img/icon-192.png">
+
+  <!-- الخط محلي داخل التطبيق ولا يُحمَّل من الشبكة: الطالب قد يفتحه أول مرة
+       بلا إنترنت.
+
+       Alexandria بأوزان ثابتة — ثلاثة ملفات للأوزان التي نستعملها فقط
+       (٤٠٠ للنص · ٦٠٠ للعناوين الفرعية · ٧٠٠ للعناوين). لا نحمّل بقية الأوزان
+       التسعة لأن كل ملف غير مستعمل هو تأخير في أول فتح.
+
+       الوزنان ٤٠٠ و٧٠٠ بصيغة woff2 (٣٠ ك.ب لكل منهما بدل ١٠٠)، والوزن ٦٠٠
+       ttf لأن الحزمة لا توفّر له woff2. تحويله يوفّر ٧٠ ك.ب إضافية. -->
+  <style>
+    @font-face { font-family:'Alexandria'; font-weight:400; font-style:normal; font-display:swap;
+                 src: url('assets/fonts/Alexandria-400.woff2') format('woff2'); }
+    @font-face { font-family:'Alexandria'; font-weight:600; font-style:normal; font-display:swap;
+                 src: url('assets/fonts/Alexandria-600.ttf') format('truetype'); }
+    @font-face { font-family:'Alexandria'; font-weight:700; font-style:normal; font-display:swap;
+                 src: url('assets/fonts/Alexandria-700.woff2') format('woff2'); }
+  </style>
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- scripts عادية لا ES modules: تعمل بفتح الملف مباشرةً (file://) وعلى السيرفر معًا -->
+  <script src="js/ui.js"></script>
+  <script src="js/data/seed.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/screens/onboarding.js"></script>
+  <script src="js/screens/main.js"></script>
+  <script src="js/screens/course.js"></script>
+  <script src="js/screens/exam.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "منهاجي — منهاجك السوري بين يديك",
+  "short_name": "منهاجي",
+  "description": "دروس بالفيديو، بنك أسئلة، وامتحانات وزارية — تعمل دون إنترنت.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#047B86",
+  "theme_color": "#047B86",
+  "categories": ["education"],
+  "icons": [
+    { "src": "assets/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
