@@ -9,22 +9,26 @@ window.Screens = window.Screens || {};
   // --- ٥. الرئيسية -------------------------------------------------------------
   Screens.home = () => {
     const s = Store.get();
-    const p = Store.subjectProgress();
     const gradeName = SEED.grades.find((g) => g.id === s.grade).name;
 
     // «موادّي» = الكورسات المشترَك بها فعليًا لا كل ما في الكتالوج.
     // sync.js يحسب entitled من وجود وحدات وصلت عبر RLS — لا نفترض شيئًا هنا.
-    //
-    // ملاحظة: Store.subjectProgress() يحسب تقدّمًا عامًّا عبر كل SEED.lessons،
-    // فلو تعدّدت الكورسات المشترَك بها لاحقًا سيتكرّر نفس الرقم على بطاقاتها.
-    // مقبول الآن لأن كورسًا واحدًا فقط مشترَك به فعليًا؛ تخصيص التقدّم لكل
-    // كورس على حدة عمل مؤجَّل عمدًا حتى يصير التعدّد واقعًا حقيقيًا لا افتراضًا.
+    // كل بطاقة تحسب تقدّمها بنفسها عبر Store.courseProgress(id) — لا رقم
+    // عام مكرَّر على كل البطاقات.
     const entitledCourses = (SEED.courses || []).filter((c) => c.entitled);
 
     const nextId = Object.keys(SEED.lessons).find((id) => s.lessons[id] !== 'done')
                 || Object.keys(SEED.lessons)[0];
     const next = SEED.lessons[nextId];
     const solved = Object.values(s.mastery).reduce((a, m) => a + m.total, 0);
+
+    // «لمحة سريعة» تحتاج رقمًا واحدًا يمثّل الكل — متوسط تقدّم كل المواد
+    // المشترَك بها، لا مادة واحدة مفترَضة. بمادة واحدة (الواقع الحالي) يساوي
+    // ببساطة تقدّم تلك المادة.
+    const overallPct = entitledCourses.length
+      ? Math.round(entitledCourses.reduce((a, c) => a + Store.courseProgress(c.id).percent, 0)
+          / entitledCourses.length)
+      : 0;
 
     const banner = C.syncBanner();
 
@@ -47,6 +51,7 @@ window.Screens = window.Screens || {};
             entitledCourses.length
               ? h('div.stack.gap-10', ...entitledCourses.map((course) => {
                   const subject = SEED.subjects.find((x) => x.id === course.subject) || {};
+                  const p = Store.courseProgress(course.id);
                   return h('div.card.card--tap', { onclick: () => App.go('course') },
                     subject.cover && h('div.subject__cover', h('img', { src: subject.cover, alt: '' })),
                     h('div.subject',
@@ -88,7 +93,7 @@ window.Screens = window.Screens || {};
               h('div', { style: 'font-weight:700;margin-bottom:12px' }, 'لمحة سريعة'),
               h('div.stat-row',
                 h('div.stat',
-                  h('div.stat__v', { style: 'color:var(--acc-tx)' }, ar(p.percent) + '٪'),
+                  h('div.stat__v', { style: 'color:var(--acc-tx)' }, ar(overallPct) + '٪'),
                   h('div.stat__k', 'تقدّمك')),
                 h('div.stat',
                   h('div.stat__v', ar(solved)),

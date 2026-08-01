@@ -52,6 +52,20 @@ ok('أضعف موضوع = syntaxe', Store.weakestTopic().id === 'syntaxe');
 // --- تقدّم الوحدة ---
 ok('الوحدة الأولى مكتملة ٢/٢', Store.unitProgress(SEED.units[0]).done === 2);
 
+// --- courseProgress: مؤشر مادة واحدة، لا التطبيق كله --------------------------
+// في بيانات العيّنة كورس واحد يغطّي كل الوحدات، فالنتيجة يجب أن تطابق
+// subjectProgress القديم رياضيًا — هذا يثبت أن إعادة الحصر لم تكسر الحساب.
+const cp = Store.courseProgress('fr-g9-core');
+const overall = Store.subjectProgress();
+ok('courseProgress.percent يطابق subjectProgress بكورس واحد', cp.percent === overall.percent);
+ok('courseProgress يحصر عدد الدروس بدروس هذا الكورس فقط', cp.lessonsTotal === 4);
+ok('courseProgress يعيد مجموعة مواضيع هذا الكورس', cp.topicIds instanceof Set && cp.topicIds.size > 0);
+ok('كورس غير موجود يعيد صفرًا لا خطأ', Store.courseProgress('لا-وجود-له').percent === 0);
+
+// weakestTopic بمرشِّح مواضيع — يقتصر البحث على المجموعة الممرَّرة فقط
+const onlyArticles = new Set(['articles']);
+ok('weakestTopic بمرشِّح يتقيّد به', Store.weakestTopic(onlyArticles).id === 'articles');
+
 // --- التنزيلات ---
 ok('articles-definis منزَّل ابتداءً', Store.get().downloaded.includes('articles-definis'));
 Store.toggleDownload('articles-definis');

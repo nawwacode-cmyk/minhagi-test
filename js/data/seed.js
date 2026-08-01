@@ -274,17 +274,17 @@ window.SEED = {
   exams: [
     {
       id: 'mock-1', kind: 'mock', title: 'امتحان تجريبي — النموذج الأول',
-      minutes: 45, pass: 50,
+      minutes: 45, pass: 50, subject: 'fr', grade: 'g9',
       questions: ['q-sal-1', 'q-art-1', 'q-art-2', 'q-conj-1', 'q-conj-2', 'q-syn-1', 'q-voc-1', 'q-art-3'],
     },
     {
       id: 'min-2024', kind: 'ministry', title: 'الدورة الوزارية ٢٠٢٤',
-      minutes: 60, pass: 50,
+      minutes: 60, pass: 50, subject: 'fr', grade: 'g9',
       questions: ['q-art-1', 'q-conj-2', 'q-conj-3', 'q-sal-2', 'q-syn-1', 'q-art-3'],
     },
     {
       id: 'min-2023', kind: 'ministry', title: 'الدورة الوزارية ٢٠٢٣',
-      minutes: 60, pass: 50,
+      minutes: 60, pass: 50, subject: 'fr', grade: 'g9',
       questions: ['q-sal-1', 'q-art-2', 'q-conj-1', 'q-voc-1'],
     },
   ],

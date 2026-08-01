@@ -207,15 +207,69 @@ window.Store = (function () {
     };
   }
 
+  /**
+   * مؤشر تقدّم كورس واحد بعينه — لا التطبيق كله.
+   *
+   * ثلاثة أبعاد، بنفس الأوزان دائمًا:
+   *   الفيديوهات (٥٠٪) — كل درس = فيديو + نص؛ إتمامه يعني مشاهدته
+   *   الأسئلة     (٣٥٪) — متوسط إتقان المواضيع التي غطّتها دروس هذا الكورس تحديدًا
+   *   الامتحانات  (١٥٪) — أفضل نتيجة بين امتحانات نفس مادة وصف هذا الكورس
+   *
+   * لماذا الحصر ضروري لا رفاهية: بلا هذا الحصر، إكمال درس في مادة الفرنسي
+   * كان يرفع رقمًا واحدًا يُعرض على بطاقة كل مادة أخرى أيضًا — أرقام كاذبة
+   * فور وجود أكثر من مادة مشترَك بها.
+   */
+  function courseProgress(courseId) {
+    const course = (SEED.courses || []).find((c) => c.id === courseId);
+
+    const lessonIds = (SEED.units || [])
+      .filter((u) => u.course === courseId)
+      .flatMap((u) => u.lessons || []);
+
+    const done = lessonIds.filter((id) => state.lessons[id] === 'done').length;
+    const lessonPct = lessonIds.length ? (done / lessonIds.length) * 100 : 0;
+
+    // مواضيع دروس هذا الكورس تحديدًا — لا كل موضوع مرصود بالتطبيق
+    const topicIds = new Set();
+    lessonIds.forEach((lid) => (SEED.lessons[lid]?.topics || []).forEach((t) => topicIds.add(t)));
+    const masteryVals = [...topicIds]
+      .map((t) => state.mastery[t]?.mastery)
+      .filter((v) => v !== undefined);
+    const masteryAvg = masteryVals.length
+      ? masteryVals.reduce((a, b) => a + b, 0) / masteryVals.length : 0;
+
+    // الامتحانات مرتبطة بـ(مادة+صف) لا بكورس بعينه عمدًا — الدورة الوزارية
+    // مشترَكة بين كل أساتذة نفس المادة. نحصرها هنا بمادة وصف هذا الكورس.
+    const courseExams = (SEED.exams || []).filter((e) =>
+      course && e.subject === course.subject && e.grade === course.grade);
+    const examScores = courseExams.map((e) => state.exams[e.id]?.best || 0);
+    const bestExam = examScores.length ? Math.max(...examScores) : 0;
+
+    const pct = 0.50 * lessonPct + 0.35 * masteryAvg + 0.15 * bestExam;
+    return {
+      percent: Math.max(0, Math.min(100, Math.round(pct))),
+      lessonsDone: done, lessonsTotal: lessonIds.length,
+      lessonPct: Math.round(lessonPct),
+      masteryAvg: Math.round(masteryAvg),
+      bestExam: Math.round(bestExam),
+      topicIds,               // يفيد weakestTopicIn لعرض أضعف موضوع لهذا الكورس تحديدًا
+      solved: [...topicIds].reduce((a, t) => a + (state.mastery[t]?.total || 0), 0),
+    };
+  }
+
   function unitProgress(unit) {
     const done = unit.lessons.filter((id) => state.lessons[id] === 'done').length;
     return { done, total: unit.lessons.length,
              pct: unit.lessons.length ? (done / unit.lessons.length) * 100 : 0 };
   }
 
-  /** أضعف موضوع مُمارَس — يغذّي اقتراح «نقطة ضعفك الآن» */
-  function weakestTopic() {
+  /**
+   * أضعف موضوع. بلا `topicIds` يبحث عبر كل التطبيق (خلف توافقي)؛ مرِّر
+   * `courseProgress(id).topicIds` لحصر البحث بمواضيع كورس بعينه.
+   */
+  function weakestTopic(topicIds) {
     const rows = SEED.topics
+      .filter((t) => !topicIds || topicIds.has(t.id))
       .map((t) => ({ ...t, ...(state.mastery[t.id] || { mastery: null }) }))
       .filter((t) => t.mastery !== null);
     if (!rows.length) return null;
@@ -227,6 +281,6 @@ window.Store = (function () {
     enqueue, clearOutbox, pending,
     completeLesson, startLesson, recordAttempt, recordExam,
     toggleDownload, setTheme, toggleOnline,
-    subjectProgress, unitProgress, weakestTopic,
+    subjectProgress, courseProgress, unitProgress, weakestTopic,
   };
 })();

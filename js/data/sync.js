@@ -43,7 +43,7 @@ window.Sync = (function () {
       Api.from('lesson_topics', { select: 'lesson_id,topic_id' }),
       Api.from('questions', { select: 'id,code,type,stem_md,answer_key,difficulty,explanation_md,topic_id,lesson_id' }),
       Api.from('question_options', { select: 'id,question_id,code,text_md,is_correct,sort_order', order: 'sort_order' }),
-      Api.from('exams',     { select: 'id,code,title_ar,kind,duration_minutes,pass_percent,sort_order', order: 'sort_order' }),
+      Api.from('exams',     { select: 'id,code,title_ar,kind,duration_minutes,pass_percent,subject_id,grade_id,sort_order', order: 'sort_order' }),
       Api.from('exam_questions', { select: 'exam_id,question_id,sort_order,points' }),
       Api.from('videos',    { select: 'id,title,quality,duration_s,size_bytes' }).catch(() => []),
     ]);
@@ -176,9 +176,15 @@ window.Sync = (function () {
 
       questions: mappedQuestions,
 
+      // subject/grade — لا course_id: الامتحان الوزاري مشترَك عمدًا بين كل
+      // كورسات نفس المادة والصف مهما اختلف الأستاذ، فيُربط بالمستوى الأعلى
+      // لا بكورس بعينه. هذا ما يمكّن courseProgress من حصر أفضل نتيجة امتحان
+      // بمادة الكورس تحديدًا بدل خلطها بامتحانات مواد أخرى.
       exams: exams.map((e) => ({
         id: e.code, kind: e.kind === 'past_paper' ? 'ministry' : e.kind,
         title: e.title_ar, minutes: e.duration_minutes, pass: e.pass_percent,
+        subject: subjectByUuid[e.subject_id]?.code || null,
+        grade: gradeByUuid[e.grade_id]?.code || null,
         questions: examQuestions.filter((x) => x.exam_id === e.id)
           .sort((a, b) => a.sort_order - b.sort_order)
           .map((x) => Q[x.question_id]?.code)
