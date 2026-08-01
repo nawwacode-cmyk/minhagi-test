@@ -150,26 +150,30 @@ window.Screens = window.Screens || {};
                   }))),
 
           h('aside.dash__side',
+            // الحماية صارت بالجلسة الواحدة لا بربط الجهاز: تبديل الجهاز حرّ،
+            // والدخول الجديد يُنهي السابق. النصّ هنا يجب أن يقول ذلك بوضوح
+            // وإلّا ظنّ الطالب أنه مقيَّد بجهاز واحد إلى الأبد.
             h('div.card',
-              h('div', { style: 'padding:16px 16px 8px;font-weight:700' }, 'الجهاز المرتبط'),
-              s.devices.length
-                ? h('div.list-sep', ...s.devices.map((d) => h('div', { style: 'padding:12px 16px' },
-                    h('div.small', { style: 'font-weight:600' }, d.name),
-                    h('div.faint', { style: 'font-size:12px;margin-bottom:10px' }, d.meta),
-                    // فكّ الارتباط عملية لا رجعة فيها من داخل التطبيق: بلا بريد
-                    // ولا كلمة سر، إعادة الربط تحتاج الكود نفسه بيدك.
-                    h('button.btn.btn--danger.btn--sm', {
+              h('div', { style: 'padding:16px 16px 8px;font-weight:700' }, 'جلستك الحالية'),
+              s.activated
+                ? h('div', { style: 'padding:0 16px 12px' },
+                    h('div.small', { style: 'font-weight:600' }, Device.label()),
+                    h('div.faint', { style: 'font-size:12px;margin-bottom:14px' },
+                      s.lastSync ? 'آخر مزامنة قبل قليل' : 'نشطة الآن'),
+                    h('button.btn.btn--secondary.btn--sm', {
                       onclick: () => {
-                        if (!confirm('سيُفكّ ربط هذا الجهاز وتخرج من حسابك.\n\n'
-                          + 'لن تستطيع الدخول ثانيةً إلا بالكود نفسه. متابعة؟')) return;
-                        Store.signOut(); App.go('welcome');
+                        if (!confirm('سيُغلق التطبيق حسابك على هذا الجهاز.\n\n'
+                          + 'تستطيع الدخول متى شئت باسمك وكودك. متابعة؟')) return;
+                        Api.signOut();
+                        Store.set({ signedIn: false, evicted: false });
+                        App.go('welcome');
                       },
-                    }, 'فكّ الارتباط والخروج'))))
+                    }, 'تسجيل الخروج'))
                 : h('div.muted.small', { style: 'padding:4px 16px 12px' },
-                    'لا جهاز مرتبط — أنت في وضع التجربة.'),
+                    'أنت في وضع التجربة — لا جلسة مرتبطة.'),
               h('div.hint', { style: 'padding:0 16px 14px' },
-                `الاشتراك يعمل على ${ar(Store.MAX_DEVICES)} جهاز فقط. `
-                + 'لو غيّرت هاتفك تواصل مع الموزّع ليفكّ الارتباط.')),
+                'اشتراكك يعمل على أي جهاز، لكن على جهاز واحد في الوقت نفسه. '
+                + 'إن دخلت من جهاز آخر يُغلق هذا تلقائيًا.')),
 
             h('div.card.card--pad.row',
               h('div.grow',

@@ -7,14 +7,13 @@ window.Store = (function () {
   const KEY = 'manhaji.v1';
 
   /**
-   * حدّ الأجهزة = جهاز واحد.
+   * النموذج الأمني: لا بريد ولا كلمة مرور. الكود بمثابة كلمة السر،
+   * و**الجلسة الواحدة النشطة** هي ما يمنع تداوله: الدخول من أي جهاز يُبطل
+   * الجلسة السابقة فورًا، فيطرد المتقاسمان بعضهما في كل مرة.
    *
-   * هذا هو **كامل النموذج الأمني** للتطبيق: لا كلمة سر ولا بريد، فالكود هو
-   * بمثابة كلمة السر، وارتباطه بجهاز واحد هو ما يمنع تداوله بين الطلاب.
-   * الكود المسرَّب بلا ربط جهاز = اشتراك واحد يستعمله فصل كامل.
+   * (ربط الجهاز كان النموذج السابق. تراجع دوره إلى سجلّ للدعم الفني لأن بصمة
+   * المتصفح تُصفَّر بمسح بيانات الموقع، فلم تكن تمنع شيئًا فعليًا.)
    */
-  const MAX_DEVICES = 1;
-
   const initial = () => ({
     // الحساب والاشتراك — لا بريد ولا كلمة مرور
     signedIn: false,
@@ -22,8 +21,6 @@ window.Store = (function () {
     username: '',
     grade: 'g9',
     daysLeft: 283,
-    /** الجهاز المرتبط. فارغ = لم يُربط بعد. */
-    devices: [],
 
     // التفضيلات
     theme: 'light',
@@ -163,63 +160,17 @@ window.Store = (function () {
     }));
   }
 
-  function removeDevice(id) {
-    set((s) => ({ devices: s.devices.filter((d) => d.id !== id) }));
-  }
-
   /**
-   * تسجيل الدخول: اسم المستخدم + كود التفعيل. لا شيء غير ذلك.
+   * الخروج المحلي فقط — لا يمسّ الجلسة على السيرفر ولا التقدّم.
    *
-   * في الإصدار الحقيقي يذهب الكود إلى Edge Function `redeem-code` التي تتحقق
-   * منه وتربطه بالجهاز في معاملة ذرّية واحدة. هنا نحاكي القواعد نفسها محليًا:
-   *   - بادئة الكود تحدّد الصف (كما يفعل السيرفر عبر grade_id في جدول الأكواد)
-   *   - كود واحد ⇒ جهاز واحد
+   * التقدّم يبقى عمدًا: قد يحمل الطابور نشاطًا لم يُرفع بعد، وسيُرسل فور
+   * الدخول التالي. مسحه هنا يعني ضياعه بلا سبب.
    *
-   * يعيد `null` عند النجاح، أو رسالة عربية جاهزة للعرض عند الفشل.
+   * وإبطال الجلسة على السيرفر لا يحدث هنا بل عند **الدخول التالي** من أي
+   * جهاز — فذلك ما يولّد معرّف جلسة جديدًا يُبطل ما قبله.
    */
-  function signIn(username, code) {
-    const name = (username || '').trim();
-    const c = (code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-
-    if (name.length < 3) return 'اسم المستخدم قصير — ٣ أحرف على الأقل.';
-    if (c.length < 7)    return 'كود التفعيل غير مكتمل.';
-
-    // محاكاة: هذا الكود مربوط بجهاز آخر بالفعل
-    if (c === 'FR9USED') {
-      return 'هذا الكود مرتبط بجهاز آخر. لفكّ الارتباط تواصل مع الموزّع الذي اشتريت منه البطاقة.';
-    }
-
-    const grade = c.startsWith('FR9') ? 'g9' : c.startsWith('F12') ? 'g12' : null;
-    if (!grade) return 'كود التفعيل غير صحيح. تأكد من الأحرف والأرقام.';
-
-    set({
-      signedIn: true,
-      activated: true,
-      username: name,
-      grade,
-      devices: [{
-        id: Date.now(),
-        name: deviceLabel(),
-        meta: 'رُبط اليوم · الجهاز الوحيد المسموح',
-      }],
-    });
-    return null;
-  }
-
-  /** وصف مقروء للجهاز. في نسخة Capacitor يُستبدل بـ @capacitor/device. */
-  function deviceLabel() {
-    const ua = navigator.userAgent || '';
-    const os = /Android/i.test(ua) ? 'Android'
-             : /iPhone|iPad/i.test(ua) ? 'iPhone / iPad'
-             : /Windows/i.test(ua) ? 'Windows'
-             : /Mac/i.test(ua) ? 'Mac' : 'جهاز';
-    return `هذا الجهاز — ${os}`;
-  }
-
   function signOut() {
-    // الخروج يفكّ ربط الجهاز: بلا ذلك يبقى الاشتراك محجوزًا على جهاز
-    // لم يعد المستخدم يملكه.
-    set({ signedIn: false, activated: false, devices: [] });
+    set({ signedIn: false, activated: false, evicted: false });
   }
 
   function setTheme(theme) {
@@ -272,8 +223,7 @@ window.Store = (function () {
   }
 
   return {
-    get, set, subscribe, reset, MAX_DEVICES,
-    signIn, signOut, removeDevice, deviceLabel,
+    get, set, subscribe, reset, signOut,
     enqueue, clearOutbox, pending,
     completeLesson, startLesson, recordAttempt, recordExam,
     toggleDownload, setTheme, toggleOnline,

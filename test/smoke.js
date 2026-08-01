@@ -60,24 +60,32 @@ ok('يمكن حذف التنزيل', !Store.get().downloaded.includes('articles-
 // --- الحفظ المحلي ---
 ok('يُحفظ في localStorage', !!localStorage.getItem('manhaji.v1'));
 
-// --- تسجيل الدخول: اسم مستخدم + كود، بجهاز واحد ------------------------------
+// --- طابور الرفع ---------------------------------------------------------------
+// المصادقة نفسها تُختبر على السيرفر لا هنا: الدالة activate هي المرجع،
+// وأي محاكاة محلية لها تختبر كودًا لا يعمل في الإنتاج.
 Store.reset();
-ok('يرفض اسم المستخدم القصير', !!Store.signIn('اح', 'FR97K3M'));
-ok('يرفض الكود الناقص',        !!Store.signIn('أحمد', 'FR9'));
-ok('يرفض بادئة غير معروفة',    !!Store.signIn('أحمد', 'ZZ12345'));
-ok('يرفض كودًا مرتبطًا بجهاز آخر', !!Store.signIn('أحمد', 'FR9USED'));
-ok('لا يُسجَّل الدخول بعد الرفض', Store.get().signedIn === false);
+ok('الطابور يبدأ فارغًا', Store.pending() === 0);
 
-ok('يقبل كود التاسع', Store.signIn('أحمد', 'fr9-7k3m') === null);   // حروف صغيرة وشرطة
-ok('الصف مشتقّ من الكود', Store.get().grade === 'g9');
-ok('اسم المستخدم محفوظ', Store.get().username === 'أحمد');
-ok('جهاز واحد مرتبط', Store.get().devices.length === Store.MAX_DEVICES);
+Store.completeLesson('salutations');
+ok('إكمال درس يُقيَّد في الطابور', Store.pending() === 1);
+
+Store.recordAttempt('articles', true, 'q-art-1');
+ok('محاولة سؤال تُقيَّد', Store.pending() === 2);
+
+const attempt = Store.get().outbox.find((x) => x.entity === 'attempt');
+ok('المحاولة تحمل معرّفًا من العميل', !!attempt.id && attempt.id.length > 30);
+ok('المحاولة تحمل رمز السؤال', attempt.questionId === 'q-art-1');
+
+Store.recordExam('mock-1', 70);
+ok('الامتحان يُقيَّد', Store.pending() === 3);
+
+const keys = Store.get().outbox.map((x) => x.key);
+Store.clearOutbox([keys[0]]);
+ok('تفريغ انتقائي يحذف المؤكَّد فقط', Store.pending() === 2);
 
 Store.signOut();
-ok('الخروج يفكّ ربط الجهاز', Store.get().devices.length === 0 && !Store.get().signedIn);
-
-ok('يقبل كود البكالوريا', Store.signIn('سارة', 'F12A4XQ') === null);
-ok('صف البكالوريا مشتقّ', Store.get().grade === 'g12');
+ok('الخروج لا يمسح الطابور', Store.pending() === 2);
+ok('الخروج يمسح علامة الدخول', Store.get().signedIn === false);
 
 // --- سلامة روابط المحتوى ---
 const bad = [];

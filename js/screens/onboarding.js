@@ -136,10 +136,12 @@ window.Screens = window.Screens || {};
           username, code, await Device.fingerprint(), Device.platform());
 
         Store.set({
-          signedIn: true, activated: true, username: res.username || username,
-          devices: [{ id: 1, name: Device.label(), meta: 'رُبط اليوم · الجهاز الوحيد المسموح' }],
+          signedIn: true, activated: true, evicted: false,
+          username: res.username || username,
         });
         App.go('home');
+        // الدخول الجديد أبطل أي جلسة سابقة — نسحب المحتوى والتقدّم فورًا
+        Sync.syncNow().then(() => App.render());
 
       } catch (e) {
         // الرسائل تأتي بالعربية من الدالة على السيرفر — لا نترجمها هنا
@@ -188,15 +190,15 @@ window.Screens = window.Screens || {};
 
             h('div.card.card--pad',
               h('div.row', { style: 'margin-bottom:8px' },
-                h('span', { style: 'color:var(--warn)' }, icon.warn(20)),
-                h('div', { style: 'font-weight:700' }, 'جهاز واحد فقط')),
+                h('span', { style: 'color:var(--info)' }, icon.warn(20)),
+                h('div', { style: 'font-weight:700' }, 'جلسة واحدة في الوقت نفسه')),
               h('div.muted.small',
-                'يفتح الاشتراك على جهاز واحد. لو غيّرت هاتفك أو أعدت ضبطه، '
-                + 'الكود يبقى مرتبطًا بالجهاز القديم.'),
+                'اشتراكك يعمل على أي جهاز — هاتفك أو حاسوبك — لكن على واحد '
+                + 'في الوقت نفسه. إن دخلت من جهاز آخر يُغلق السابق تلقائيًا.'),
               h('div.small', { style: 'margin-top:12px;font-weight:600' },
-                'غيّرت جهازك؟'),
+                'غيّرت جهازك أو أعدت تثبيت التطبيق؟'),
               h('div.muted.small', { style: 'margin-top:2px' },
-                'تواصل مع الموزّع الذي اشتريت منه البطاقة ليفكّ الارتباط.')),
+                'ادخل بنفس الاسم والكود — لا شيء يضيع، وتقدّمك ينتقل معك.')),
           ),
         ),
       ),
