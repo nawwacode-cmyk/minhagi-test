@@ -10,8 +10,16 @@ window.Screens = window.Screens || {};
   Screens.home = () => {
     const s = Store.get();
     const p = Store.subjectProgress();
-    const french = SEED.subjects[0];
     const gradeName = SEED.grades.find((g) => g.id === s.grade).name;
+
+    // «موادّي» = الكورسات المشترَك بها فعليًا لا كل ما في الكتالوج.
+    // sync.js يحسب entitled من وجود وحدات وصلت عبر RLS — لا نفترض شيئًا هنا.
+    //
+    // ملاحظة: Store.subjectProgress() يحسب تقدّمًا عامًّا عبر كل SEED.lessons،
+    // فلو تعدّدت الكورسات المشترَك بها لاحقًا سيتكرّر نفس الرقم على بطاقاتها.
+    // مقبول الآن لأن كورسًا واحدًا فقط مشترَك به فعليًا؛ تخصيص التقدّم لكل
+    // كورس على حدة عمل مؤجَّل عمدًا حتى يصير التعدّد واقعًا حقيقيًا لا افتراضًا.
+    const entitledCourses = (SEED.courses || []).filter((c) => c.entitled);
 
     const nextId = Object.keys(SEED.lessons).find((id) => s.lessons[id] !== 'done')
                 || Object.keys(SEED.lessons)[0];
@@ -36,28 +44,33 @@ window.Screens = window.Screens || {};
           h('div.dash__main',
             h('div.section-label', { style: 'padding:0 0 2px' }, 'موادّي'),
 
-            h('div.card.card--tap', { onclick: () => App.go('course') },
-              h('div.subject__cover', h('img', { src: french.cover, alt: '' })),
-              h('div.subject',
-                ring(p.percent, 68),
-                h('div.subject__body',
-                  h('div.subject__title', french.name),
-                  h('div.subject__meta',
-                    `${gradeName} · ${ar(p.lessonsDone)} دروس من ${ar(p.lessonsTotal)}`),
-                  s.activated
-                    ? h('div.subject__sub', `متبقٍ ${ar(s.daysLeft)} يومًا على اشتراكك`)
-                    : h('div', { style: 'margin-top:6px' },
-                        h('span.badge.badge--free', 'درس مجاني متاح'))))),
+            entitledCourses.length
+              ? h('div.stack.gap-10', ...entitledCourses.map((course) => {
+                  const subject = SEED.subjects.find((x) => x.id === course.subject) || {};
+                  return h('div.card.card--tap', { onclick: () => App.go('course') },
+                    subject.cover && h('div.subject__cover', h('img', { src: subject.cover, alt: '' })),
+                    h('div.subject',
+                      ring(p.percent, 68),
+                      h('div.subject__body',
+                        h('div.subject__title', subject.name || course.title),
+                        h('div.subject__meta',
+                          `${gradeName} · ${ar(p.lessonsDone)} دروس من ${ar(p.lessonsTotal)}`),
+                        s.activated
+                          ? h('div.subject__sub', `متبقٍ ${ar(s.daysLeft)} يومًا على اشتراكك`)
+                          : h('div', { style: 'margin-top:6px' },
+                              h('span.badge.badge--free', 'درس مجاني متاح')))));
+                }))
+              : C.empty({
+                  title: 'لا اشتراك فعّال بعد',
+                  text: 'تصفّح الكورسات المتاحة وابدأ اشتراكك.',
+                  action: h('button.btn.btn--primary', { onclick: () => App.go('courses') },
+                    'تصفّح الكورسات'),
+                }),
 
-            h('div.section-label', { style: 'padding:8px 0 2px' }, 'قريبًا'),
-            h('div.stack.gap-10',
-              ...SEED.subjects.filter((x) => !x.ready).map((x) =>
-                h('div.card.subject.subject--soon',
-                  h('div.subject__icon', x.id === 'en' ? 'EN' : '٪'),
-                  h('div.subject__body',
-                    h('div', { style: 'font-weight:700' }, x.name),
-                    h('div.muted.small', gradeName)),
-                  h('span.badge.badge--soon', 'قريبًا')))),
+            h('button.btn.btn--ghost.btn--block', {
+              style: 'margin-top:10px',
+              onclick: () => App.go('courses'),
+            }, 'تصفّح كل الكورسات'),
           ),
 
           // --- العمود الجانبي: الفعل التالي والسياق ---
@@ -85,7 +98,7 @@ window.Screens = window.Screens || {};
                   h('div.stat__k', 'درس محفوظ'))),
               h('button.btn.btn--ghost.btn--block', {
                 style: 'margin-top:10px',
-                onclick: () => App.go('course', { tab: 'progress' }),
+                onclick: () => App.go('progress'),
               }, 'تفاصيل تقدّمك')),
 
             !s.activated && h('div.callout',

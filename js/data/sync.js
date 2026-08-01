@@ -31,12 +31,13 @@ window.Sync = (function () {
   // ---------------------------------------------------------------------------
   async function pullContent() {
     // كل شيء بتوكن المستخدم ⇒ RLS تحصر الناتج باشتراكه. لا فلترة أمنية هنا.
-    const [subjects, grades, topics, courses, units, lessons, lessonTopics,
+    const [subjects, grades, topics, courses, teachers, units, lessons, lessonTopics,
            questions, options, exams, examQuestions, videos] = await Promise.all([
       Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order' }),
       Api.from('grades',    { select: 'id,code,name_ar,sort_order' }),
       Api.from('topics',    { select: 'id,code,name_ar,name_native,sort_order' }),
-      Api.from('courses',   { select: 'id,code,title_ar,subject_id,grade_id' }),
+      Api.from('courses',   { select: 'id,code,title_ar,subject_id,grade_id,teacher_id' }),
+      Api.from('teachers',  { select: 'id,name' }).catch(() => []),
       Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order', order: 'sort_order' }),
       Api.from('lessons',   { select: 'id,code,title_ar,body_html,est_minutes,is_free,unit_id,video_id,sort_order', order: 'sort_order' }),
       Api.from('lesson_topics', { select: 'lesson_id,topic_id' }),
@@ -119,23 +120,48 @@ window.Sync = (function () {
       if (q.lesson) (lessonQuestions[q.lesson] = lessonQuestions[q.lesson] || []).push(q.id);
     });
 
+    // --- الكورسات: وحدة الوصول الفعلية، لا المادة -----------------------------
+    // `courses` مرئية للجميع (كتالوج) بفضل RLS، بينما `units` تصل فقط لمن
+    // يملك صلاحية الكورس. لذلك: «الكورس عنده وحدات وصلتنا» = مشترَك فيه فعلًا.
+    // هذا الحساب هو الفرق بين كتالوج صادق وكتالوج يعرض كل شيء «مفتوحًا».
+    const subjectByUuid = byId(subjects), gradeByUuid = byId(grades);
+    const teacherByUuid = byId(teachers || []);
+    const entitledCourseIds = new Set(units.map((u) => u.course_id));
+
     const content = {
       pulledAt: new Date().toISOString(),
 
       subjects: subjects.map((s) => ({
         id: s.code, name: s.name_ar, native: s.name_native,
-        cover: s.code === 'fr' ? 'assets/img/cover-fr.jpg' : null, ready: true,
+        cover: s.code === 'fr' ? 'assets/img/cover-fr.jpg' : null,
       })),
       grades: grades.sort((a, b) => a.sort_order - b.sort_order)
         .map((g) => ({ id: g.code, name: g.name_ar, note: '' })),
       topics: topics.sort((a, b) => a.sort_order - b.sort_order)
         .map((t) => ({ id: t.code, name: t.name_ar, native: t.name_native })),
 
-      units: units.map((u) => ({
-        id: u.code, title: u.title_ar,
-        lessons: (unitLessons[u.id] || []).sort((a, b) => a.sort_order - b.sort_order)
-          .map((l) => l.code),
+      /**
+       * الكتالوج الكامل — يشمل كورسات لا يملكها الطالب، لعرضها في شاشة الكورسات.
+       * اسم الأستاذ يظهر هنا سواء كان من فريقنا أو أستاذًا متعاقَدًا خارجيًا؛
+       * التطبيق لا يفرّق بينهما — الفرق تجاري (نسبة الأرباح) لا تقني، ويُدار
+       * خارج المخطط بلا حاجة لأي تمييز في البيانات.
+       */
+      courses: courses.map((c) => ({
+        id: c.code, title: c.title_ar,
+        subject: subjectByUuid[c.subject_id]?.code || null,
+        grade: gradeByUuid[c.grade_id]?.code || null,
+        teacher: teacherByUuid[c.teacher_id]?.name || null,
+        entitled: entitledCourseIds.has(c.id),
       })),
+
+      units: units.map((u) => {
+        const course = courses.find((c) => c.id === u.course_id);
+        return {
+          id: u.code, title: u.title_ar, course: course?.code || null,
+          lessons: (unitLessons[u.id] || []).sort((a, b) => a.sort_order - b.sort_order)
+            .map((l) => l.code),
+        };
+      }),
 
       lessons: Object.fromEntries(lessons.map((l) => [l.code, {
         id: l.code, title: l.title_ar, minutes: l.est_minutes, free: l.is_free,

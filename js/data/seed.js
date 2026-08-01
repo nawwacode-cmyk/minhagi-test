@@ -6,14 +6,25 @@
 window.SEED = {
 
   subjects: [
-    { id: 'fr', name: 'اللغة الفرنسية', native: 'Français', cover: 'assets/img/cover-fr.jpg', ready: true },
-    { id: 'en', name: 'اللغة الإنجليزية', native: 'English', ready: false },
-    { id: 'math', name: 'الرياضيات', native: null, ready: false },
+    { id: 'fr', name: 'اللغة الفرنسية', native: 'Français', cover: 'assets/img/cover-fr.jpg' },
+    { id: 'en', name: 'اللغة الإنجليزية', native: 'English' },
+    { id: 'math', name: 'الرياضيات', native: null },
   ],
 
   grades: [
     { id: 'g9',  name: 'الصف التاسع', note: 'شهادة التعليم الأساسي' },
     { id: 'g12', name: 'البكالوريا',  note: 'الفرع الأدبي والعلمي' },
+  ],
+
+  /**
+   * الكورس — لا المادة — هو وحدة الوصول والاشتراك. `entitled` هنا بيانات
+   * تجريبية ثابتة؛ في الوضع الحقيقي يحسبها sync.js من وجود وحدات وصلت فعليًا
+   * عبر RLS، لا من علم مخزَّن.
+   */
+  courses: [
+    { id: 'fr-g9-core', title: 'منهاج اللغة الفرنسية — الصف التاسع', subject: 'fr', grade: 'g9', teacher: 'أ. سامي', entitled: true },
+    { id: 'en-g9-core', title: 'منهاج اللغة الإنجليزية — الصف التاسع', subject: 'en', grade: 'g9', teacher: null, entitled: false },
+    { id: 'math-g9-core', title: 'منهاج الرياضيات — الصف التاسع', subject: 'math', grade: 'g9', teacher: null, entitled: false },
   ],
 
   topics: [
@@ -26,11 +37,11 @@ window.SEED = {
 
   units: [
     {
-      id: 'u1', title: 'الوحدة الأولى: التعارف والتحيات',
+      id: 'u1', title: 'الوحدة الأولى: التعارف والتحيات', course: 'fr-g9-core',
       lessons: ['salutations', 'articles-definis'],
     },
     {
-      id: 'u2', title: 'الوحدة الثانية: الأفعال الأساسية',
+      id: 'u2', title: 'الوحدة الثانية: الأفعال الأساسية', course: 'fr-g9-core',
       lessons: ['etre-avoir', 'negation'],
     },
   ],

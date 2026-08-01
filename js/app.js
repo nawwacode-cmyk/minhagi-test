@@ -21,18 +21,21 @@ window.App = (function () {
     shell = root;
   }
 
-  // --- الشريط الجانبي (حاسوب فقط — مخفي بـ CSS دون ذلك) ----------------------
+  /**
+   * الشريط الجانبي (حاسوب فقط — مخفي بـ CSS دون ذلك).
+   *
+   * الدروس والتمارين والامتحانات لا تظهر هنا كوجهات مستقلة — هي أقسام داخل
+   * المادة نفسها (التبويبات داخل شاشة الكورس)، لا مستوى تنقّل عابر للمواد.
+   * الشريط يحمل فقط ما هو فعلًا عابر للمواد: الرئيسية، الكتالوج، التقدّم
+   * الكلّي، والحساب.
+   */
   const RAIL_ITEMS = [
     { id: 'home',     label: 'الرئيسية', ico: () => icon.home(20),
       go: () => go('home') },
-    { id: 'lessons',  label: 'الدروس',   ico: () => icon.book(20),
-      go: () => go('course', { tab: 'lessons' }) },
-    { id: 'practice', label: 'تمارين',   ico: () => icon.pencil(20),
-      go: () => go('course', { tab: 'practice' }) },
-    { id: 'exams',    label: 'امتحانات', ico: () => icon.exam(20),
-      go: () => go('course', { tab: 'exams' }) },
+    { id: 'courses',  label: 'الكورسات', ico: () => icon.grid(20),
+      go: () => go('courses') },
     { id: 'progress', label: 'تقدّمي',   ico: () => icon.chart(20),
-      go: () => go('course', { tab: 'progress' }) },
+      go: () => go('progress') },
     { id: 'account',  label: 'حسابي',    ico: () => icon.user(20),
       go: () => go('account') },
   ];
@@ -40,10 +43,9 @@ window.App = (function () {
   function activeRailId() {
     const c = cur();
     if (!c) return null;
-    if (c.name === 'course')   return c.params.tab || 'lessons';
-    if (c.name === 'lesson')   return 'lessons';
-    if (c.name === 'practice') return 'practice';
-    if (c.name === 'exam' || c.name === 'result') return 'exams';
+    // كل ما يجري داخل مادة (كورس، درس، تمرين، امتحان، نتيجة) ينتمي منطقيًا
+    // لقسم «الكورسات» — لا وجود لأقسامها كوجهات شريط مستقلة بعد الآن.
+    if (['course', 'lesson', 'practice', 'exam', 'result'].includes(c.name)) return 'courses';
     return c.name;
   }
 
