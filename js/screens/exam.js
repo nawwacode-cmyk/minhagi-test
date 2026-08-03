@@ -109,16 +109,6 @@ window.Screens = window.Screens || {};
     const exam = SEED.exams.find((e) => e.id === params.id);
     const pass = params.pct >= (exam ? exam.pass : 50);
 
-    // تفصيل حسب الموضوع — لا يكفي أن يعرف الطالب أنه رسب، بل أين رسب
-    const byTopic = {};
-    (exam ? exam.questions : []).forEach((qid) => {
-      const q = SEED.questions[qid];
-      if (!q) return;
-      byTopic[q.topic] = byTopic[q.topic] || { total: 0 };
-      byTopic[q.topic].total++;
-    });
-    const s = Store.get();
-
     return h('div.screen',
       C.appbar({ title: 'نتيجة الامتحان',
                  onBack: () => App.go('course', { tab: 'exams' }, true) }),
@@ -131,22 +121,15 @@ window.Screens = window.Screens || {};
             h('div.score__n', { style: `color:${pass ? 'var(--ok)' : 'var(--err)'}` }, ar(params.pct) + '٪'),
             h('div.score__l', `${ar(params.got)} من ${ar(params.total)} إجابة صحيحة`),
             h('div.verdict.' + (pass ? 'verdict--pass' : 'verdict--fail'),
-              `${pass ? 'ناجح' : 'لم تجتز'} · حدّ النجاح ${ar(exam ? exam.pass : 50)}٪`)),
-
-          h('div', { style: 'border-top:1px solid var(--brd);margin-top:18px;padding-top:14px' },
-            h('div', { style: 'font-weight:700;font-size:14px;margin-bottom:6px' }, 'حسب الموضوع'),
-            ...Object.keys(byTopic).map((tid) => {
-              const t = SEED.topics.find((x) => x.id === tid);
-              return C.masteryRow(t || { name: tid }, s.mastery[tid]);
-            }))),
+              `${pass ? 'ناجح' : 'لم تجتز'} · حدّ النجاح ${ar(exam ? exam.pass : 50)}٪`))),
 
         pass
           ? h('div.card.card--pad.row', { style: 'margin-top:14px;gap:14px' },
               h('span', { style: 'color:var(--gold)' }, icon.trophy(30)),
-              h('div.grow.small', 'نتيجة جيدة. راجع المواضيع التي دون ٧٠٪ لترفعها قبل الامتحان الحقيقي.'))
+              h('div.grow.small', 'نتيجة جيدة. راجع أخطاءك لترفعها أكثر قبل الامتحان الحقيقي.'))
           : h('div.callout', { style: 'margin-top:14px' },
               h('div.callout__t', 'ما الخطوة التالية؟'),
-              'راجع الموضوع الأضعف أعلاه ثم أعد الامتحان. أغلب الطلاب يرفعون نتيجتهم '
+              'راجع أخطاءك في هذا الامتحان ثم أعد المحاولة. أغلب الطلاب يرفعون نتيجتهم '
               + 'أكثر من ٢٠ نقطة بعد مراجعة واحدة مركّزة.'),
 
         h('div.row', { style: 'margin-top:16px;gap:8px' },

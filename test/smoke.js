@@ -26,20 +26,12 @@ let p = Store.subjectProgress();
 ok('يبدأ التقدّم من صفر', p.percent === 0);
 ok('عدد الدروس = 4', p.lessonsTotal === 4);
 
-// --- معادلة الإتقان: يجب أن تطابق tg_apply_topic_mastery في SQL ---
-Store.recordAttempt('articles', true);
-ok('أول إجابة صحيحة ← 65', Store.get().mastery.articles.mastery === 65);
-Store.recordAttempt('articles', false);
-ok('ثم خطأ ← 46', Store.get().mastery.articles.mastery === Math.round(0.7 * 65));
-Store.recordAttempt('syntaxe', false);
-ok('أول خطأ في موضوع جديد ← 35', Store.get().mastery.syntaxe.mastery === 35);
-
-// --- التقدّم الموزون: 0.50 دروس + 0.35 إتقان + 0.15 امتحان ---
+// --- التقدّم الموزون: 0.75 دروس + 0.25 امتحان (بعد إلغاء بُعد إتقان المواضيع) ---
 Store.completeLesson('salutations');
 Store.completeLesson('articles-definis');
 Store.recordExam('mock-1', 80);
 p = Store.subjectProgress();
-const expected = Math.round(0.50 * 50 + 0.35 * ((46 + 35) / 2) + 0.15 * 80);
+const expected = Math.round(0.75 * 50 + 0.25 * 80);
 ok(`المؤشر الموزون = ${expected}`, p.percent === expected);
 ok('لا يتجاوز 100', p.percent <= 100 && p.percent >= 0);
 
@@ -47,9 +39,6 @@ ok('لا يتجاوز 100', p.percent <= 100 && p.percent >= 0);
 const before = Store.subjectProgress().lessonsDone;
 Store.completeLesson('salutations');
 ok('إكمال درس مكتمل لا يغيّر شيئًا', Store.subjectProgress().lessonsDone === before);
-
-// --- أضعف موضوع ---
-ok('أضعف موضوع = syntaxe', Store.weakestTopic().id === 'syntaxe');
 
 // --- تقدّم الوحدة ---
 ok('الوحدة الأولى مكتملة ٢/٢', Store.unitProgress(SEED.units[0]).done === 2);
@@ -61,12 +50,7 @@ const cp = Store.courseProgress('fr-g9-core');
 const overall = Store.subjectProgress();
 ok('courseProgress.percent يطابق subjectProgress بكورس واحد', cp.percent === overall.percent);
 ok('courseProgress يحصر عدد الدروس بدروس هذا الكورس فقط', cp.lessonsTotal === 4);
-ok('courseProgress يعيد مجموعة مواضيع هذا الكورس', cp.topicIds instanceof Set && cp.topicIds.size > 0);
 ok('كورس غير موجود يعيد صفرًا لا خطأ', Store.courseProgress('لا-وجود-له').percent === 0);
-
-// weakestTopic بمرشِّح مواضيع — يقتصر البحث على المجموعة الممرَّرة فقط
-const onlyArticles = new Set(['articles']);
-ok('weakestTopic بمرشِّح يتقيّد به', Store.weakestTopic(onlyArticles).id === 'articles');
 
 // --- التنزيلات ---
 ok('articles-definis منزَّل ابتداءً', Store.get().downloaded.includes('articles-definis'));
@@ -85,7 +69,7 @@ ok('الطابور يبدأ فارغًا', Store.pending() === 0);
 Store.completeLesson('salutations');
 ok('إكمال درس يُقيَّد في الطابور', Store.pending() === 1);
 
-Store.recordAttempt('articles', true, 'q-art-1');
+Store.recordAttempt(true, 'q-art-1');
 ok('محاولة سؤال تُقيَّد', Store.pending() === 2);
 
 const attempt = Store.get().outbox.find((x) => x.entity === 'attempt');
@@ -106,7 +90,6 @@ ok('الخروج يمسح علامة الدخول', Store.get().signedIn === fal
 // --- سلامة روابط المحتوى ---
 const bad = [];
 for (const [id, q] of Object.entries(SEED.questions)) {
-  if (!SEED.topics.some((t) => t.id === q.topic)) bad.push(`${id}: موضوع مجهول ${q.topic}`);
   if ((q.type === 'mcq' || q.type === 'multi') && !q.options.some((o) => o.correct))
     bad.push(`${id}: بلا إجابة صحيحة`);
   if (q.type === 'mcq' && q.options.filter((o) => o.correct).length > 1)
@@ -156,7 +139,7 @@ const courseSrc = fs.readFileSync(dir + 'screens/course.js', 'utf8');
 ok('شاشة التمارين تصفّي بحقل section', /q\.section === id/.test(courseSrc));
 ok('الجلسة الشاملة تستثني غير المصنَّف', /params\.section === 'any'.*q\.section\)/.test(courseSrc));
 ok('Screens.practice يقبل section محدَّدًا', /q\.section === params\.section/.test(courseSrc));
-ok('تصفية topic القديمة باقية (تخدم تمارين نقطة الضعف)', /q\.topic === params\.topic/.test(courseSrc));
+ok('نظام المواضيع/نقطة الضعف القديم أُزيل كليًا', !/weakestTopic|q\.topic\b|SEED\.topics/.test(courseSrc));
 
 // اختبار وظيفي صغير لمنطق التصفية نفسه: تأكيد أن سؤالًا بلا section لا يظهر
 // في أي قسم، وأن الجلسة الشاملة تستثنيه أيضًا.

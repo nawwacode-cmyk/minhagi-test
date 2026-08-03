@@ -41,17 +41,15 @@ window.Sync = (function () {
   // ---------------------------------------------------------------------------
   async function pullContent() {
     // كل شيء بتوكن المستخدم ⇒ RLS تحصر الناتج باشتراكه. لا فلترة أمنية هنا.
-    const [subjects, grades, topics, courses, teachers, units, lessons, lessonTopics,
+    const [subjects, grades, courses, teachers, units, lessons,
            questions, options, exams, examQuestions, videos] = await Promise.all([
       Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order' }),
       Api.from('grades',    { select: 'id,code,name_ar,sort_order' }),
-      Api.from('topics',    { select: 'id,code,name_ar,name_native,sort_order' }),
       Api.from('courses',   { select: 'id,code,title_ar,subject_id,grade_id,teacher_id' }),
       Api.from('teachers',  { select: 'id,name' }).catch(() => []),
       Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order', order: 'sort_order' }),
       Api.from('lessons',   { select: 'id,code,title_ar,body_html,est_minutes,is_free,unit_id,video_id,sort_order', order: 'sort_order' }),
-      Api.from('lesson_topics', { select: 'lesson_id,topic_id' }),
-      Api.from('questions', { select: 'id,code,type,stem_md,passage_md,answer_key,difficulty,explanation_md,topic_id,lesson_id,section,unit_code' }),
+      Api.from('questions', { select: 'id,code,type,stem_md,passage_md,answer_key,difficulty,explanation_md,lesson_id,section,unit_code' }),
       Api.from('question_options', { select: 'id,question_id,code,text_md,is_correct,sort_order', order: 'sort_order' }),
       Api.from('exams',     { select: 'id,code,title_ar,kind,duration_minutes,pass_percent,subject_id,grade_id,sort_order', order: 'sort_order' }),
       Api.from('exam_questions', { select: 'exam_id,question_id,sort_order,points' }),
@@ -60,22 +58,13 @@ window.Sync = (function () {
 
     // --- خرائط الترجمة ---
     const byId = (rows) => Object.fromEntries(rows.map((r) => [r.id, r]));
-    const T = byId(topics), L = byId(lessons), Q = byId(questions), V = byId(videos || []);
+    const L = byId(lessons), Q = byId(questions), V = byId(videos || []);
     const idMap = {};                       // 'lesson:salutations' → uuid
     const put = (kind, code, id) => { idMap[`${kind}:${code}`] = id; };
 
     lessons.forEach((l) => put('lesson', l.code, l.id));
     questions.forEach((q) => put('question', q.code, q.id));
     exams.forEach((e) => put('exam', e.code, e.id));
-    topics.forEach((t) => put('topic', t.code, t.id));
-
-    // --- المواضيع المرتبطة بكل درس ---
-    const lessonTopicCodes = {};
-    lessonTopics.forEach(({ lesson_id, topic_id }) => {
-      const lc = L[lesson_id]?.code, tc = T[topic_id]?.code;
-      if (!lc || !tc) return;
-      (lessonTopicCodes[lc] = lessonTopicCodes[lc] || []).push(tc);
-    });
 
     // --- الأسئلة ---
     const optsByQ = {};
@@ -89,7 +78,6 @@ window.Sync = (function () {
 
       const out = {
         id: q.code, type,
-        topic: T[q.topic_id]?.code || null,
         lesson: L[q.lesson_id]?.code || null,
         // تبويب «تمارين» عند الطالب: مفردات · قاعدة · ترتيب حوار · مواضيع
         // الوحدة. null = لم يصنَّفه المدرّس بعد، فلا يظهر في أي قسم تصفّح —
@@ -155,8 +143,6 @@ window.Sync = (function () {
       })),
       grades: grades.sort((a, b) => a.sort_order - b.sort_order)
         .map((g) => ({ id: g.code, name: g.name_ar, note: '' })),
-      topics: topics.sort((a, b) => a.sort_order - b.sort_order)
-        .map((t) => ({ id: t.code, name: t.name_ar, native: t.name_native })),
 
       /**
        * الكتالوج الكامل — يشمل كورسات لا يملكها الطالب، لعرضها في شاشة الكورسات.
@@ -183,7 +169,6 @@ window.Sync = (function () {
 
       lessons: Object.fromEntries(lessons.map((l) => [l.code, {
         id: l.code, title: l.title_ar, minutes: l.est_minutes, free: l.is_free,
-        topics: lessonTopicCodes[l.code] || [],
         body: l.body_html || '',
         video: l.video_id && V[l.video_id]
           ? { id: l.video_id, title: V[l.video_id].title,
@@ -332,13 +317,12 @@ window.Sync = (function () {
   async function pullProgress() {
     if (!Api.isSignedIn()) return 0;
 
-    const [lessons, mastery, exams] = await Promise.all([
+    const [lessons, exams] = await Promise.all([
       Api.from('lesson_progress',  { select: 'lesson_id,status,completed_at,client_updated_at' }),
-      Api.from('topic_mastery',    { select: 'topic_id,mastery,total_attempts,correct_attempts' }),
       Api.from('exam_attempts',    { select: 'exam_id,score_percent,submitted_at' }),
     ]);
 
-    const L = reverseMap('lesson'), T = reverseMap('topic'), E = reverseMap('exam');
+    const L = reverseMap('lesson'), E = reverseMap('exam');
     const s = Store.get();
 
     // --- الدروس: أحدث تعديل يفوز (نفس قاعدة السيرفر) ---
@@ -349,21 +333,6 @@ window.Sync = (function () {
       // المحلي المكتمل لا يتراجع: قد يكون أُنجز للتوّ ولم يُرفع بعد
       if (s.lessons[code] === 'done' && row.status !== 'done') continue;
       nextLessons[code] = row.status;
-    }
-
-    // --- الإتقان: السيرفر مرجع لأنه محسوب من كل المحاولات لا من هذا الجهاز ---
-    const nextMastery = { ...s.mastery };
-    for (const row of mastery) {
-      const code = T[row.topic_id];
-      if (!code) continue;
-      const local = s.mastery[code];
-      // إن كان المحلي أكثر محاولات فهو يحمل نشاطًا لم يُرفع — نُبقيه
-      if (local && local.total > row.total_attempts) continue;
-      nextMastery[code] = {
-        mastery: row.mastery,
-        total: row.total_attempts,
-        correct: row.correct_attempts,
-      };
     }
 
     // --- الامتحانات: أفضل نتيجة وعدد المحاولات ---
@@ -384,8 +353,8 @@ window.Sync = (function () {
       if (nextExams[code]) nextExams[code].taken = Math.max(nextExams[code].taken, n);
     }
 
-    Store.set({ lessons: nextLessons, mastery: nextMastery, exams: nextExams });
-    return lessons.length + mastery.length + exams.length;
+    Store.set({ lessons: nextLessons, exams: nextExams });
+    return lessons.length + exams.length;
   }
 
   // ---------------------------------------------------------------------------

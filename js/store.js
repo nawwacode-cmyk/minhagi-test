@@ -40,8 +40,6 @@ window.Store = (function () {
 
     // التقدّم: lessonId → 'done' | 'doing'
     lessons: {},
-    // topicId → { mastery, total, correct }
-    mastery: {},
     // examId → { best, taken }
     exams: {},
     // الدروس المنزَّلة للاستخدام دون إنترنت
@@ -124,32 +122,9 @@ window.Store = (function () {
     set((s) => ({ lessons: { ...s.lessons, [id]: 'doing' } }));
   }
 
-  /**
-   * تسجيل محاولة سؤال + تحديث إتقان الموضوع.
-   *
-   * المعادلة مطابقة حرفيًا لـ tg_apply_topic_mastery في السيرفر:
-   *     mastery = round(0.7 × القديم + 0.3 × (صحيح ? 100 : 0))
-   * البداية 50 محايدة — أول إجابة صحيحة ترفع إلى 65، وأول خطأ ينزل إلى 35.
-   * أي اختلاف بين الاثنين يجعل المؤشر يقفز عند عودة الإنترنت.
-   */
-  function recordAttempt(topicId, isCorrect, questionId, kind = 'practice') {
-    if (topicId) {
-      set((s) => {
-        const prev = s.mastery[topicId] || { mastery: 50, total: 0, correct: 0 };
-        const next = Math.round(0.7 * prev.mastery + 0.3 * (isCorrect ? 100 : 0));
-        return {
-          mastery: {
-            ...s.mastery,
-            [topicId]: {
-              mastery: Math.max(0, Math.min(100, next)),
-              total: prev.total + 1,
-              correct: prev.correct + (isCorrect ? 1 : 0),
-            },
-          },
-        };
-      });
-    }
-    // المعرّف يولّده العميل ⇒ إعادة الإرسال بعد انقطاع لا تُنشئ صفًا مكررًا
+  /** تسجيل محاولة سؤال. المعرّف يولّده العميل ⇒ إعادة الإرسال بعد انقطاع لا
+   *  تُنشئ صفًا مكررًا. */
+  function recordAttempt(isCorrect, questionId, kind = 'practice') {
     if (questionId) {
       enqueue({ entity: 'attempt', id: crypto.randomUUID(), questionId,
                 correct: isCorrect, kind, at: new Date().toISOString() });
@@ -201,26 +176,22 @@ window.Store = (function () {
   }
 
   // ---------------------------------------------------------------------------
-  // مؤشر التقدّم — نفس أوزان v_subject_progress على السيرفر
-  //   0.50 دروس مكتملة + 0.35 متوسط الإتقان + 0.15 أفضل امتحان
+  // مؤشر التقدّم — بعد إلغاء نظام إتقان المواضيع: 0.75 دروس مكتملة + 0.25 أفضل
+  // امتحان (نفس نسبة ٥٠:١٥ السابقة بين هذين البُعدين، موزَّعة على المجموع ١٠٠).
   // ---------------------------------------------------------------------------
   function subjectProgress() {
     const all = Object.keys(SEED.lessons);
     const done = all.filter((id) => state.lessons[id] === 'done').length;
     const lessonPct = all.length ? (done / all.length) * 100 : 0;
 
-    const ms = Object.values(state.mastery);
-    const masteryAvg = ms.length ? ms.reduce((a, m) => a + m.mastery, 0) / ms.length : 0;
-
     const bests = Object.values(state.exams).map((e) => e.best);
     const bestExam = bests.length ? Math.max(...bests) : 0;
 
-    const pct = 0.50 * lessonPct + 0.35 * masteryAvg + 0.15 * bestExam;
+    const pct = 0.75 * lessonPct + 0.25 * bestExam;
     return {
       percent: Math.max(0, Math.min(100, Math.round(pct))),
       lessonsDone: done, lessonsTotal: all.length,
       lessonPct: Math.round(lessonPct),
-      masteryAvg: Math.round(masteryAvg),
       bestExam: Math.round(bestExam),
     };
   }
@@ -228,10 +199,10 @@ window.Store = (function () {
   /**
    * مؤشر تقدّم كورس واحد بعينه — لا التطبيق كله.
    *
-   * ثلاثة أبعاد، بنفس الأوزان دائمًا:
-   *   الفيديوهات (٥٠٪) — كل درس = فيديو + نص؛ إتمامه يعني مشاهدته
-   *   الأسئلة     (٣٥٪) — متوسط إتقان المواضيع التي غطّتها دروس هذا الكورس تحديدًا
-   *   الامتحانات  (١٥٪) — أفضل نتيجة بين امتحانات نفس مادة وصف هذا الكورس
+   * بعدان، بنفس نسبة ٥٠:١٥ السابقة موزَّعة على المجموع ١٠٠ بعد إلغاء بُعد
+   * إتقان المواضيع:
+   *   الدروس     (٧٥٪) — كل درس = فيديو + نص؛ إتمامه يعني مشاهدته
+   *   الامتحانات (٢٥٪) — أفضل نتيجة بين امتحانات نفس مادة وصف هذا الكورس
    *
    * لماذا الحصر ضروري لا رفاهية: بلا هذا الحصر، إكمال درس في مادة الفرنسي
    * كان يرفع رقمًا واحدًا يُعرض على بطاقة كل مادة أخرى أيضًا — أرقام كاذبة
@@ -247,15 +218,6 @@ window.Store = (function () {
     const done = lessonIds.filter((id) => state.lessons[id] === 'done').length;
     const lessonPct = lessonIds.length ? (done / lessonIds.length) * 100 : 0;
 
-    // مواضيع دروس هذا الكورس تحديدًا — لا كل موضوع مرصود بالتطبيق
-    const topicIds = new Set();
-    lessonIds.forEach((lid) => (SEED.lessons[lid]?.topics || []).forEach((t) => topicIds.add(t)));
-    const masteryVals = [...topicIds]
-      .map((t) => state.mastery[t]?.mastery)
-      .filter((v) => v !== undefined);
-    const masteryAvg = masteryVals.length
-      ? masteryVals.reduce((a, b) => a + b, 0) / masteryVals.length : 0;
-
     // الامتحانات مرتبطة بـ(مادة+صف) لا بكورس بعينه عمدًا — الدورة الوزارية
     // مشترَكة بين كل أساتذة نفس المادة. نحصرها هنا بمادة وصف هذا الكورس.
     const courseExams = (SEED.exams || []).filter((e) =>
@@ -263,15 +225,12 @@ window.Store = (function () {
     const examScores = courseExams.map((e) => state.exams[e.id]?.best || 0);
     const bestExam = examScores.length ? Math.max(...examScores) : 0;
 
-    const pct = 0.50 * lessonPct + 0.35 * masteryAvg + 0.15 * bestExam;
+    const pct = 0.75 * lessonPct + 0.25 * bestExam;
     return {
       percent: Math.max(0, Math.min(100, Math.round(pct))),
       lessonsDone: done, lessonsTotal: lessonIds.length,
       lessonPct: Math.round(lessonPct),
-      masteryAvg: Math.round(masteryAvg),
       bestExam: Math.round(bestExam),
-      topicIds,               // يفيد weakestTopicIn لعرض أضعف موضوع لهذا الكورس تحديدًا
-      solved: [...topicIds].reduce((a, t) => a + (state.mastery[t]?.total || 0), 0),
     };
   }
 
@@ -281,24 +240,11 @@ window.Store = (function () {
              pct: unit.lessons.length ? (done / unit.lessons.length) * 100 : 0 };
   }
 
-  /**
-   * أضعف موضوع. بلا `topicIds` يبحث عبر كل التطبيق (خلف توافقي)؛ مرِّر
-   * `courseProgress(id).topicIds` لحصر البحث بمواضيع كورس بعينه.
-   */
-  function weakestTopic(topicIds) {
-    const rows = SEED.topics
-      .filter((t) => !topicIds || topicIds.has(t.id))
-      .map((t) => ({ ...t, ...(state.mastery[t.id] || { mastery: null }) }))
-      .filter((t) => t.mastery !== null);
-    if (!rows.length) return null;
-    return rows.sort((a, b) => a.mastery - b.mastery)[0];
-  }
-
   return {
     get, set, subscribe, reset, signOut,
     enqueue, clearOutbox, pending,
     completeLesson, startLesson, recordAttempt, recordExam,
     toggleDownload, setTheme, toggleOnline,
-    subjectProgress, courseProgress, unitProgress, weakestTopic,
+    subjectProgress, courseProgress, unitProgress,
   };
 })();

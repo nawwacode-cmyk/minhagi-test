@@ -37,18 +37,6 @@ window.C = (function () {
     return null;
   }
 
-  // --- صف إتقان موضوع ---------------------------------------------------------
-  function masteryRow(topic, m) {
-    const v = m ? m.mastery : null;
-    const color = v === null ? 'var(--brd2)'
-      : v >= 70 ? 'var(--ok)' : v >= 45 ? 'var(--warn)' : 'var(--err)';
-    return h('div.mastery',
-      h('div.mastery__n', topic.name),
-      h('div.mastery__bar', h('i', { style: `width:${v ?? 0}%;background:${color}` })),
-      h('div.mastery__p', { text: v === null ? '—' : ar(v) }),
-    );
-  }
-
   // --- حالة فارغة --------------------------------------------------------------
   function empty({ img, title, text, action }) {
     return h('div.empty',
@@ -125,9 +113,8 @@ window.C = (function () {
       const kids = [];
 
       // الترويسة والتقدّم
-      const topic = SEED.topics.find((t) => t.id === q.topic);
       kids.push(h('div.q__top',
-        h('span.badge.badge--acc', topic ? topic.name : 'تمرين'),
+        h('span.badge.badge--acc', 'تمرين'),
         h('span', `${ar(index + 1)} من ${ar(total)}`)));
       kids.push(h('div', { style: 'margin-bottom:14px' }, bar(((index) / total) * 100, 'bar--thin')));
 
@@ -226,7 +213,7 @@ window.C = (function () {
         onclick: () => {
           if (!checked) {
             checked = true;
-            Store.recordAttempt(q.topic, isCorrect(), q.id,
+            Store.recordAttempt(isCorrect(), q.id,
                                 hideFeedback ? 'exam' : 'practice');
             // في الامتحان لا توجد مرحلة «مراجعة الشرح»، فننتقل مباشرةً
             if (hideFeedback) { onNext(isCorrect()); return; }
@@ -261,6 +248,6 @@ window.C = (function () {
     return card;
   }
 
-  return { appbar, syncBanner, masteryRow, empty, questionCard,
+  return { appbar, syncBanner, empty, questionCard,
            whatsappUrl, whatsappBtn };
 })();

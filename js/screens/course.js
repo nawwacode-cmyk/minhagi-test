@@ -316,9 +316,7 @@ window.Screens = window.Screens || {};
 
     // --- تبويب التقدّم ----------------------------------------------------------
     function tabProgress() {
-      const s = Store.get();
       const p = Store.subjectProgress();
-      const weak = Store.weakestTopic();
 
       return h('div.dash',
         h('div.dash__main',
@@ -329,19 +327,14 @@ window.Screens = window.Screens || {};
             // تفصيل المعادلة — المؤشر الذي لا يُفهم كيف يرتفع يفقد قدرته على التحفيز
             h('div', { style: 'margin-top:18px;border-top:1px solid var(--brd);padding-top:16px' },
               ...[
-                ['الدروس المكتملة', p.lessonPct,  '٥٠٪ من المؤشر'],
-                ['إتقان المواضيع',  p.masteryAvg, '٣٥٪ من المؤشر'],
-                ['أفضل امتحان',     p.bestExam,   '١٥٪ من المؤشر'],
+                ['الدروس المكتملة', p.lessonPct, '٧٥٪ من المؤشر'],
+                ['أفضل امتحان',     p.bestExam,  '٢٥٪ من المؤشر'],
               ].map(([label, val, w]) => h('div', { style: 'margin-bottom:13px' },
                 h('div.row', { style: 'margin-bottom:5px' },
                   h('div.grow.small', label),
                   h('span.faint', { style: 'font-size:11px' }, w),
                   h('span.mono.small', ar(val) + '٪')),
-                bar(val, 'bar--thin'))))),
-
-          h('div.card.card--pad',
-            h('div', { style: 'font-weight:700;margin-bottom:8px' }, 'خريطة إتقان المواضيع'),
-            ...SEED.topics.map((t) => C.masteryRow(t, s.mastery[t.id])))),
+                bar(val, 'bar--thin')))))),
 
         h('aside.dash__side',
           h('div.card.card--pad',
@@ -351,19 +344,8 @@ window.Screens = window.Screens || {};
                 h('div.stat__v', ar(p.lessonsDone)),
                 h('div.stat__k', 'درس مكتمل')),
               h('div.stat',
-                h('div.stat__v', ar(Object.values(s.mastery).reduce((a, m) => a + m.total, 0))),
-                h('div.stat__k', 'تمرين محلول')),
-              h('div.stat',
                 h('div.stat__v', { style: 'color:var(--ok)' }, ar(p.bestExam) + '٪'),
-                h('div.stat__k', 'أفضل امتحان')))),
-
-          weak && weak.mastery < 70 && h('div.callout',
-            h('div.callout__t', `نقطة ضعفك الآن: ${weak.name}`),
-            h('div.muted.small', { style: 'margin-bottom:10px' },
-              `إتقانك ${ar(weak.mastery)}٪ — تمارين مخصّصة جاهزة.`),
-            h('button.btn.btn--primary.btn--sm', {
-              onclick: () => App.go('practice', { topic: weak.id }),
-            }, 'ابدأ التمارين المقترحة'))),
+                h('div.stat__k', 'أفضل امتحان'))))),
       );
     }
 
@@ -462,7 +444,6 @@ window.Screens = window.Screens || {};
       pool = Object.values(SEED.questions).filter((q) =>
         q.section === params.section && (params.unit ? q.unitCode === params.unit : !q.unitCode));
     else if (params.section) pool = Object.values(SEED.questions).filter((q) => q.section === params.section);
-    else if (params.topic)   pool = Object.values(SEED.questions).filter((q) => q.topic === params.topic);
     else                     pool = Object.values(SEED.questions);
     pool = pool.filter(Boolean);
 
@@ -486,7 +467,7 @@ window.Screens = window.Screens || {};
           h('div.score__n', { style: `color:${pct >= 50 ? 'var(--ok)' : 'var(--err)'}` }, ar(pct) + '٪'),
           h('div.score__l', `${ar(correct)} صحيحة من ${ar(pool.length)}`)),
         h('div.muted.small.center', { style: 'margin-top:14px' },
-          'تحدّثت خريطة إتقانك، وسيظهر أثرها في مؤشر التقدّم فورًا.'),
+          'سُجِّلت نتيجتك، وسيظهر أثرها في مؤشر التقدّم فورًا.'),
         h('button.btn.btn--primary.btn--block', {
           style: 'margin-top:18px',
           onclick: () => App.go('course', { tab: 'progress' }, true),

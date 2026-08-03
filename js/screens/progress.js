@@ -32,7 +32,6 @@ window.Screens = window.Screens || {};
     const courseCard = (course) => {
       const subject = SEED.subjects.find((x) => x.id === course.subject) || {};
       const p = Store.courseProgress(course.id);
-      const weak = Store.weakestTopic(p.topicIds);
 
       return h('div.card.card--pad', { style: 'margin-bottom:14px' },
         h('div.row', { style: 'margin-bottom:14px' },
@@ -44,12 +43,11 @@ window.Screens = window.Screens || {};
 
         // تفصيل المعادلة مقصود إعلانه — مؤشر لا يُفهم كيف يرتفع يفقد قدرته
         // على التحفيز. الأسماء هنا مطابقة لما يراه الطالب من محتوى فعليًا:
-        // فيديو لكل درس، أسئلة بنك المواضيع، وأفضل امتحان لنفس مادة الكورس.
+        // فيديو لكل درس، وأفضل امتحان لنفس مادة الكورس.
         h('div', { style: 'margin-top:16px;border-top:1px solid var(--brd);padding-top:14px' },
           ...[
-            ['الفيديوهات (الدروس)', p.lessonPct,  '٥٠٪ من المؤشر'],
-            ['بنك الأسئلة',         p.masteryAvg, '٣٥٪ من المؤشر'],
-            ['أفضل امتحان',         p.bestExam,   '١٥٪ من المؤشر'],
+            ['الفيديوهات (الدروس)', p.lessonPct, '٧٥٪ من المؤشر'],
+            ['أفضل امتحان',         p.bestExam,  '٢٥٪ من المؤشر'],
           ].map(([label, val, w]) => h('div', { style: 'margin-bottom:11px' },
             h('div.row', { style: 'margin-bottom:5px' },
               h('div.grow.small', label),
@@ -58,15 +56,7 @@ window.Screens = window.Screens || {};
             bar(val, 'bar--thin')))),
 
         h('div.faint.small', { style: 'margin-top:4px' },
-          `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا · ${ar(p.solved)} تمرين محلول`),
-
-        weak && weak.mastery < 70 && h('div.callout', { style: 'margin-top:14px' },
-          h('div.callout__t', `نقطة ضعفك بهذه المادة: ${weak.name}`),
-          h('div.muted.small', { style: 'margin-bottom:10px' },
-            `إتقانك ${ar(weak.mastery)}٪ — تمارين مخصّصة جاهزة.`),
-          h('button.btn.btn--primary.btn--sm', {
-            onclick: () => App.go('practice', { topic: weak.id }),
-          }, 'ابدأ التمارين المقترحة')),
+          `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا`),
       );
     };
 

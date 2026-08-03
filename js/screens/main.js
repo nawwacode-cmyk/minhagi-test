@@ -23,7 +23,6 @@ window.Screens = window.Screens || {};
     const nextId = Object.keys(SEED.lessons).find((id) => s.lessons[id] !== 'done')
                 || Object.keys(SEED.lessons)[0];
     const next = SEED.lessons[nextId];
-    const solved = Object.values(s.mastery).reduce((a, m) => a + m.total, 0);
 
     // «لمحة سريعة» تحتاج رقمًا واحدًا يمثّل الكل — متوسط تقدّم كل المواد
     // المشترَك بها، لا مادة واحدة مفترَضة. بمادة واحدة (الواقع الحالي) يساوي
@@ -100,9 +99,6 @@ window.Screens = window.Screens || {};
                 h('div.stat',
                   h('div.stat__v', { style: 'color:var(--acc-tx)' }, ar(overallPct) + '٪'),
                   h('div.stat__k', 'تقدّمك')),
-                h('div.stat',
-                  h('div.stat__v', ar(solved)),
-                  h('div.stat__k', 'تمرين محلول')),
                 h('div.stat',
                   h('div.stat__v', ar(s.downloaded.length)),
                   h('div.stat__k', 'درس محفوظ'))),
