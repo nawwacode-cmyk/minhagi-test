@@ -75,7 +75,7 @@ window.Screens = window.Screens || {};
     }
 
     wrap.append(
-      C.appbar({ title: exam.title, sub: exam.kind === 'ministry' ? 'دورة وزارية' : 'امتحان تجريبي',
+      C.appbar({ title: exam.title, sub: { ministry: 'دورة وزارية', unit: 'امتحان وحدة' }[exam.kind] || 'امتحان تجريبي',
                  onBack: () => { clearInterval(timerId); App.back(); } }),
       h('div.screen__body',
         h('div', { style: 'padding:14px 16px 0' },

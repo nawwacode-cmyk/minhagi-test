@@ -9,7 +9,10 @@ window.Screens = window.Screens || {};
   // --- ٥. الرئيسية -------------------------------------------------------------
   Screens.home = () => {
     const s = Store.get();
-    const gradeName = SEED.grades.find((g) => g.id === s.grade).name;
+    // قبل أول مزامنة ناجحة تكون SEED فارغة تمامًا — لا صف ولا مادة ولا درس.
+    // كل قراءة من SEED هنا يجب أن تحتمل ذلك، وإلّا انهارت الشاشة الأولى نفسها
+    // على طالب فتح التطبيق أول مرة أو بلا إنترنت.
+    const gradeName = SEED.grades.find((g) => g.id === s.grade)?.name || '';
 
     // «موادّي» = الكورسات المشترَك بها فعليًا لا كل ما في الكتالوج.
     // sync.js يحسب entitled من وجود وحدات وصلت عبر RLS — لا نفترض شيئًا هنا.
@@ -80,7 +83,9 @@ window.Screens = window.Screens || {};
 
           // --- العمود الجانبي: الفعل التالي والسياق ---
           h('aside.dash__side',
-            h('div.card.card--pad',
+            // «تابع من حيث توقفت» بلا درس تالٍ لا معنى له — تُحذف البطاقة كلها
+            // بدل عرض بطاقة فارغة بزرّ يقود إلى لا شيء.
+            next && h('div.card.card--pad',
               h('div.muted.small', { style: 'margin-bottom:4px' }, 'تابع من حيث توقفت'),
               h('div', { style: 'font-weight:700;font-size:17px;margin-bottom:2px' }, next.title),
               h('div.faint.small', { style: 'margin-bottom:14px' },
@@ -183,6 +188,7 @@ window.Screens = window.Screens || {};
                         if (!confirm('سيُغلق التطبيق حسابك على هذا الجهاز.\n\n'
                           + 'تستطيع الدخول متى شئت باسمك وكودك. متابعة؟')) return;
                         Api.signOut();
+                        Sync.clearContent();
                         Store.set({ signedIn: false, evicted: false });
                         App.go('welcome');
                       },

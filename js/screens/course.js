@@ -168,6 +168,11 @@ window.Screens = window.Screens || {};
 
       return h('div.dash',
         h('div.dash__main',
+          // امتحانات الوحدات أولًا: هي الوحيدة التي يستطيع طالبٌ في منتصف
+          // المنهاج خوضها بإنصاف. الشاملة تليها لمن أنهى المنهاج.
+          group('unit', 'امتحانات الوحدات',
+            'كل امتحان محصور بوحدة واحدة — قاعدتها ومفرداتها ونصّها. '
+            + 'خُضه بعد إنهاء دروس الوحدة مباشرةً، ولكل وحدة نموذجان.'),
           group('mock', 'امتحانات تجريبية',
             'من إعدادنا — تغطي المنهاج بأسئلة متنوّعة، وتصلح للتكرار.'),
           group('ministry', 'دورات وزارية',
@@ -205,49 +210,107 @@ window.Screens = window.Screens || {};
       );
     }
 
-    // --- تبويب التمارين: تعلّم حسب الموضوع --------------------------------------
+    // --- تبويب التمارين: أربعة أقسام ثابتة، كل قسم يُفتح على فروعه بحسب الوحدة --
+    // القسم والفرع يُحدَّدهما المدرّس يدويًا من لوحة الأدمن (questions.section
+    // وquestions.unitCode) — سؤال بلا قسم (لم يُصنَّف بعد) لا يظهر هنا إطلاقًا،
+    // وإن وصل عبر المزامنة. التسمية نفس رمز الوحدة (u1..u6) تختلف بحسب القسم:
+    // u1 تعني «نحتفل معًا» بالمفردات، وتعني «التعبير عن الهدف» بالقواعد —
+    // لأن كل وحدة تُدرّس قاعدة نحوية واحدة بعينها (طابق هذا مع js/store.js
+    // بلوحة الأدمن عند أي تعديل مستقبلي، فهما نسختان مستقلّتان عمدًا).
+    const SECTIONS = [
+      ['vocabulaire', 'المفردات',      'كلمات وتعابير كل وحدة، بترجمتها العربية'],
+      ['grammaire',   'القواعد',        'كل قواعد المنهاج مجمَّعة في مكان واحد'],
+      ['dialogue',    'ترتيب الحوار',   'إعادة ترتيب حوار أو نصّ مبعثر الجمل'],
+      ['unite',       'مواضيع الوحدة', 'فهم النصوص والتعبير الكتابي والملحق الأدبي'],
+    ];
+    const UNIT_THEME = {
+      u1: ['الوحدة الأولى: نحتفل معًا', "on fête ensemble"],
+      u2: ['الوحدة الثانية: كلّ شخص من أجل الجميع', 'chacun pour tous'],
+      u3: ['الوحدة الثالثة: الصالون مكان ثقافي', "le salon un espace culturel"],
+      u4: ['الوحدة الرابعة: المرأة في الأدب', 'la femme dans la littérature'],
+      u5: ['الوحدة الخامسة: الذكاء الاصطناعي', "l'intelligence artificielle"],
+      u6: ['الوحدة السادسة: غزو الفضاء', 'la conquête de l\'espace'],
+    };
+    const UNIT_GRAMMAR = {
+      u1: ['الوحدة الأولى: التعبير عن الهدف', "l'expression de but"],
+      u2: ['الوحدة الثانية: التعارض والتضاد', "les conjonctions d'opposition/concession"],
+      u3: ['الوحدة الثالثة: الكلام المباشر وغير المباشر', 'le discours direct et indirect'],
+      u4: ['الوحدة الرابعة: المقارنة والتفضيل', 'le superlatif'],
+      u5: ['الوحدة الخامسة: الصفات والضمائر المبهمة', "les adjectifs et les pronoms indéfinis"],
+      u6: ['الوحدة السادسة: ضمائر الملكية وضمائر الإشارة', 'les pronoms possessifs et les pronoms démonstratifs'],
+    };
+    /** يُعيد عناصر DOM جاهزة (عربي — فرنسي معزول اتجاهيًا)، لا نصًّا خامًا،
+     *  لتُمرَّر مباشرة كأبناء h() — منعًا لانقلاب علامات الترقيم الفرنسية. */
+    function unitLabel(section, code) {
+      if (code === 'annexe') return ['الملحق الأدبي'];
+      const entry = (section === 'grammaire' ? UNIT_GRAMMAR : UNIT_THEME)[code];
+      if (!entry) return [code];
+      const [arText, frText] = entry;
+      return [arText, ' — ', fr(frText)];
+    }
+
     function tabPractice() {
-      const s = Store.get();
+      const card = h('div.card', { style: 'overflow:hidden' });
 
-      const card = h('div.card.list-sep', { style: 'overflow:hidden' });
-      SEED.topics.forEach((t) => {
-        const qs = Object.values(SEED.questions).filter((q) => q.topic === t.id);
-        const m = s.mastery[t.id];
-        card.appendChild(h('button.rowlink', {
-          disabled: !qs.length,
-          style: qs.length ? '' : 'opacity:.45',
-          onclick: () => qs.length && App.go('practice', { topic: t.id }),
+      SECTIONS.forEach(([id, label, desc], i) => {
+        const qs = Object.values(SEED.questions).filter((q) => q.section === id);
+        if (!qs.length) {
+          card.appendChild(h('div.rowlink', { style: 'opacity:.45' },
+            h('div.rowlink__b', h('div', { style: 'font-weight:600' }, label),
+              h('div.rowlink__s', 'لا تمارين بعد'))));
+          return;
+        }
+
+        // فروع القسم: كل وحدة فيها سؤال واحد على الأقل، مرتّبة، زائد فرع
+        // «أسئلة عامة» لِما لم يُنسَب بعد لوحدة بذاتها ضمن هذا القسم.
+        const byUnit = new Map();
+        qs.forEach((q) => {
+          const k = q.unitCode || '__general';
+          byUnit.set(k, (byUnit.get(k) || 0) + 1);
+        });
+        const order = ['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'annexe', '__general'];
+        const branches = order.filter((k) => byUnit.has(k));
+
+        const det = h('details.unit', i === 0 ? { open: true } : {});
+        det.appendChild(h('summary.unit__head',
+          h('div.grow',
+            h('div.unit__title', label),
+            h('div.faint', { style: 'font-size:12px;margin-top:4px' },
+              `${ar(qs.length)} تمارين — ${desc}`)),
+          h('span.unit__chev', icon.chevron(20))));
+
+        det.appendChild(h('div.lesson', {
+          onclick: () => App.go('practice', { section: id }),
         },
-          h('div.rowlink__b',
-            h('div', { style: 'font-weight:600' }, t.name,
-              t.native && h('span.faint', { style: 'font-weight:400;font-size:12px' }, ' · '),
-              t.native && fr(t.native)),
-            h('div.rowlink__s', qs.length
-              ? `${ar(qs.length)} تمارين${m ? ` · إتقانك ${ar(m.mastery)}٪` : ''}`
-              : 'لا تمارين بعد')),
-          m && h('span.badge.' + (m.mastery >= 70 ? 'badge--ok' : 'badge--acc'), ar(m.mastery) + '٪'),
-          h('span.faint', icon.back(18))));
-      });
+          h('div.lesson__ico.lesson__ico--now', icon.book(16)),
+          h('div.lesson__body', h('div', { style: 'font-weight:600' }, `كل قسم «${label}»`),
+            h('div.lesson__meta', `${ar(qs.length)} سؤالًا من كل الفروع`))));
 
-      const weak = Store.weakestTopic();
+        branches.forEach((k) => {
+          const n = byUnit.get(k);
+          const titleParts = k === '__general' ? ['أسئلة عامة'] : unitLabel(id, k);
+          det.appendChild(h('div.lesson', {
+            onclick: () => App.go('practice', { section: id, unit: k === '__general' ? '' : k }),
+          },
+            h('div.lesson__ico.lesson__ico--todo', k === '__general' ? '•' : k.replace('u', '')),
+            h('div.lesson__body', h('div', ...titleParts), h('div.lesson__meta', `${ar(n)} تمارين`))));
+        });
+
+        card.appendChild(det);
+      });
 
       return h('div.dash',
         h('div.dash__main',
-          h('div.muted.small', 'اختر موضوعًا لتتدرّب عليه، أو ابدأ جلسة شاملة من بنك الأسئلة.'),
+          h('div.muted.small', { style: 'margin-bottom:12px' },
+            'اضغط قسمًا لتشوف فروعه بحسب الوحدة، أو ابدأ جلسة شاملة من بنك الأسئلة.'),
           card),
         h('aside.dash__side',
           h('div.card.card--pad',
             h('div', { style: 'font-weight:700;margin-bottom:6px' }, 'جلسة شاملة'),
             h('div.muted.small', { style: 'margin-bottom:14px' },
-              `كل بنك الأسئلة — ${ar(Object.keys(SEED.questions).length)} سؤالًا من كل المواضيع.`),
-            h('button.btn.btn--primary.btn--block', { onclick: () => App.go('practice', {}) },
-              'ابدأ الجلسة')),
-          weak && weak.mastery < 70 && h('div.callout',
-            h('div.callout__t', `نقطة ضعفك: ${weak.name}`),
-            h('div.muted.small', { style: 'margin-bottom:10px' }, `إتقانك ${ar(weak.mastery)}٪.`),
-            h('button.btn.btn--primary.btn--sm', {
-              onclick: () => App.go('practice', { topic: weak.id }),
-            }, 'تمارين مخصّصة'))),
+              `كل الأسئلة المصنَّفة — ${ar(Object.values(SEED.questions).filter((q) => q.section).length)} سؤالًا من الأقسام الأربعة.`),
+            h('button.btn.btn--primary.btn--block', { onclick: () => App.go('practice', { section: 'any' }) },
+              'ابدأ الجلسة'))),
       );
     }
 
@@ -389,9 +452,18 @@ window.Screens = window.Screens || {};
   // ===========================================================================
   Screens.practice = (params) => {
     let pool;
-    if (params.lesson)     pool = SEED.lessons[params.lesson].exercises.map((id) => SEED.questions[id]);
-    else if (params.topic) pool = Object.values(SEED.questions).filter((q) => q.topic === params.topic);
-    else                   pool = Object.values(SEED.questions);
+    if (params.lesson) pool = SEED.lessons[params.lesson].exercises.map((id) => SEED.questions[id]);
+    // 'any' = جلسة شاملة على الأقسام الأربعة المصنَّفة، لا كل بنك الأسئلة —
+    // الأسئلة غير المصنَّفة (section فارغ) لم يراجعها المدرّس بعد فتُستبعد.
+    else if (params.section === 'any') pool = Object.values(SEED.questions).filter((q) => q.section);
+    // فرع بعينه (وحدة) داخل قسم — من ضغط بند فرعي بالسلايد. params.unit فارغة
+    // (لا محذوفة) تعني «فرع الأسئلة العامة»، أي بلا unitCode إطلاقًا.
+    else if (params.section && params.unit !== undefined)
+      pool = Object.values(SEED.questions).filter((q) =>
+        q.section === params.section && (params.unit ? q.unitCode === params.unit : !q.unitCode));
+    else if (params.section) pool = Object.values(SEED.questions).filter((q) => q.section === params.section);
+    else if (params.topic)   pool = Object.values(SEED.questions).filter((q) => q.topic === params.topic);
+    else                     pool = Object.values(SEED.questions);
     pool = pool.filter(Boolean);
 
     let i = 0, correct = 0;

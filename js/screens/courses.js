@@ -18,28 +18,28 @@ window.Screens = window.Screens || {};
    * مثال سوريا: 963933000000 (963 + الرقم بلا الصفر الأول).
    * بلا رقم حقيقي، الزر يفتح واتساب بلا مستلم — لازم تُستبدل قبل الاستخدام الفعلي.
    */
-  const DISTRIBUTOR_WHATSAPP = '000000000000';
-
-  function whatsappUrl(course, subject, grade) {
-    const s = Store.get();
-    const lines = [
-      'مرحبًا 👋',
-      `بدي أشترك بمادة: ${subject?.name || course.title}${grade ? ' — ' + grade.name : ''}`,
-      s.username ? `اسمي بالتطبيق: ${s.username}` : null,
-    ].filter(Boolean);
-    return `https://wa.me/${DISTRIBUTOR_WHATSAPP}?text=${encodeURIComponent(lines.join('\n'))}`;
-  }
+  // (نُقلا إلى components.js ليستعملهما هذا الكتالوج وصفحة الكورس التعريفية معًا:
+  //  C.whatsappUrl / C.whatsappBtn — ورقم الموزّع معهما.)
 
   /**
    * بطاقة الكورس — صورة أولًا، ثم عنوان، ثم اسم الأستاذ (بيت من فريقنا أو
    * متعاقَد خارجيًا — الشكل بصري واحد للاثنين، والفرق التجاري خارج الواجهة)،
    * ثم حالة الاشتراك، ثم فعل واحد واضح.
+   *
+   * البطاقة كلها قابلة للضغط وتفتح صفحة الكورس التعريفية — حتى غير المشترَك
+   * فيه. كورس لا يستطيع الطالب الدخول إليه ليرى فيديوه التقديمي وما يتضمّنه
+   * هو كورس لا يُشترى.
    */
   function courseCard(course) {
     const subject = SEED.subjects.find((x) => x.id === course.subject);
     const grade = SEED.grades.find((x) => x.id === course.grade);
+    const open = () => App.go('courseAbout', { id: course.id });
 
-    return h('div.card', { style: 'overflow:hidden' },
+    // الزر داخل بطاقة قابلة للضغط: نوقف انتشار الحدث لئلّا يُفتح التعريف
+    // فوق الفعل الذي قصده الطالب.
+    const stop = (fn) => (e) => { e.stopPropagation(); fn(); };
+
+    return h('div.card.card--tap', { style: 'overflow:hidden', onclick: open },
       h('div.course-cover',
         subject?.cover
           ? h('img', { src: subject.cover, alt: '' })
@@ -56,13 +56,10 @@ window.Screens = window.Screens || {};
             : h('span.badge.badge--soon', 'غير مشترَك')),
 
         course.entitled
-          ? h('button.btn.btn--primary.btn--block', { onclick: () => App.go('course') },
-              'متابعة')
-          : h('a.btn.btn--secondary.btn--block', {
-              href: whatsappUrl(course, subject, grade),
-              target: '_blank', rel: 'noopener',
-              style: 'text-decoration:none;display:flex',
-            }, 'اطلب الاشتراك عبر واتساب')),
+          ? h('button.btn.btn--primary.btn--block',
+              { onclick: stop(() => App.go('course', { id: course.id })) }, 'متابعة')
+          : h('button.btn.btn--secondary.btn--block',
+              { onclick: stop(open) }, 'تفاصيل الكورس')),
     );
   }
 

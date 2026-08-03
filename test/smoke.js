@@ -13,7 +13,9 @@ global.localStorage = {
 };
 global.document = { documentElement: { setAttribute() {} } };
 
-eval(fs.readFileSync(dir + 'data/seed.js', 'utf8'));
+// المحتوى الوهمي مصدره الاختبارات نفسها لا التطبيق: js/data/seed.js صار هيكلًا
+// فارغًا عمدًا، والمنطق يحتاج بيانات ثابتة معروفة النتائج ليُقاس عليها.
+eval(fs.readFileSync(__dirname + '/fixtures.js', 'utf8'));
 eval(fs.readFileSync(dir + 'store.js', 'utf8'));
 
 const fail = [];
@@ -72,7 +74,7 @@ Store.toggleDownload('articles-definis');
 ok('يمكن حذف التنزيل', !Store.get().downloaded.includes('articles-definis'));
 
 // --- الحفظ المحلي ---
-ok('يُحفظ في localStorage', !!localStorage.getItem('manhaji.v1'));
+ok('يُحفظ في localStorage', !!localStorage.getItem('manhaji.v2'));
 
 // --- طابور الرفع ---------------------------------------------------------------
 // المصادقة نفسها تُختبر على السيرفر لا هنا: الدالة activate هي المرجع،
@@ -120,12 +122,80 @@ for (const ex of SEED.exams)
 ok('سلامة روابط المحتوى', bad.length === 0);
 bad.forEach((b) => console.log('   ← ' + b));
 
+// --- عزل النصّ اللاتيني داخل العربي (bidi) -------------------------------------
+// علامة الاستفهام في جملة فرنسية داخل فقرة عربية تقفز إلى الطرف الخطأ ما لم
+// يُعزل المقطع. نختبر التعبير النمطي نفسه المستعمل في UI.rich.
+const uiSrc = fs.readFileSync(dir + 'ui.js', 'utf8');
+const runRe = uiSrc.match(/const LATIN_RUN = (\/.*\/g);/);
+ok('UI.rich يعرّف نمط عزل المقاطع اللاتينية', !!runRe);
+if (runRe) {
+  const LATIN = eval(runRe[1]);
+  const mixed = "بحسب النص: Les robots menacent-ils l'Homme ? اختر الصحيح.";
+  const runs = [...mixed.matchAll(LATIN)].map((m) => m[0]);
+  ok('علامة الاستفهام تبقى داخل المقطع الفرنسي', runs.some((r) => r.trim().endsWith('?')));
+  ok('لا يبتلع العزلُ النصَّ العربي', runs.every((r) => !/[؀-ۿ]/.test(r)));
+}
+
+// نصّ السؤال يُبنى عبر UI.rich لا كعقدة نصّية — وإلّا طُويت أسطر نصّ القراءة
+const compSrc = fs.readFileSync(dir + 'components.js', 'utf8');
+ok('نص السؤال يمرّ عبر UI.rich', /UI\.rich\(q\.stem/.test(compSrc));
+ok('خيارات الأسئلة تمرّ عبر UI.rich', /UI\.rich\(o\.t/.test(compSrc));
+ok('نصّ القراءة يُعرض مع السؤال', /q\.passage/.test(compSrc));
+
+// sync يجلب عمود النصّ ويحوّله — بدونه يصل السؤال بلا نصّه فيتعذّر حلّه
+const syncSrc = fs.readFileSync(dir + 'data/sync.js', 'utf8');
+ok('sync يجلب passage_md', /passage_md/.test(syncSrc));
+ok('sync يحوّل passage_md إلى passage', /passage:\s*q\.passage_md/.test(syncSrc));
+
+// --- تمارين الأقسام الأربعة (مفردات/قاعدة/ترتيب حوار/مواضيع الوحدة) -----------
+// شاشة «تمارين» صارت تُبوّب بحقل section لا بقائمة المواضيع الكاملة — لو
+// عاد أحد لاستعمال SEED.topics.forEach هنا مستقبلًا فهذا تراجع صامت عن
+// القرار: أسئلة كثيرة (comprehension/expression/الملحق الأدبي) بلا section
+// معروف ستختفي من تمارين الطالب دون أي خطأ ظاهر.
+const courseSrc = fs.readFileSync(dir + 'screens/course.js', 'utf8');
+ok('شاشة التمارين تصفّي بحقل section', /q\.section === id/.test(courseSrc));
+ok('الجلسة الشاملة تستثني غير المصنَّف', /params\.section === 'any'.*q\.section\)/.test(courseSrc));
+ok('Screens.practice يقبل section محدَّدًا', /q\.section === params\.section/.test(courseSrc));
+ok('تصفية topic القديمة باقية (تخدم تمارين نقطة الضعف)', /q\.topic === params\.topic/.test(courseSrc));
+
+// اختبار وظيفي صغير لمنطق التصفية نفسه: تأكيد أن سؤالًا بلا section لا يظهر
+// في أي قسم، وأن الجلسة الشاملة تستثنيه أيضًا.
+const fakeQuestions = {
+  q1: { section: 'vocabulaire' }, q2: { section: 'grammaire' }, q3: { section: null },
+};
+const inSection = (id) => Object.values(fakeQuestions).filter((q) => q.section === id);
+const anySection = Object.values(fakeQuestions).filter((q) => q.section);
+ok('سؤال بلا section لا يظهر في أي قسم',
+   inSection('vocabulaire').length === 1 && inSection('grammaire').length === 1);
+ok('الجلسة الشاملة تستثني السؤال غير المصنَّف', anySection.length === 2);
+
+// --- سلايد الفروع (وحدة داخل كل قسم) ------------------------------------------
+ok('sync يجلب unit_code', /unit_code/.test(syncSrc));
+ok('sync يحوّل unit_code إلى unitCode', /unitCode:\s*q\.unit_code/.test(syncSrc));
+ok('تمارين تبني فروعًا حسب q.unitCode', /q\.unitCode/.test(courseSrc));
+ok('Screens.practice يقبل فرعًا محدَّدًا ضمن قسم', /params\.unit !== undefined/.test(courseSrc));
+ok('فرع «أسئلة عامة» يعني unitCode فارغة لا إسقاط الفلتر',
+   /!q\.unitCode/.test(courseSrc));
+
+// اختبار وظيفي: فرع محدَّد يعزل أسئلته فقط عن باقي فروع القسم نفسه، وفرع
+// «الأسئلة العامة» (بلا unitCode) لا يبتلع أسئلة فروع أخرى بالغلط.
+const fakeBranched = {
+  a: { section: 'grammaire', unitCode: 'u1' },
+  b: { section: 'grammaire', unitCode: 'u2' },
+  c: { section: 'grammaire', unitCode: null },
+};
+const byBranch = (section, unit) => Object.values(fakeBranched).filter((q) =>
+  q.section === section && (unit ? q.unitCode === unit : !q.unitCode));
+ok('فرع u1 يعزل سؤاله عن u2', byBranch('grammaire', 'u1').length === 1);
+ok('فرع الأسئلة العامة يلتقط بلا-unitCode فقط', byBranch('grammaire', '').length === 1);
+
 // --- سلامة الترميز: كشف مبكر لتلف UTF-8 في ملفات الواجهة ---------------------
 // هذا الاختبار موجود لأن تحرير هذه الملفات بأدوات ويندوز التي تفترض ترميز
 // ANSI يفسد كل النص العربي فيها بصمت. العلامة الفارقة تسلسل «Ø».
 const SRC = ['ui.js', 'store.js', 'components.js', 'app.js',
              'data/seed.js', 'data/api.js', 'data/device.js', 'data/sync.js', 'data/media.js',
-             'screens/onboarding.js', 'screens/evicted.js', 'screens/courses.js', 'screens/progress.js',
+             'screens/onboarding.js', 'screens/evicted.js', 'screens/courses.js',
+             'screens/course-about.js', 'screens/progress.js',
              'screens/main.js', 'screens/course.js', 'screens/exam.js'];
 const corrupt = SRC.filter((f) => /Ø|Ù|Ã˜/.test(fs.readFileSync(dir + f, 'utf8')));
 ok('لا تلف في ترميز ملفات الواجهة', corrupt.length === 0);

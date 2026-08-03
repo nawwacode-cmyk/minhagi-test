@@ -59,6 +59,34 @@ window.C = (function () {
     );
   }
 
+  /**
+   * ⚠️ رقم واتساب الموزّع — بصيغة دولية بلا علامة + ولا صفر مقدّم.
+   * مثال سوريا: 963933000000 (963 + الرقم بلا صفره الأول).
+   * لا بوابة دفع في التطبيق: الأكواد تُباع نقدًا عبر موزّعين، وهذا الزر يفتح
+   * محادثة جاهزة معهم. **يجب استبدال هذا الرقم قبل أي استخدام حقيقي.**
+   */
+  const DISTRIBUTOR_WHATSAPP = '000000000000';
+
+  /** رابط طلب اشتراك بكورس بعينه — رسالة مكتوبة مسبقًا تعرّف الموزّع بالطلب. */
+  function whatsappUrl(course) {
+    const s = Store.get();
+    const subject = SEED.subjects.find((x) => x.id === course.subject);
+    const grade = SEED.grades.find((x) => x.id === course.grade);
+    const lines = [
+      'مرحبًا 👋',
+      `بدي أشترك بمادة: ${subject?.name || course.title}${grade ? ' — ' + grade.name : ''}`,
+      s.username ? `اسمي بالتطبيق: ${s.username}` : null,
+    ].filter(Boolean);
+    return `https://wa.me/${DISTRIBUTOR_WHATSAPP}?text=${encodeURIComponent(lines.join('\n'))}`;
+  }
+
+  /** زر «اطلب الاشتراك» — رابط لا زر، ليعمل فتحه في تبويب/تطبيق خارجي. */
+  const whatsappBtn = (course, cls = 'btn--primary') =>
+    h('a.btn.btn--block.' + cls, {
+      href: whatsappUrl(course), target: '_blank', rel: 'noopener',
+      style: 'text-decoration:none;display:flex',
+    }, 'اطلب الاشتراك عبر واتساب');
+
   // ===========================================================================
   // بطاقة السؤال — تدير حالتها بنفسها وتعيد بناء محتواها عند التغيير.
   //
@@ -103,7 +131,17 @@ window.C = (function () {
         h('span', `${ar(index + 1)} من ${ar(total)}`)));
       kids.push(h('div', { style: 'margin-bottom:14px' }, bar(((index) / total) * 100, 'bar--thin')));
 
-      kids.push(h('div.q__stem', q.stem));
+      /* نصّ القراءة يسبق السؤال ويُعاد عرضه مع **كل** سؤال يعتمد عليه.
+         في ورقة الفحص يظهر النصّ مرة واحدة أعلى الصفحة لأن الأسئلة كلها
+         أمام الطالب، أما هنا فالسؤال يُعرض وحده — فسؤال يقول «حسب النص
+         أعلاه» بلا نصّ لا يمكن حلّه أصلًا. لذلك يحمل كل سؤال نصّه معه. */
+      if (q.passage) {
+        kids.push(h('details.q__passage', { open: index === 0 },
+          h('summary', 'النصّ — اضغط للطيّ أو الفتح'),
+          UI.rich(q.passage, 'div')));
+      }
+
+      kids.push(UI.rich(q.stem, 'div.q__stem'));
 
       // ---- الأنواع ----
       if (q.type === 'mcq' || q.type === 'multi') {
@@ -123,7 +161,7 @@ window.C = (function () {
               } else sel = o.k;
               render();
             },
-          }, h('span.opt__k', mark), o.fr ? fr(o.t) : o.t));
+          }, h('span.opt__k', mark), UI.rich(o.t, 'span')));
         }
 
       } else if (q.type === 'blank') {
@@ -223,5 +261,6 @@ window.C = (function () {
     return card;
   }
 
-  return { appbar, syncBanner, masteryRow, empty, questionCard };
+  return { appbar, syncBanner, masteryRow, empty, questionCard,
+           whatsappUrl, whatsappBtn };
 })();

@@ -43,6 +43,42 @@ window.UI = (function () {
   /** نص فرنسي معزول اتجاهيًا داخل جملة عربية */
   const fr = (t) => h('span.fr', { text: t });
 
+  /**
+   * نصّ مختلط عربي/فرنسي — يُعزل كل مقطع لاتيني تلقائيًا، وتُحترم أسطره.
+   *
+   * سببان يجعلان هذا إلزاميًا لا تجميليًا:
+   *
+   * ١. **الاتجاه.** جملة فرنسية داخل فقرة عربية بلا عزل تقفز علامات ترقيمها
+   *    إلى الطرف الخطأ — فتظهر «? Qu'est-ce que c'est» بدل الصحيح. الأسوأ أن
+   *    علامة الاستفهام قد تُنسب إلى الجملة العربية المجاورة فيبدو السؤال
+   *    مقطوعًا. لا يمكن الاعتماد على علَم يدوي في البيانات: نصوص الامتحانات
+   *    الحقيقية تخلط اللغتين داخل الجملة الواحدة عشرات المرات.
+   *
+   * ٢. **الأسطر.** HTML يطوي `\n` إلى مسافة واحدة، فيتحوّل نصّ القراءة ذو
+   *    الفقرات الستّ إلى كتلة واحدة غير مقروءة. نقسّم على الأسطر صراحةً.
+   */
+  const LATIN_RUN = /([A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9'’.,!?;:()«»\-–—\/%\s]*[A-Za-zÀ-ÿ0-9'’.!?»)]|[A-Za-zÀ-ÿ])/g;
+
+  function richLine(line, into) {
+    let last = 0;
+    for (const m of line.matchAll(LATIN_RUN)) {
+      if (m.index > last) into.appendChild(document.createTextNode(line.slice(last, m.index)));
+      into.appendChild(h('span.fr', { text: m[0] }));
+      last = m.index + m[0].length;
+    }
+    if (last < line.length) into.appendChild(document.createTextNode(line.slice(last)));
+  }
+
+  /** يعيد عنصرًا واحدًا يحمل النصّ كاملًا بأسطره ومقاطعه المعزولة. */
+  function rich(text, tag = 'div') {
+    const box = h(tag);
+    String(text ?? '').split('\n').forEach((line, i) => {
+      if (i) box.appendChild(h('br'));
+      if (line.trim()) richLine(line, box);
+    });
+    return box;
+  }
+
   /** أرقام عربية شرقية — للعدّ في الواجهة العربية */
   const AR = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
   const ar = (n) => String(n).replace(/[0-9]/g, (d) => AR[+d]);
@@ -143,5 +179,5 @@ window.UI = (function () {
     return node;
   }
 
-  return { h, fr, ar, icon, svg, ring, bar, mount };
+  return { h, fr, rich, ar, icon, svg, ring, bar, mount };
 })();

@@ -45,7 +45,8 @@ window.App = (function () {
     if (!c) return null;
     // كل ما يجري داخل مادة (كورس، درس، تمرين، امتحان، نتيجة) ينتمي منطقيًا
     // لقسم «الكورسات» — لا وجود لأقسامها كوجهات شريط مستقلة بعد الآن.
-    if (['course', 'lesson', 'practice', 'exam', 'result'].includes(c.name)) return 'courses';
+    if (['course', 'courseAbout', 'lesson', 'practice', 'exam', 'result'].includes(c.name))
+      return 'courses';
     return c.name;
   }
 

@@ -13,6 +13,16 @@ window.Sync = (function () {
   const CONTENT_KEY = 'manhaji.content.v1';
   const IDMAP_KEY   = 'manhaji.idmap.v1';
 
+  /**
+   * وضع المعاينة — `index.html?demo=1`.
+   *
+   * سببه أن المحتوى المزامَن يستبدل SEED كليًا عند كل إقلاع (applyStored)، فما
+   * إن يزامن الجهاز مرة واحدة حتى يصير من المستحيل معاينة الواجهة ببيانات
+   * seed.js التجريبية — تُعدَّل فلا يظهر أثرها، ويبدو الأمر كأنه عطل في الحفظ
+   * أو الكاش. هذا العَلم يقطع ذلك: SEED كما هو في الملف، ولا سحب محتوى إطلاقًا.
+   */
+  const DEMO = new URLSearchParams(location.search).has('demo');
+
   // ---------------------------------------------------------------------------
   // ترجمة أنواع الأسئلة
   // ---------------------------------------------------------------------------
@@ -41,7 +51,7 @@ window.Sync = (function () {
       Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order', order: 'sort_order' }),
       Api.from('lessons',   { select: 'id,code,title_ar,body_html,est_minutes,is_free,unit_id,video_id,sort_order', order: 'sort_order' }),
       Api.from('lesson_topics', { select: 'lesson_id,topic_id' }),
-      Api.from('questions', { select: 'id,code,type,stem_md,answer_key,difficulty,explanation_md,topic_id,lesson_id' }),
+      Api.from('questions', { select: 'id,code,type,stem_md,passage_md,answer_key,difficulty,explanation_md,topic_id,lesson_id,section,unit_code' }),
       Api.from('question_options', { select: 'id,question_id,code,text_md,is_correct,sort_order', order: 'sort_order' }),
       Api.from('exams',     { select: 'id,code,title_ar,kind,duration_minutes,pass_percent,subject_id,grade_id,sort_order', order: 'sort_order' }),
       Api.from('exam_questions', { select: 'exam_id,question_id,sort_order,points' }),
@@ -81,8 +91,16 @@ window.Sync = (function () {
         id: q.code, type,
         topic: T[q.topic_id]?.code || null,
         lesson: L[q.lesson_id]?.code || null,
+        // تبويب «تمارين» عند الطالب: مفردات · قاعدة · ترتيب حوار · مواضيع
+        // الوحدة. null = لم يصنَّفه المدرّس بعد، فلا يظهر في أي قسم تصفّح —
+        // يبقى في القاعدة المحلية بلا أثر حتى يُصنَّف ويصل في مزامنة لاحقة.
+        section: q.section || null,
+        // تفريع «سلايد الأقسام» بحسب الوحدة — راجع UNIT_THEME/UNIT_GRAMMAR
+        // في screens/course.js. نفس رمز u1..u6 يُعرض باسم مختلف حسب section.
+        unitCode: q.unit_code || null,
         difficulty: q.difficulty,
         stem: q.stem_md,
+        passage: q.passage_md || null,
         why: q.explanation_md || '',
       };
 
@@ -181,7 +199,7 @@ window.Sync = (function () {
       // لا بكورس بعينه. هذا ما يمكّن courseProgress من حصر أفضل نتيجة امتحان
       // بمادة الكورس تحديدًا بدل خلطها بامتحانات مواد أخرى.
       exams: exams.map((e) => ({
-        id: e.code, kind: e.kind === 'past_paper' ? 'ministry' : e.kind,
+        id: e.code, kind: { past_paper: 'ministry', unit_test: 'unit' }[e.kind] || e.kind,
         title: e.title_ar, minutes: e.duration_minutes, pass: e.pass_percent,
         subject: subjectByUuid[e.subject_id]?.code || null,
         grade: gradeByUuid[e.grade_id]?.code || null,
@@ -210,6 +228,7 @@ window.Sync = (function () {
    * في التحويل أعلاه بدل تغيير عشرات المواضع في الواجهة.
    */
   function applyStored() {
+    if (DEMO) return false;
     try {
       const raw = localStorage.getItem(CONTENT_KEY);
       if (!raw) return false;
@@ -415,7 +434,7 @@ window.Sync = (function () {
       let pulled = 0, progress = 0;
 
       if (navigator.onLine) {
-        if (content) {
+        if (content && !DEMO) {
           const c = await pullContent();
           applyStored();
           pulled = Object.keys(c.lessons).length;
@@ -431,6 +450,16 @@ window.Sync = (function () {
     } finally { running = false; }
   }
 
+  /**
+   * يمسح المحتوى المزامَن. يُستدعى عند الخروج: المحتوى ملك للحساب الذي سحبه،
+   * وإبقاؤه يعني أن الطالب التالي على الجهاز نفسه يرى محتوى سابقه إلى أن
+   * تكتمل أول مزامنة له.
+   */
+  function clearContent() {
+    localStorage.removeItem(CONTENT_KEY);
+    localStorage.removeItem(IDMAP_KEY);
+  }
+
   return { pullContent, applyStored, pushProgress, pullProgress,
-           sessionOk, syncNow, idOf, CONTENT_KEY };
+           sessionOk, syncNow, idOf, clearContent, DEMO, CONTENT_KEY };
 })();
