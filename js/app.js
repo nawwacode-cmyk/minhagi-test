@@ -83,15 +83,23 @@ window.App = (function () {
   }
 
   function render() {
+    const s = Store.get();
     // الطرد يتجاوز كل شيء: بلا جلسة حاليّة لا يرى الطالب محتوى أصلًا،
     // فإبقاؤه في الشاشة العادية يعرض له فراغًا بلا تفسير.
-    if (Store.get().evicted && Api.isSignedIn()) {
+    if (s.evicted && Api.isSignedIn()) {
       view.replaceChildren(Screens.evicted());
       rail.replaceChildren();
       rail.style.display = 'none';
       return;
     }
     const c = cur();
+
+    // تُحفَظ الشاشة الحالية لتُستأنف بعد تحديث الصفحة بدل العودة إلى
+    // الرئيسية — لا معنى لحفظ شاشات ما قبل الدخول.
+    if (s.signedIn && !['welcome', 'auth'].includes(c.name)) {
+      Store.set({ route: { name: c.name, params: c.params || {} } });
+    }
+
     const fn = Screens[c.name] || Screens.welcome;
     view.replaceChildren(fn(c.params || {}));
     drawRail();
@@ -158,7 +166,14 @@ window.App = (function () {
 
     // الجلسة على السيرفر هي الحكم، لا علامة محلية قد تكون قديمة
     const signedIn = Api.isSignedIn() && s.signedIn;
-    stack.push({ name: signedIn ? 'home' : 'welcome', params: {} });
+
+    // استئناف آخر شاشة بعد تحديث الصفحة — بشرط أن تكون شاشة حقيقية موجودة
+    // فعلًا (لا اسم قديم بقي من نسخة سابقة للتطبيق تغيّرت شاشاتها).
+    const r = s.route;
+    const resumable = signedIn && r && Screens[r.name] && !['welcome', 'auth'].includes(r.name);
+
+    stack.push(resumable ? { name: r.name, params: r.params || {} }
+                         : { name: signedIn ? 'home' : 'welcome', params: {} });
     render();
     startSync();
 

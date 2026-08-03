@@ -45,6 +45,9 @@ window.Store = (function () {
     // الدروس المنزَّلة للاستخدام دون إنترنت
     downloaded: ['articles-definis'],
 
+    // آخر شاشة نشطة — لاستئنافها بعد تحديث الصفحة بدل العودة إلى الرئيسية دائمًا
+    route: null,
+
     // حالة الشبكة والمزامنة
     online: true,
     lastSync: null,
