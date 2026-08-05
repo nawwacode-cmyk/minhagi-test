@@ -8,71 +8,21 @@
    ============================================================================= */
 window.SEED = {
 
+  // بعد إزالة طبقة الكورسات: المادة نفسها هي وحدة الوصول والاشتراك.
+  // `entitled` هنا بيانات تجريبية ثابتة؛ في الوضع الحقيقي يحسبها sync.js من
+  // وجود وحدات وصلت فعليًا عبر RLS، لا من علم مخزَّن.
   subjects: [
-    { id: 'fr', name: 'اللغة الفرنسية', native: 'Français', cover: 'assets/img/cover-fr.jpg' },
-    { id: 'en', name: 'اللغة الإنجليزية', native: 'English' },
-    { id: 'math', name: 'الرياضيات', native: null },
-    { id: 'physics', name: 'الفيزياء والكيمياء', native: null },
-    { id: 'history', name: 'التاريخ', native: null },
+    { id: 'fr', name: 'اللغة الفرنسية', native: 'Français',
+      cover: 'assets/img/cover-fr.jpg', entitled: true },
+    { id: 'en', name: 'اللغة الإنجليزية', native: 'English', entitled: false },
+    { id: 'math', name: 'الرياضيات', native: null, entitled: false },
+    { id: 'physics', name: 'الفيزياء والكيمياء', native: null, entitled: false },
+    { id: 'history', name: 'التاريخ', native: null, entitled: false },
   ],
 
   grades: [
     { id: 'g9',  name: 'الصف التاسع', note: 'شهادة التعليم الأساسي' },
     { id: 'g12', name: 'البكالوريا',  note: 'الفرع الأدبي والعلمي' },
-  ],
-
-  /**
-   * الكورس — لا المادة — هو وحدة الوصول والاشتراك. `entitled` هنا بيانات
-   * تجريبية ثابتة؛ في الوضع الحقيقي يحسبها sync.js من وجود وحدات وصلت فعليًا
-   * عبر RLS، لا من علم مخزَّن.
-   *
-   * تنويعة مقصودة هنا لمعاينة كل تركيبات بطاقة الكتالوج قبل بناء أي شيء
-   * حقيقي فوقها: صورة+أستاذ، صورة بلا أستاذ، أستاذ بلا صورة، ولا هذا ولا ذاك،
-   * زائد صفّين وعنوان طويل لاختبار التفاف النص. لا تُرفع هذه التنويعة إلى
-   * السيرفر — SEED هنا للعرض المحلي فقط، تُستبدل بمحتوى sync.js الحقيقي.
-   */
-  courses: [
-    { id: 'fr-g9-core', title: 'منهاج اللغة الفرنسية — الصف التاسع',
-      subject: 'fr', grade: 'g9', teacher: 'أ. سامي', entitled: true,
-      about: 'شرح كامل لمنهاج اللغة الفرنسية للصف التاسع، درسًا درسًا، بفيديوهات '
-           + 'قصيرة لا تتجاوز العشر دقائق. بعد كل درس تمارين فورية على ما شرحناه '
-           + 'للتو، وبنك أسئلة مفتوح تتدرّب عليه متى شئت، وامتحانات تجريبية '
-           + 'ووزارية بصيغة ورقة الفحص نفسها.',
-      intro: { thumb: 'assets/img/video-thumb.svg', length: '٢:٤٠' },
-      includes: ['شرح كل دروس المنهاج بالفيديو', 'بنك أسئلة بعد كل درس',
-                 'امتحانات تجريبية بصيغة ورقة الفحص', 'دورات وزارية سابقة محلولة',
-                 'تنزيل الدروس والدراسة دون إنترنت'] },
-
-    { id: 'fr-g12-core', title: 'منهاج اللغة الفرنسية — البكالوريا',
-      subject: 'fr', grade: 'g12', teacher: 'أ. سامي', entitled: false,
-      about: 'المنهاج الكامل للبكالوريا بفرعيها الأدبي والعلمي، مع تركيز خاص على '
-           + 'نمط أسئلة الدورات الوزارية الأخيرة وطريقة توزيع العلامات.',
-      intro: { thumb: 'assets/img/video-thumb.svg', length: '٣:١٠' },
-      includes: ['شرح كل دروس المنهاج بالفيديو', 'بنك أسئلة بعد كل درس',
-                 'امتحانات تجريبية بصيغة ورقة الفحص', 'دورات وزارية سابقة محلولة'] },
-
-    { id: 'math-g9-core', title: 'منهاج الرياضيات — الصف التاسع',
-      subject: 'math', grade: 'g9', teacher: 'أ. وليد', entitled: false,
-      about: 'الجبر والهندسة للصف التاسع بالترتيب نفسه المعتمد في الكتاب، مع حلّ '
-           + 'مفصّل لكل تمرين يظهر في الامتحانات.',
-      intro: { thumb: 'assets/img/video-thumb.svg', length: '٢:١٥' },
-      includes: ['شرح كل دروس المنهاج بالفيديو', 'حلول مفصّلة للتمارين',
-                 'امتحانات تجريبية', 'دورات وزارية سابقة محلولة'] },
-
-    { id: 'en-g9-core', title: 'منهاج اللغة الإنجليزية — الصف التاسع',
-      subject: 'en', grade: 'g9', teacher: null, entitled: false,
-      about: 'قيد الإعداد — يُفتح قريبًا.',
-      includes: ['شرح كل دروس المنهاج بالفيديو', 'بنك أسئلة بعد كل درس'] },
-
-    { id: 'physics-g9-core', title: 'منهاج الفيزياء والكيمياء — الصف التاسع (المنهاج المعدَّل)',
-      subject: 'physics', grade: 'g9', teacher: null, entitled: false,
-      about: 'قيد الإعداد — يُفتح قريبًا.',
-      includes: ['شرح كل دروس المنهاج بالفيديو', 'تجارب مصوَّرة', 'بنك أسئلة'] },
-
-    { id: 'history-g12-core', title: 'منهاج التاريخ — البكالوريا',
-      subject: 'history', grade: 'g12', teacher: null, entitled: false,
-      about: 'قيد الإعداد — يُفتح قريبًا.',
-      includes: ['شرح كل دروس المنهاج بالفيديو', 'ملخّصات وخرائط زمنية'] },
   ],
 
   topics: [
@@ -85,11 +35,11 @@ window.SEED = {
 
   units: [
     {
-      id: 'u1', title: 'الوحدة الأولى: التعارف والتحيات', course: 'fr-g9-core',
+      id: 'u1', title: 'الوحدة الأولى: التعارف والتحيات', subject: 'fr',
       lessons: ['salutations', 'articles-definis'],
     },
     {
-      id: 'u2', title: 'الوحدة الثانية: الأفعال الأساسية', course: 'fr-g9-core',
+      id: 'u2', title: 'الوحدة الثانية: الأفعال الأساسية', subject: 'fr',
       lessons: ['etre-avoir', 'negation'],
     },
   ],
@@ -218,7 +168,7 @@ window.SEED = {
 
   questions: {
     'q-sal-1': {
-      id: 'q-sal-1', type: 'mcq', topic: 'salutations',
+      id: 'q-sal-1', type: 'mcq', subject: 'fr', topic: 'salutations',
       stem: 'تلتقي أستاذك الساعة الثامنة صباحًا. ماذا تقول؟',
       options: [
         { k: 'أ', t: 'Bonjour',    fr: true, correct: true },
@@ -229,7 +179,7 @@ window.SEED = {
       why: 'Bonjour تحية النهار. أما Salut فغير رسمية ولا تُقال للأستاذ، و Bonne nuit تُقال لمن سيذهب للنوم.',
     },
     'q-sal-2': {
-      id: 'q-sal-2', type: 'mcq', topic: 'salutations',
+      id: 'q-sal-2', type: 'mcq', subject: 'fr', topic: 'salutations',
       stem: 'أيّهما تستخدم مع أستاذك؟',
       options: [
         { k: 'أ', t: 'tu',   fr: true },
@@ -238,7 +188,7 @@ window.SEED = {
       why: 'vous للأستاذ والغريب والأكبر سنًّا. استخدام tu معه خطأ اجتماعي لا نحوي فقط.',
     },
     'q-art-1': {
-      id: 'q-art-1', type: 'mcq', topic: 'articles',
+      id: 'q-art-1', type: 'mcq', subject: 'fr', topic: 'articles',
       stem: 'اختر الأداة الصحيحة: ___ maison est grande.',
       options: [
         { k: 'أ', t: 'le',  fr: true },
@@ -249,7 +199,7 @@ window.SEED = {
       why: 'كلمة maison مؤنثة مفردة فتأخذ la. تذكّر أن النهاية ‎-son/-sion‎ غالبًا مؤنثة.',
     },
     'q-art-2': {
-      id: 'q-art-2', type: 'mcq', topic: 'articles',
+      id: 'q-art-2', type: 'mcq', subject: 'fr', topic: 'articles',
       stem: 'اختر الصيغة الصحيحة:',
       options: [
         { k: 'أ', t: 'la école',  fr: true },
@@ -260,7 +210,7 @@ window.SEED = {
       why: "أمام حرف علة تصبح le و la كلتاهما l' — وهذا ما يسمى الحذف (l'élision).",
     },
     'q-art-3': {
-      id: 'q-art-3', type: 'multi', topic: 'articles',
+      id: 'q-art-3', type: 'multi', subject: 'fr', topic: 'articles',
       stem: 'أي من هذه الكلمات مؤنثة؟ (أكثر من إجابة صحيحة)',
       options: [
         { k: 'أ', t: 'la nation',   fr: true, correct: true },
@@ -271,7 +221,7 @@ window.SEED = {
       why: 'النهايتان ‎-tion‎ و ‎-té‎ مؤنثتان غالبًا، بينما ‎-age‎ و ‎-ment‎ مذكّرتان.',
     },
     'q-conj-1': {
-      id: 'q-conj-1', type: 'blank', topic: 'conjugaison',
+      id: 'q-conj-1', type: 'blank', subject: 'fr', topic: 'conjugaison',
       stem: 'أكمل بتصريف الفعل être:',
       parts: ['Je ', { blank: 0 }, ' étudiant et tu ', { blank: 1 }, ' professeur.'],
       blanks: [
@@ -281,7 +231,7 @@ window.SEED = {
       why: 'être في المضارع: je suis / tu es / il est.',
     },
     'q-conj-2': {
-      id: 'q-conj-2', type: 'mcq', topic: 'conjugaison',
+      id: 'q-conj-2', type: 'mcq', subject: 'fr', topic: 'conjugaison',
       stem: 'كيف تقول «عمري خمس عشرة سنة»؟',
       options: [
         { k: 'أ', t: 'Je suis quinze ans',  fr: true },
@@ -292,7 +242,7 @@ window.SEED = {
       why: 'العمر في الفرنسية يُقال بالفعل avoir لا être — حرفيًا «أملك ١٥ سنة». من أكثر الأخطاء شيوعًا عند الطلاب العرب.',
     },
     'q-conj-3': {
-      id: 'q-conj-3', type: 'blank', topic: 'conjugaison',
+      id: 'q-conj-3', type: 'blank', subject: 'fr', topic: 'conjugaison',
       stem: 'أكمل بتصريف الفعل avoir:',
       parts: ['Nous ', { blank: 0 }, ' deux frères et ils ', { blank: 1 }, ' une sœur.'],
       blanks: [
@@ -302,13 +252,13 @@ window.SEED = {
       why: 'avoir: nous avons / ils ont. انتبه: ont ليست sont.',
     },
     'q-syn-1': {
-      id: 'q-syn-1', type: 'order', topic: 'syntaxe',
+      id: 'q-syn-1', type: 'order', subject: 'fr', topic: 'syntaxe',
       stem: 'رتّب الكلمات لتكوين جملة منفية صحيحة.',
       answer: ['Je', 'ne', 'suis', 'pas', 'professeur'],
       why: 'قاعدة النفي: ne + الفعل المصرَّف + pas.',
     },
     'q-voc-1': {
-      id: 'q-voc-1', type: 'mcq', topic: 'conjugaison',
+      id: 'q-voc-1', type: 'mcq', subject: 'fr', topic: 'conjugaison',
       stem: 'كيف تقول «أنا جائع» بالفرنسية؟',
       options: [
         { k: 'أ', t: 'Je suis faim', fr: true },

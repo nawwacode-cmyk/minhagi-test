@@ -41,15 +41,17 @@ window.Sync = (function () {
   // ---------------------------------------------------------------------------
   async function pullContent() {
     // كل شيء بتوكن المستخدم ⇒ RLS تحصر الناتج باشتراكه. لا فلترة أمنية هنا.
-    const [subjects, grades, courses, teachers, units, lessons,
+    //
+    // «courses» لم تعد مفهومًا يراه الطالب (راجع خطة إزالة طبقة الكورسات) —
+    // نجلب subject_id/grade_id الخاصّين بكل وحدة عبر embed مباشر من courses
+    // بدل جلب جدول courses نفسه كمجموعة مستقلة. لا حاجة لجدول teachers هنا أيضًا.
+    const [subjects, grades, units, lessons,
            questions, options, exams, examQuestions, videos] = await Promise.all([
       Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order' }),
       Api.from('grades',    { select: 'id,code,name_ar,sort_order' }),
-      Api.from('courses',   { select: 'id,code,title_ar,subject_id,grade_id,teacher_id' }),
-      Api.from('teachers',  { select: 'id,name' }).catch(() => []),
-      Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order', order: 'sort_order' }),
+      Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order,courses(subject_id,grade_id)', order: 'sort_order' }),
       Api.from('lessons',   { select: 'id,code,title_ar,body_html,est_minutes,is_free,unit_id,video_id,sort_order', order: 'sort_order' }),
-      Api.from('questions', { select: 'id,code,type,stem_md,passage_md,answer_key,difficulty,explanation_md,lesson_id,section,unit_code' }),
+      Api.from('questions', { select: 'id,code,type,stem_md,passage_md,answer_key,difficulty,explanation_md,lesson_id,section,unit_code,subject_id' }),
       Api.from('question_options', { select: 'id,question_id,code,text_md,is_correct,sort_order', order: 'sort_order' }),
       Api.from('exams',     { select: 'id,code,title_ar,kind,duration_minutes,pass_percent,subject_id,grade_id,sort_order', order: 'sort_order' }),
       Api.from('exam_questions', { select: 'exam_id,question_id,sort_order,points' }),
@@ -58,6 +60,7 @@ window.Sync = (function () {
 
     // --- خرائط الترجمة ---
     const byId = (rows) => Object.fromEntries(rows.map((r) => [r.id, r]));
+    const subjectByUuid = byId(subjects);
     const L = byId(lessons), Q = byId(questions), V = byId(videos || []);
     const idMap = {};                       // 'lesson:salutations' → uuid
     const put = (kind, code, id) => { idMap[`${kind}:${code}`] = id; };
@@ -79,6 +82,9 @@ window.Sync = (function () {
       const out = {
         id: q.code, type,
         lesson: L[q.lesson_id]?.code || null,
+        // ضروري لتصفية بنك الأسئلة بالمادة — بلا هذا تختلط أسئلة كل المواد
+        // ببعضها بمجرّد ما تصير أكتر من مادة واحدة بالتطبيق.
+        subject: subjectByUuid[q.subject_id]?.code || null,
         // تبويب «تمارين» عند الطالب: مفردات · قاعدة · ترتيب حوار · مواضيع
         // الوحدة. null = لم يصنَّفه المدرّس بعد، فلا يظهر في أي قسم تصفّح —
         // يبقى في القاعدة المحلية بلا أثر حتى يُصنَّف ويصل في مزامنة لاحقة.
@@ -126,13 +132,15 @@ window.Sync = (function () {
       if (q.lesson) (lessonQuestions[q.lesson] = lessonQuestions[q.lesson] || []).push(q.id);
     });
 
-    // --- الكورسات: وحدة الوصول الفعلية، لا المادة -----------------------------
-    // `courses` مرئية للجميع (كتالوج) بفضل RLS، بينما `units` تصل فقط لمن
-    // يملك صلاحية الكورس. لذلك: «الكورس عنده وحدات وصلتنا» = مشترَك فيه فعلًا.
-    // هذا الحساب هو الفرق بين كتالوج صادق وكتالوج يعرض كل شيء «مفتوحًا».
-    const subjectByUuid = byId(subjects), gradeByUuid = byId(grades);
-    const teacherByUuid = byId(teachers || []);
-    const entitledCourseIds = new Set(units.map((u) => u.course_id));
+    // --- المادة: وحدة الوصول الفعلية الآن (بعد إزالة طبقة الكورسات) -----------
+    // RLS على `units` ما زالت تمرّ عبر صلاحية الكورس (has_course_access) خلف
+    // الكواليس، لكن الطالب لم يعد يرى «كورس» إطلاقًا — فقط: هل وصلته أي وحدة
+    // لهاي المادة؟ إذا نعم فهو مشترَك فيها. courses(subject_id,grade_id) هنا
+    // مجرّد embed لقراءة المادة/الصف من الوحدة، لا مفهوم مستقلّ بالواجهة.
+    const gradeByUuid = byId(grades);
+    const entitledSubjectCodes = new Set(
+      units.map((u) => subjectByUuid[u.courses?.subject_id]?.code).filter(Boolean),
+    );
 
     const content = {
       pulledAt: new Date().toISOString(),
@@ -140,32 +148,17 @@ window.Sync = (function () {
       subjects: subjects.map((s) => ({
         id: s.code, name: s.name_ar, native: s.name_native,
         cover: s.code === 'fr' ? 'assets/img/cover-fr.jpg' : null,
+        entitled: entitledSubjectCodes.has(s.code),
       })),
       grades: grades.sort((a, b) => a.sort_order - b.sort_order)
         .map((g) => ({ id: g.code, name: g.name_ar, note: '' })),
 
-      /**
-       * الكتالوج الكامل — يشمل كورسات لا يملكها الطالب، لعرضها في شاشة الكورسات.
-       * اسم الأستاذ يظهر هنا سواء كان من فريقنا أو أستاذًا متعاقَدًا خارجيًا؛
-       * التطبيق لا يفرّق بينهما — الفرق تجاري (نسبة الأرباح) لا تقني، ويُدار
-       * خارج المخطط بلا حاجة لأي تمييز في البيانات.
-       */
-      courses: courses.map((c) => ({
-        id: c.code, title: c.title_ar,
-        subject: subjectByUuid[c.subject_id]?.code || null,
-        grade: gradeByUuid[c.grade_id]?.code || null,
-        teacher: teacherByUuid[c.teacher_id]?.name || null,
-        entitled: entitledCourseIds.has(c.id),
+      units: units.map((u) => ({
+        id: u.code, title: u.title_ar,
+        subject: subjectByUuid[u.courses?.subject_id]?.code || null,
+        lessons: (unitLessons[u.id] || []).sort((a, b) => a.sort_order - b.sort_order)
+          .map((l) => l.code),
       })),
-
-      units: units.map((u) => {
-        const course = courses.find((c) => c.id === u.course_id);
-        return {
-          id: u.code, title: u.title_ar, course: course?.code || null,
-          lessons: (unitLessons[u.id] || []).sort((a, b) => a.sort_order - b.sort_order)
-            .map((l) => l.code),
-        };
-      }),
 
       lessons: Object.fromEntries(lessons.map((l) => [l.code, {
         id: l.code, title: l.title_ar, minutes: l.est_minutes, free: l.is_free,
@@ -179,10 +172,9 @@ window.Sync = (function () {
 
       questions: mappedQuestions,
 
-      // subject/grade — لا course_id: الامتحان الوزاري مشترَك عمدًا بين كل
-      // كورسات نفس المادة والصف مهما اختلف الأستاذ، فيُربط بالمستوى الأعلى
-      // لا بكورس بعينه. هذا ما يمكّن courseProgress من حصر أفضل نتيجة امتحان
-      // بمادة الكورس تحديدًا بدل خلطها بامتحانات مواد أخرى.
+      // subject/grade مباشرة: الامتحان الوزاري مشترَك بين كل محتوى نفس المادة
+      // والصف. هذا ما يمكّن Store.subjectProgress من حصر أفضل نتيجة امتحان
+      // بالمادة تحديدًا بدل خلطها بامتحانات مواد أخرى.
       exams: exams.map((e) => ({
         id: e.code, kind: { past_paper: 'ministry', unit_test: 'unit' }[e.kind] || e.kind,
         title: e.title_ar, minutes: e.duration_minutes, pass: e.pass_percent,

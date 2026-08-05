@@ -8,15 +8,14 @@
    إلى الأبد ما لم يتغيّر هذا السطر، فيرى الطالب تطبيقًا قديمًا رغم النشر.
    ============================================================================= */
 
-const VERSION = 'manhaji-shell-v6';
+const VERSION = 'manhaji-shell-v7';
 
 const SHELL = [
   './', './index.html',
   './css/tokens.css', './css/app.css',
   './js/ui.js', './js/data/seed.js', './js/store.js', './js/components.js',
   './js/data/api.js', './js/data/device.js', './js/data/sync.js', './js/data/media.js',
-  './js/screens/onboarding.js', './js/screens/evicted.js',
-  './js/screens/courses.js', './js/screens/course-about.js', './js/screens/progress.js',
+  './js/screens/onboarding.js', './js/screens/evicted.js', './js/screens/progress.js',
   './js/screens/main.js', './js/screens/course.js', './js/screens/exam.js', './js/app.js',
   './assets/img/welcome.jpg', './assets/img/cover-fr.jpg',
   './assets/img/video-thumb.svg', './assets/img/empty-download.svg',

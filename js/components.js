@@ -47,34 +47,6 @@ window.C = (function () {
     );
   }
 
-  /**
-   * ⚠️ رقم واتساب الموزّع — بصيغة دولية بلا علامة + ولا صفر مقدّم.
-   * مثال سوريا: 963933000000 (963 + الرقم بلا صفره الأول).
-   * لا بوابة دفع في التطبيق: الأكواد تُباع نقدًا عبر موزّعين، وهذا الزر يفتح
-   * محادثة جاهزة معهم. **يجب استبدال هذا الرقم قبل أي استخدام حقيقي.**
-   */
-  const DISTRIBUTOR_WHATSAPP = '000000000000';
-
-  /** رابط طلب اشتراك بكورس بعينه — رسالة مكتوبة مسبقًا تعرّف الموزّع بالطلب. */
-  function whatsappUrl(course) {
-    const s = Store.get();
-    const subject = SEED.subjects.find((x) => x.id === course.subject);
-    const grade = SEED.grades.find((x) => x.id === course.grade);
-    const lines = [
-      'مرحبًا 👋',
-      `بدي أشترك بمادة: ${subject?.name || course.title}${grade ? ' — ' + grade.name : ''}`,
-      s.username ? `اسمي بالتطبيق: ${s.username}` : null,
-    ].filter(Boolean);
-    return `https://wa.me/${DISTRIBUTOR_WHATSAPP}?text=${encodeURIComponent(lines.join('\n'))}`;
-  }
-
-  /** زر «اطلب الاشتراك» — رابط لا زر، ليعمل فتحه في تبويب/تطبيق خارجي. */
-  const whatsappBtn = (course, cls = 'btn--primary') =>
-    h('a.btn.btn--block.' + cls, {
-      href: whatsappUrl(course), target: '_blank', rel: 'noopener',
-      style: 'text-decoration:none;display:flex',
-    }, 'اطلب الاشتراك عبر واتساب');
-
   // ===========================================================================
   // بطاقة السؤال — تدير حالتها بنفسها وتعيد بناء محتواها عند التغيير.
   //
@@ -248,6 +220,5 @@ window.C = (function () {
     return card;
   }
 
-  return { appbar, syncBanner, empty, questionCard,
-           whatsappUrl, whatsappBtn };
+  return { appbar, syncBanner, empty, questionCard };
 })();

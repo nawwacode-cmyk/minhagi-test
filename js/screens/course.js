@@ -13,6 +13,14 @@ window.Screens = window.Screens || {};
     const wrap = h('div.screen');
     let tab = params.tab || 'lessons';
 
+    // بعد إزالة طبقة الكورسات: هاي الشاشة مادة بعينها لا التطبيق كله — كل
+    // تبويب يصفّي بالمادة، وكل تنقّل صادر منها (درس/تمرين/امتحان ورجوعه)
+    // يحمل نفس params.subject معه وإلا ضاعت هويّة المادة بمنتصف الرحلة.
+    const subjectId = params.subject;
+    const subject = SEED.subjects.find((s) => s.id === subjectId);
+    const subjectUnits = SEED.units.filter((u) => u.subject === subjectId);
+    const subjectLessonIds = subjectUnits.flatMap((u) => u.lessons || []);
+
     const seg = h('div.seg');
     const body = h('div.screen__body');
 
@@ -48,7 +56,7 @@ window.Screens = window.Screens || {};
       const s = Store.get();
 
       const list = h('div.card', { style: 'overflow:hidden' });
-      SEED.units.forEach((u, i) => {
+      subjectUnits.forEach((u, i) => {
         const up = Store.unitProgress(u);
         const allDown = u.lessons.every((id) => s.downloaded.includes(id));
 
@@ -64,7 +72,7 @@ window.Screens = window.Screens || {};
         u.lessons.forEach((id, n) => {
           const l = SEED.lessons[id];
           const st = s.lessons[id];
-          det.appendChild(h('div.lesson', { onclick: () => App.go('lesson', { id }) },
+          det.appendChild(h('div.lesson', { onclick: () => App.go('lesson', { id, subject: subjectId }) },
             h('div.lesson__ico.'
               + (st === 'done' ? 'lesson__ico--done' : st ? 'lesson__ico--now' : 'lesson__ico--todo'),
               st === 'done' ? '✓' : st ? '▸' : ar(n + 1)),
@@ -93,10 +101,10 @@ window.Screens = window.Screens || {};
         list.appendChild(det);
       });
 
-      const nextId = Object.keys(SEED.lessons).find((id) => s.lessons[id] !== 'done');
+      const nextId = subjectLessonIds.find((id) => s.lessons[id] !== 'done');
       const next = nextId && SEED.lessons[nextId];
-      const savedCount = s.downloaded.length;
-      const totalLessons = Object.keys(SEED.lessons).length;
+      const savedCount = subjectLessonIds.filter((id) => s.downloaded.includes(id)).length;
+      const totalLessons = subjectLessonIds.length;
 
       return h('div.dash',
         h('div.dash__main', list),
@@ -108,7 +116,7 @@ window.Screens = window.Screens || {};
                 h('div.faint.small', { style: 'margin-bottom:14px' },
                   `فيديو ${next.video.length} · ${ar(next.exercises.length)} تمارين`),
                 h('button.btn.btn--primary.btn--block', {
-                  onclick: () => App.go('lesson', { id: nextId }),
+                  onclick: () => App.go('lesson', { id: nextId, subject: subjectId }),
                 }, 'ابدأ الدرس'))
             : h('div.card.card--pad',
                 h('div', { style: 'font-weight:700;margin-bottom:6px' }, 'أنهيت كل الدروس'),
@@ -137,15 +145,17 @@ window.Screens = window.Screens || {};
     function tabExams() {
       const s = Store.get();
 
+      const subjectExams = SEED.exams.filter((e) => e.subject === subjectId);
+
       const group = (kind, title, note) => {
-        const items = SEED.exams.filter((e) => e.kind === kind);
+        const items = subjectExams.filter((e) => e.kind === kind);
         if (!items.length) return null;
 
         const card = h('div.card.list-sep', { style: 'overflow:hidden' });
         items.forEach((e) => {
           const rec = s.exams[e.id];
           const passed = rec && rec.best >= e.pass;
-          card.appendChild(h('button.rowlink', { onclick: () => App.go('exam', { id: e.id }) },
+          card.appendChild(h('button.rowlink', { onclick: () => App.go('exam', { id: e.id, subject: subjectId }) },
             h('div.rowlink__b',
               h('div', { style: 'font-weight:600' }, e.title),
               h('div.rowlink__s',
@@ -161,7 +171,11 @@ window.Screens = window.Screens || {};
           note && h('div.hint', { style: 'margin-top:8px' }, note));
       };
 
-      const taken = Object.values(s.exams);
+      // s.exams مسطّح بمعرّفات كل امتحانات التطبيق — نحصره بامتحانات هذه
+      // المادة فقط، وإلا اختلطت إحصائيات مادة بأخرى فور وجود أكثر من مادة.
+      const subjectExamIds = new Set(subjectExams.map((e) => e.id));
+      const taken = Object.entries(s.exams)
+        .filter(([id]) => subjectExamIds.has(id)).map(([, v]) => v);
       const best = taken.length ? Math.max(...taken.map((x) => x.best)) : 0;
       const attempts = taken.reduce((a, x) => a + x.taken, 0);
       const ready = best >= 70;
@@ -190,7 +204,7 @@ window.Screens = window.Screens || {};
                 h('div.stat__v', ar(attempts)),
                 h('div.stat__k', 'محاولة')),
               h('div.stat',
-                h('div.stat__v', `${ar(taken.length)}/${ar(SEED.exams.length)}`),
+                h('div.stat__v', `${ar(taken.length)}/${ar(subjectExams.length)}`),
                 h('div.stat__k', 'امتحان جرّبته')))),
 
           taken.length === 0
@@ -253,7 +267,8 @@ window.Screens = window.Screens || {};
       const card = h('div.card', { style: 'overflow:hidden' });
 
       SECTIONS.forEach(([id, label, desc], i) => {
-        const qs = Object.values(SEED.questions).filter((q) => q.section === id);
+        const qs = Object.values(SEED.questions)
+          .filter((q) => q.subject === subjectId && q.section === id);
         if (!qs.length) {
           card.appendChild(h('div.rowlink', { style: 'opacity:.45' },
             h('div.rowlink__b', h('div', { style: 'font-weight:600' }, label),
@@ -280,7 +295,7 @@ window.Screens = window.Screens || {};
           h('span.unit__chev', icon.chevron(20))));
 
         det.appendChild(h('div.lesson', {
-          onclick: () => App.go('practice', { section: id }),
+          onclick: () => App.go('practice', { section: id, subject: subjectId }),
         },
           h('div.lesson__ico.lesson__ico--now', icon.book(16)),
           h('div.lesson__body', h('div', { style: 'font-weight:600' }, `كل قسم «${label}»`),
@@ -290,7 +305,8 @@ window.Screens = window.Screens || {};
           const n = byUnit.get(k);
           const titleParts = k === '__general' ? ['أسئلة عامة'] : unitLabel(id, k);
           det.appendChild(h('div.lesson', {
-            onclick: () => App.go('practice', { section: id, unit: k === '__general' ? '' : k }),
+            onclick: () => App.go('practice',
+              { section: id, unit: k === '__general' ? '' : k, subject: subjectId }),
           },
             h('div.lesson__ico.lesson__ico--todo', k === '__general' ? '•' : k.replace('u', '')),
             h('div.lesson__body', h('div', ...titleParts), h('div.lesson__meta', `${ar(n)} تمارين`))));
@@ -308,21 +324,22 @@ window.Screens = window.Screens || {};
           h('div.card.card--pad',
             h('div', { style: 'font-weight:700;margin-bottom:6px' }, 'جلسة شاملة'),
             h('div.muted.small', { style: 'margin-bottom:14px' },
-              `كل الأسئلة المصنَّفة — ${ar(Object.values(SEED.questions).filter((q) => q.section).length)} سؤالًا من الأقسام الأربعة.`),
-            h('button.btn.btn--primary.btn--block', { onclick: () => App.go('practice', { section: 'any' }) },
-              'ابدأ الجلسة'))),
+              `كل الأسئلة المصنَّفة — ${ar(Object.values(SEED.questions).filter((q) => q.subject === subjectId && q.section).length)} سؤالًا من الأقسام الأربعة.`),
+            h('button.btn.btn--primary.btn--block', {
+              onclick: () => App.go('practice', { section: 'any', subject: subjectId }),
+            }, 'ابدأ الجلسة'))),
       );
     }
 
     // --- تبويب التقدّم ----------------------------------------------------------
     function tabProgress() {
-      const p = Store.subjectProgress();
+      const p = Store.subjectProgress(subjectId);
 
       return h('div.dash',
         h('div.dash__main',
           h('div.card.card--pad',
             h('div', { style: 'display:grid;place-items:center' }, ring(p.percent, 132, 11)),
-            h('div.center.muted.small', { style: 'margin-top:10px' }, 'تقدّمك في اللغة الفرنسية'),
+            h('div.center.muted.small', { style: 'margin-top:10px' }, `تقدّمك في ${subject?.name || 'المادة'}`),
 
             // تفصيل المعادلة — المؤشر الذي لا يُفهم كيف يرتفع يفقد قدرته على التحفيز
             h('div', { style: 'margin-top:18px;border-top:1px solid var(--brd);padding-top:16px' },
@@ -351,8 +368,9 @@ window.Screens = window.Screens || {};
 
     drawSeg();
     drawBody();
+    const gradeName = SEED.grades.find((g) => g.id === Store.get().grade)?.name || '';
     wrap.append(
-      C.appbar({ title: 'اللغة الفرنسية', sub: 'الصف التاسع', onBack: () => App.back() }),
+      C.appbar({ title: subject?.name || 'مادتي', sub: gradeName, onBack: () => App.back() }),
       seg, body);
     return wrap;
   };
@@ -365,6 +383,9 @@ window.Screens = window.Screens || {};
     if (!l) return Screens.home();
     Store.startLesson(l.id);
 
+    // يُمرَّر لكل تنقّل صادر من هنا (درس شقيق، بدء تمارين) ليبقى الرجوع
+    // لشاشة المادة صحيحًا بدل الرئيسية.
+    const subjectId = params.subject;
     const s = Store.get();
     const saved = s.downloaded.includes(l.id);
     const unit = SEED.units.find((u) => u.lessons.includes(l.id));
@@ -386,7 +407,7 @@ window.Screens = window.Screens || {};
       const st = s.lessons[id];
       siblings.appendChild(h('div.lesson', {
         style: id === l.id ? 'background:var(--acc-soft)' : '',
-        onclick: () => id !== l.id && App.go('lesson', { id }, true),
+        onclick: () => id !== l.id && App.go('lesson', { id, subject: subjectId }, true),
       },
         h('div.lesson__ico.'
           + (st === 'done' ? 'lesson__ico--done' : id === l.id ? 'lesson__ico--now' : 'lesson__ico--todo'),
@@ -403,7 +424,7 @@ window.Screens = window.Screens || {};
           h('div.row',
             h('div.grow.small.muted', `فيديو ${l.video.length} · قراءة ${ar(l.minutes)} دقيقة`),
             h('button.btn.btn--secondary.btn--sm', {
-              onclick: () => { Store.toggleDownload(l.id); App.go('lesson', { id: l.id }, true); },
+              onclick: () => { Store.toggleDownload(l.id); App.go('lesson', { id: l.id, subject: subjectId }, true); },
             }, saved ? 'محفوظ ✓' : [icon.down(16), 'تنزيل'])),
           h('div.card', h('div.prose', { html: l.body }))),
 
@@ -413,7 +434,7 @@ window.Screens = window.Screens || {};
             h('div.muted.small', { style: 'margin-bottom:14px' },
               `${ar(l.exercises.length)} تمارين تُحدّث إتقانك فورًا.`),
             h('button.btn.btn--primary.btn--block', {
-              onclick: () => App.go('practice', { lesson: l.id }),
+              onclick: () => App.go('practice', { lesson: l.id, subject: subjectId }),
             }, 'ابدأ التمارين'),
             h('button.btn.btn--ghost.btn--block', {
               style: 'margin-top:6px',
@@ -434,17 +455,25 @@ window.Screens = window.Screens || {};
   // ===========================================================================
   Screens.practice = (params) => {
     let pool;
-    if (params.lesson) pool = SEED.lessons[params.lesson].exercises.map((id) => SEED.questions[id]);
-    // 'any' = جلسة شاملة على الأقسام الأربعة المصنَّفة، لا كل بنك الأسئلة —
-    // الأسئلة غير المصنَّفة (section فارغ) لم يراجعها المدرّس بعد فتُستبعد.
-    else if (params.section === 'any') pool = Object.values(SEED.questions).filter((q) => q.section);
-    // فرع بعينه (وحدة) داخل قسم — من ضغط بند فرعي بالسلايد. params.unit فارغة
-    // (لا محذوفة) تعني «فرع الأسئلة العامة»، أي بلا unitCode إطلاقًا.
-    else if (params.section && params.unit !== undefined)
-      pool = Object.values(SEED.questions).filter((q) =>
-        q.section === params.section && (params.unit ? q.unitCode === params.unit : !q.unitCode));
-    else if (params.section) pool = Object.values(SEED.questions).filter((q) => q.section === params.section);
-    else                     pool = Object.values(SEED.questions);
+    if (params.lesson) {
+      // مُشتقّة من درس بعينه — سؤاله يحمل مادته أصلًا عبر ذلك الدرس، فلا
+      // حاجة لتصفية إضافية بالمادة هنا.
+      pool = SEED.lessons[params.lesson].exercises.map((id) => SEED.questions[id]);
+    } else {
+      // كل بقية الأنماط تصفّح بنك الأسئلة مباشرة — لازم حصرها بالمادة، وإلا
+      // اختلطت أسئلة مادتين مختلفتين بمجرّد ما يصير عنا أكتر من مادة.
+      const bySubject = Object.values(SEED.questions).filter((q) => q.subject === params.subject);
+      // 'any' = جلسة شاملة على الأقسام الأربعة المصنَّفة، لا كل بنك الأسئلة —
+      // الأسئلة غير المصنَّفة (section فارغ) لم يراجعها المدرّس بعد فتُستبعد.
+      if (params.section === 'any') pool = bySubject.filter((q) => q.section);
+      // فرع بعينه (وحدة) داخل قسم — من ضغط بند فرعي بالسلايد. params.unit فارغة
+      // (لا محذوفة) تعني «فرع الأسئلة العامة»، أي بلا unitCode إطلاقًا.
+      else if (params.section && params.unit !== undefined)
+        pool = bySubject.filter((q) =>
+          q.section === params.section && (params.unit ? q.unitCode === params.unit : !q.unitCode));
+      else if (params.section) pool = bySubject.filter((q) => q.section === params.section);
+      else                     pool = bySubject;
+    }
     pool = pool.filter(Boolean);
 
     let i = 0, correct = 0;
@@ -470,7 +499,7 @@ window.Screens = window.Screens || {};
           'سُجِّلت نتيجتك، وسيظهر أثرها في مؤشر التقدّم فورًا.'),
         h('button.btn.btn--primary.btn--block', {
           style: 'margin-top:18px',
-          onclick: () => App.go('course', { tab: 'progress' }, true),
+          onclick: () => App.go('course', { tab: 'progress', subject: params.subject }, true),
         }, 'شوف تقدّمك'),
         h('button.btn.btn--ghost.btn--block', {
           style: 'margin-top:6px',

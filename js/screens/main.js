@@ -14,22 +14,27 @@ window.Screens = window.Screens || {};
     // على طالب فتح التطبيق أول مرة أو بلا إنترنت.
     const gradeName = SEED.grades.find((g) => g.id === s.grade)?.name || '';
 
-    // «موادّي» = الكورسات المشترَك بها فعليًا لا كل ما في الكتالوج.
-    // sync.js يحسب entitled من وجود وحدات وصلت عبر RLS — لا نفترض شيئًا هنا.
-    // كل بطاقة تحسب تقدّمها بنفسها عبر Store.courseProgress(id) — لا رقم
-    // عام مكرَّر على كل البطاقات.
-    const entitledCourses = (SEED.courses || []).filter((c) => c.entitled);
+    // «موادّي» = المواد المشترَك بها فعليًا (بعد إزالة طبقة الكورسات) لا كل
+    // ما في الكتالوج. sync.js يحسب entitled من وجود وحدات وصلت عبر RLS —
+    // لا نفترض شيئًا هنا. كل بطاقة تحسب تقدّمها بنفسها عبر
+    // Store.subjectProgress(id) — لا رقم عام مكرَّر على كل البطاقات.
+    const entitledSubjects = (SEED.subjects || []).filter((sub) => sub.entitled);
 
-    const nextId = Object.keys(SEED.lessons).find((id) => s.lessons[id] !== 'done')
-                || Object.keys(SEED.lessons)[0];
-    const next = SEED.lessons[nextId];
+    // الدرس التالي محصور بمواد الطالب المشترَك بها — لا كل درس بالتطبيق،
+    // وإلا اقترح عليه إكمال درس بمادة ما هو مشترك فيها أصلًا.
+    const entitledLessonIds = entitledSubjects
+      .flatMap((sub) => SEED.units.filter((u) => u.subject === sub.id))
+      .flatMap((u) => u.lessons || []);
+    const nextId = entitledLessonIds.find((id) => s.lessons[id] !== 'done') || entitledLessonIds[0];
+    const next = nextId && SEED.lessons[nextId];
+    const nextSubjectId = nextId && SEED.units.find((u) => (u.lessons || []).includes(nextId))?.subject;
 
     // «لمحة سريعة» تحتاج رقمًا واحدًا يمثّل الكل — متوسط تقدّم كل المواد
     // المشترَك بها، لا مادة واحدة مفترَضة. بمادة واحدة (الواقع الحالي) يساوي
     // ببساطة تقدّم تلك المادة.
-    const overallPct = entitledCourses.length
-      ? Math.round(entitledCourses.reduce((a, c) => a + Store.courseProgress(c.id).percent, 0)
-          / entitledCourses.length)
+    const overallPct = entitledSubjects.length
+      ? Math.round(entitledSubjects.reduce((a, sub) => a + Store.subjectProgress(sub.id).percent, 0)
+          / entitledSubjects.length)
       : 0;
 
     const banner = C.syncBanner();
@@ -50,16 +55,15 @@ window.Screens = window.Screens || {};
           h('div.dash__main',
             h('div.section-label', { style: 'padding:0 0 2px' }, 'موادّي'),
 
-            entitledCourses.length
-              ? h('div.stack.gap-10', ...entitledCourses.map((course) => {
-                  const subject = SEED.subjects.find((x) => x.id === course.subject) || {};
-                  const p = Store.courseProgress(course.id);
-                  return h('div.card.card--tap', { onclick: () => App.go('course') },
+            entitledSubjects.length
+              ? h('div.stack.gap-10', ...entitledSubjects.map((subject) => {
+                  const p = Store.subjectProgress(subject.id);
+                  return h('div.card.card--tap', { onclick: () => App.go('course', { subject: subject.id }) },
                     subject.cover && h('div.subject__cover', h('img', { src: subject.cover, alt: '' })),
                     h('div.subject',
                       ring(p.percent, 68),
                       h('div.subject__body',
-                        h('div.subject__title', subject.name || course.title),
+                        h('div.subject__title', subject.name),
                         h('div.subject__meta',
                           `${gradeName} · ${ar(p.lessonsDone)} دروس من ${ar(p.lessonsTotal)}`),
                         s.activated
@@ -67,17 +71,12 @@ window.Screens = window.Screens || {};
                           : h('div', { style: 'margin-top:6px' },
                               h('span.badge.badge--free', 'درس مجاني متاح')))));
                 }))
+              // بلا شاشة اكتشاف/كتالوج حاليًا (أُزيلت مع طبقة الكورسات) — طالب
+              // بلا اشتراك فعّال يُوجَّه للدعم مباشرة لا لتصفّح كتالوج غير موجود.
               : C.empty({
                   title: 'لا اشتراك فعّال بعد',
-                  text: 'تصفّح الكورسات المتاحة وابدأ اشتراكك.',
-                  action: h('button.btn.btn--primary', { onclick: () => App.go('courses') },
-                    'تصفّح الكورسات'),
+                  text: 'تواصل مع الدعم لتفعيل مادة على حسابك.',
                 }),
-
-            h('button.btn.btn--ghost.btn--block', {
-              style: 'margin-top:10px',
-              onclick: () => App.go('courses'),
-            }, 'تصفّح كل الكورسات'),
           ),
 
           // --- العمود الجانبي: الفعل التالي والسياق ---
@@ -90,7 +89,7 @@ window.Screens = window.Screens || {};
               h('div.faint.small', { style: 'margin-bottom:14px' },
                 `فيديو ${next.video.length} · ${ar(next.exercises.length)} تمارين`),
               h('button.btn.btn--primary.btn--block', {
-                onclick: () => App.go('lesson', { id: nextId }),
+                onclick: () => App.go('lesson', { id: nextId, subject: nextSubjectId }),
               }, 'أكمل الدرس')),
 
             h('div.card.card--pad',
@@ -164,8 +163,12 @@ window.Screens = window.Screens || {};
                     img: 'assets/img/empty-download.svg',
                     title: 'لا توجد دروس منزَّلة',
                     text: 'نزّل الدروس التي تريدها مرة واحدة، ثم ادرسها دون إنترنت في أي وقت.',
-                    action: h('button.btn.btn--primary', { onclick: () => App.go('course') },
-                      'تصفّح الدروس'),
+                    action: (() => {
+                      const firstSubject = (SEED.subjects || []).find((sub) => sub.entitled);
+                      return firstSubject && h('button.btn.btn--primary', {
+                        onclick: () => App.go('course', { subject: firstSubject.id }),
+                      }, 'تصفّح الدروس');
+                    })(),
                   }))),
 
           h('aside.dash__side',

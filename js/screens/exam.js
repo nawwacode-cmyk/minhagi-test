@@ -71,7 +71,7 @@ window.Screens = window.Screens || {};
       const got = Object.values(answers).filter((a) => a.correct).length;
       const pct = Math.round((got / qs.length) * 100);
       Store.recordExam(exam.id, pct);
-      App.go('result', { id: exam.id, pct, got, total: qs.length, auto }, true);
+      App.go('result', { id: exam.id, pct, got, total: qs.length, auto, subject: params.subject }, true);
     }
 
     wrap.append(
@@ -111,7 +111,7 @@ window.Screens = window.Screens || {};
 
     return h('div.screen',
       C.appbar({ title: 'نتيجة الامتحان',
-                 onBack: () => App.go('course', { tab: 'exams' }, true) }),
+                 onBack: () => App.go('course', { tab: 'exams', subject: params.subject }, true) }),
       h('div.screen__body', { style: 'padding:16px' },
         params.auto && h('div.banner.banner--warn', { style: 'margin-bottom:14px' },
           icon.warn(20), h('div', h('b', 'انتهى الوقت'), h('span', 'سُلّم الامتحان تلقائيًا.'))),
@@ -134,15 +134,15 @@ window.Screens = window.Screens || {};
 
         h('div.row', { style: 'margin-top:16px;gap:8px' },
           h('button.btn.btn--primary.grow', {
-            onclick: () => App.go('course', { tab: 'practice' }, true),
+            onclick: () => App.go('course', { tab: 'practice', subject: params.subject }, true),
           }, 'راجع أخطاءك'),
           h('button.btn.btn--secondary.grow', {
-            onclick: () => App.go('exam', { id: params.id }, true),
+            onclick: () => App.go('exam', { id: params.id, subject: params.subject }, true),
           }, 'أعد المحاولة')),
 
         h('button.btn.btn--ghost.btn--block', {
           style: 'margin-top:6px',
-          onclick: () => App.go('course', { tab: 'exams' }, true),
+          onclick: () => App.go('course', { tab: 'exams', subject: params.subject }, true),
         }, 'إلى كل الامتحانات'),
       ),
     );

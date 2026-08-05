@@ -21,8 +21,8 @@ eval(fs.readFileSync(dir + 'store.js', 'utf8'));
 const fail = [];
 const ok = (name, cond) => { console.log((cond ? 'ok   ' : 'FAIL ') + name); if (!cond) fail.push(name); };
 
-// --- الحالة الابتدائية ---
-let p = Store.subjectProgress();
+// --- الحالة الابتدائية (بعد إزالة طبقة الكورسات: كل شيء بمعرّف المادة) -------
+let p = Store.subjectProgress('fr');
 ok('يبدأ التقدّم من صفر', p.percent === 0);
 ok('عدد الدروس = 4', p.lessonsTotal === 4);
 
@@ -30,27 +30,21 @@ ok('عدد الدروس = 4', p.lessonsTotal === 4);
 Store.completeLesson('salutations');
 Store.completeLesson('articles-definis');
 Store.recordExam('mock-1', 80);
-p = Store.subjectProgress();
+p = Store.subjectProgress('fr');
 const expected = Math.round(0.75 * 50 + 0.25 * 80);
 ok(`المؤشر الموزون = ${expected}`, p.percent === expected);
 ok('لا يتجاوز 100', p.percent <= 100 && p.percent >= 0);
 
 // --- تكرار إكمال نفس الدرس لا يُحتسب مرتين ---
-const before = Store.subjectProgress().lessonsDone;
+const before = Store.subjectProgress('fr').lessonsDone;
 Store.completeLesson('salutations');
-ok('إكمال درس مكتمل لا يغيّر شيئًا', Store.subjectProgress().lessonsDone === before);
+ok('إكمال درس مكتمل لا يغيّر شيئًا', Store.subjectProgress('fr').lessonsDone === before);
 
 // --- تقدّم الوحدة ---
 ok('الوحدة الأولى مكتملة ٢/٢', Store.unitProgress(SEED.units[0]).done === 2);
 
-// --- courseProgress: مؤشر مادة واحدة، لا التطبيق كله --------------------------
-// في بيانات العيّنة كورس واحد يغطّي كل الوحدات، فالنتيجة يجب أن تطابق
-// subjectProgress القديم رياضيًا — هذا يثبت أن إعادة الحصر لم تكسر الحساب.
-const cp = Store.courseProgress('fr-g9-core');
-const overall = Store.subjectProgress();
-ok('courseProgress.percent يطابق subjectProgress بكورس واحد', cp.percent === overall.percent);
-ok('courseProgress يحصر عدد الدروس بدروس هذا الكورس فقط', cp.lessonsTotal === 4);
-ok('كورس غير موجود يعيد صفرًا لا خطأ', Store.courseProgress('لا-وجود-له').percent === 0);
+// --- subjectProgress بمادة غير موجودة: صفر بلا خطأ (لا courseProgress بعد اليوم) ---
+ok('مادة غير موجودة تعيد صفرًا لا خطأ', Store.subjectProgress('لا-وجود-لها').percent === 0);
 
 // --- التنزيلات ---
 ok('articles-definis منزَّل ابتداءً', Store.get().downloaded.includes('articles-definis'));
@@ -141,6 +135,27 @@ ok('الجلسة الشاملة تستثني غير المصنَّف', /params\.
 ok('Screens.practice يقبل section محدَّدًا', /q\.section === params\.section/.test(courseSrc));
 ok('نظام المواضيع/نقطة الضعف القديم أُزيل كليًا', !/weakestTopic|q\.topic\b|SEED\.topics/.test(courseSrc));
 
+// --- إزالة طبقة الكورسات: شاشة المادة تصفّي بـ params.subject لا بلا تصفية ---
+// حارس ضد رجوع النقص الكامن المكتشَف عند إزالة الكورسات: لو عاد أحد لقراءة
+// SEED.units/lessons/exams/questions هنا بلا تصفية بالمادة (كما كانت الحال
+// فعليًا قبل هذا التعديل، وتعمل بالصدفة فقط بمادة واحدة)، فهذا رجوع صامت.
+ok('شاشة المادة تصفّي الوحدات بالمادة', /u\.subject === subjectId/.test(courseSrc));
+ok('شاشة المادة تصفّي الامتحانات بالمادة', /e\.subject === subjectId/.test(courseSrc));
+ok('شاشة التمارين تصفّي بنك الأسئلة بالمادة', /q\.subject === subjectId/.test(courseSrc));
+ok('Screens.practice يحصر تصفّحه ببنك أسئلة المادة الممرَّرة', /q\.subject === params\.subject/.test(courseSrc));
+ok('لا أثر لجدول الكورسات المحذوف بشاشة المادة', !/SEED\.courses/.test(courseSrc));
+
+// اختبار وظيفي: نفس منطق Screens.practice لتصفية بنك الأسئلة بالمادة أولًا —
+// سؤالان بنفس القسم من مادتين مختلفتين يجب ألّا يختلطا ببعض.
+const fakeMultiSubject = {
+  a: { subject: 'fr', section: 'grammaire' },
+  b: { subject: 'math', section: 'grammaire' },
+};
+const bySubjectThenSection = (subject, section) => Object.values(fakeMultiSubject)
+  .filter((q) => q.subject === subject).filter((q) => q.section === section);
+ok('التصفية بالمادة تمنع اختلاط أسئلة مادتين بنفس القسم',
+   bySubjectThenSection('fr', 'grammaire').length === 1);
+
 // اختبار وظيفي صغير لمنطق التصفية نفسه: تأكيد أن سؤالًا بلا section لا يظهر
 // في أي قسم، وأن الجلسة الشاملة تستثنيه أيضًا.
 const fakeQuestions = {
@@ -177,8 +192,7 @@ ok('فرع الأسئلة العامة يلتقط بلا-unitCode فقط', byBra
 // ANSI يفسد كل النص العربي فيها بصمت. العلامة الفارقة تسلسل «Ø».
 const SRC = ['ui.js', 'store.js', 'components.js', 'app.js',
              'data/seed.js', 'data/api.js', 'data/device.js', 'data/sync.js', 'data/media.js',
-             'screens/onboarding.js', 'screens/evicted.js', 'screens/courses.js',
-             'screens/course-about.js', 'screens/progress.js',
+             'screens/onboarding.js', 'screens/evicted.js', 'screens/progress.js',
              'screens/main.js', 'screens/course.js', 'screens/exam.js'];
 const corrupt = SRC.filter((f) => /Ø|Ù|Ã˜/.test(fs.readFileSync(dir + f, 'utf8')));
 ok('لا تلف في ترميز ملفات الواجهة', corrupt.length === 0);

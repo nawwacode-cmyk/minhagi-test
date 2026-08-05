@@ -178,54 +178,30 @@ window.Store = (function () {
     set((s) => ({ online: !s.online, pendingSync: !s.online ? 0 : s.pendingSync }));
   }
 
-  // ---------------------------------------------------------------------------
-  // مؤشر التقدّم — بعد إلغاء نظام إتقان المواضيع: 0.75 دروس مكتملة + 0.25 أفضل
-  // امتحان (نفس نسبة ٥٠:١٥ السابقة بين هذين البُعدين، موزَّعة على المجموع ١٠٠).
-  // ---------------------------------------------------------------------------
-  function subjectProgress() {
-    const all = Object.keys(SEED.lessons);
-    const done = all.filter((id) => state.lessons[id] === 'done').length;
-    const lessonPct = all.length ? (done / all.length) * 100 : 0;
-
-    const bests = Object.values(state.exams).map((e) => e.best);
-    const bestExam = bests.length ? Math.max(...bests) : 0;
-
-    const pct = 0.75 * lessonPct + 0.25 * bestExam;
-    return {
-      percent: Math.max(0, Math.min(100, Math.round(pct))),
-      lessonsDone: done, lessonsTotal: all.length,
-      lessonPct: Math.round(lessonPct),
-      bestExam: Math.round(bestExam),
-    };
-  }
-
   /**
-   * مؤشر تقدّم كورس واحد بعينه — لا التطبيق كله.
+   * مؤشر تقدّم مادة واحدة بعينها (كل مواد الطالب مبنية هيك بعد إزالة طبقة
+   * الكورسات — لا حاجة لدالة عالمية منفصلة تجمع كل الدروس بلا تفريق).
    *
-   * بعدان، بنفس نسبة ٥٠:١٥ السابقة موزَّعة على المجموع ١٠٠ بعد إلغاء بُعد
-   * إتقان المواضيع:
+   * بعدان، بنسبة ٥٠:١٥ الأصلية موزَّعة على المجموع ١٠٠ بعد إلغاء بُعد إتقان
+   * المواضيع:
    *   الدروس     (٧٥٪) — كل درس = فيديو + نص؛ إتمامه يعني مشاهدته
-   *   الامتحانات (٢٥٪) — أفضل نتيجة بين امتحانات نفس مادة وصف هذا الكورس
+   *   الامتحانات (٢٥٪) — أفضل نتيجة بين امتحانات نفس المادة (والصف ضمنيًا،
+   *                       لأن المزامنة لا تجلب غير محتوى صف الطالب أصلًا)
    *
    * لماذا الحصر ضروري لا رفاهية: بلا هذا الحصر، إكمال درس في مادة الفرنسي
    * كان يرفع رقمًا واحدًا يُعرض على بطاقة كل مادة أخرى أيضًا — أرقام كاذبة
    * فور وجود أكثر من مادة مشترَك بها.
    */
-  function courseProgress(courseId) {
-    const course = (SEED.courses || []).find((c) => c.id === courseId);
-
+  function subjectProgress(subjectCode) {
     const lessonIds = (SEED.units || [])
-      .filter((u) => u.course === courseId)
+      .filter((u) => u.subject === subjectCode)
       .flatMap((u) => u.lessons || []);
 
     const done = lessonIds.filter((id) => state.lessons[id] === 'done').length;
     const lessonPct = lessonIds.length ? (done / lessonIds.length) * 100 : 0;
 
-    // الامتحانات مرتبطة بـ(مادة+صف) لا بكورس بعينه عمدًا — الدورة الوزارية
-    // مشترَكة بين كل أساتذة نفس المادة. نحصرها هنا بمادة وصف هذا الكورس.
-    const courseExams = (SEED.exams || []).filter((e) =>
-      course && e.subject === course.subject && e.grade === course.grade);
-    const examScores = courseExams.map((e) => state.exams[e.id]?.best || 0);
+    const subjectExams = (SEED.exams || []).filter((e) => e.subject === subjectCode);
+    const examScores = subjectExams.map((e) => state.exams[e.id]?.best || 0);
     const bestExam = examScores.length ? Math.max(...examScores) : 0;
 
     const pct = 0.75 * lessonPct + 0.25 * bestExam;
@@ -248,6 +224,6 @@ window.Store = (function () {
     enqueue, clearOutbox, pending,
     completeLesson, startLesson, recordAttempt, recordExam,
     toggleDownload, setTheme, toggleOnline,
-    subjectProgress, courseProgress, unitProgress,
+    subjectProgress, unitProgress,
   };
 })();
