@@ -19,6 +19,7 @@ window.Screens = window.Screens || {};
 
     const qs = exam.questions.map((id) => SEED.questions[id]).filter(Boolean);
     const answers = {};            // index → { correct }
+    const state = {};              // index → { sel, checked } لإعادة بناء البطاقة كما تركها
     let current = 0;
     const endsAt = Date.now() + exam.minutes * 60_000;
     let timerId;
@@ -57,11 +58,20 @@ window.Screens = window.Screens || {};
       // في الامتحان لا تظهر التغذية الراجعة أثناء الحل — تُؤجَّل لورقة النتيجة.
       qBox.replaceChildren(C.questionCard(qs[current], {
         index: current, total: qs.length, hideFeedback: true,
+        // العودة إلى سؤال مُجاب (من شريط الأرقام أو بالسحب) تعيده بحالته لا
+        // فارغًا — وإلّا حلّه الطالب ثانيةً فسُجِّلت محاولتان لسؤال واحد.
+        initial: state[current],
+        onState: (st) => { state[current] = st; },
         onNext: (ok) => {
           answers[current] = { correct: ok };
           if (current < qs.length - 1) { current++; drawQ(); }
           else { drawNav(); submit(false); }
         },
+        /* في الامتحان التخطّي تنقّل لا إسقاط: السؤال يبقى بلا إجابة ويُحسب
+           صفرًا عند التسليم — وهذا ما يقوله شريط الأرقام أصلًا («بلا إجابة»).
+           آخر سؤال لا يُخطّى إلى التسليم: تسليمٌ بالخطأ لا رجعة فيه. */
+        onSkip: current < qs.length - 1 ? () => { current++; drawQ(); } : null,
+        onPrev: current > 0 ? () => { current--; drawQ(); } : null,
       }));
       qBox.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }

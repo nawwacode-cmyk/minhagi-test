@@ -227,5 +227,43 @@ window.UI = (function () {
     return node;
   }
 
-  return { h, fr, rich, ar, icon, svg, ring, bar, mount };
+  /* ===========================================================================
+     سحب أفقي بالإصبع. الاتجاه يتبع اصطلاح التطبيق نفسه: أيقونة التقدّم تشير
+     يسارًا وأيقونة الرجوع تشير يمينًا (RTL)، فالسحب يسارًا = تقدّم ويمينًا = رجوع.
+
+     ثلاثة شروط تمنع الإطلاق الكاذب — وكلٌّ منها لمشكلة حقيقية:
+     ١) العتبة الأفقية 60px: نقرة على خيار تتحرّك بضعة بكسلات، فبلا عتبة يصير
+        كل اختيار إجابة انتقالًا للسؤال التالي.
+     ٢) الأفقي يفوق العمودي بمرّة ونصف: التمرير العمودي في سؤال طويل ينحرف
+        أفقيًا بطبيعته، وبلا هذا الشرط يقفز السؤال أثناء القراءة.
+     ٣) تجاهل ما بدأ داخل حاوية تمرّر أفقيًا (صفّ الكلمات، جدول): السحب هناك
+        يخصّ الحاوية لا الصفحة.
+     ولمسٌ بأكثر من إصبع يُلغى كلّه — تكبير بإصبعين ليس سحبًا. */
+  function swipe(el, { onNext, onPrev } = {}) {
+    let x0 = 0, y0 = 0, live = false;
+    const scrollsX = (node) => {
+      for (let n = node; n && n !== el; n = n.parentElement)
+        if (n.scrollWidth > n.clientWidth + 4) return true;
+      return false;
+    };
+    el.addEventListener('touchstart', (e) => {
+      live = e.touches.length === 1 && !scrollsX(e.target);
+      if (!live) return;
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+    }, { passive: true });
+    el.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 1) live = false;
+    }, { passive: true });
+    el.addEventListener('touchend', (e) => {
+      if (!live) return;
+      live = false;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - x0, dy = t.clientY - y0;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      (dx < 0 ? onNext : onPrev)?.();
+    }, { passive: true });
+    return el;
+  }
+
+  return { h, fr, rich, ar, icon, svg, ring, bar, mount, swipe };
 })();

@@ -54,13 +54,28 @@ window.C = (function () {
   // البناء الكامل آمنة ولا تفقد تركيز مؤشر ولا نصًّا كتبه الطالب — وهو الفخ
   // الأول في هذا النوع من الشاشات.
   // ===========================================================================
-  function questionCard(q, { index, total, onNext, hideFeedback = false }) {
+  function questionCard(q, {
+    index, total, onNext, hideFeedback = false,
+    // التخطّي والرجوع اختياريان: لو لم تمرّرهما الشاشة لا يظهر الزرّ ولا يعمل
+    // السحب. onState تُبلّغ الشاشة بحالة البطاقة لتعيدها كما هي عند الرجوع.
+    onSkip, onPrev, onState, initial,
+  }) {
     const card = h('div.card.q');
     let sel = q.type === 'multi' ? [] : null;   // mcq: code · multi: [codes] · blank: [..] · order: [..]
     let checked = false;
 
     if (q.type === 'blank') sel = q.blanks.map(() => null);
     if (q.type === 'order') sel = [];
+
+    /* الرجوع إلى سؤال مُجاب يعيده بحالته لا فارغًا. بلا هذا يعيد الطالب حلّه
+       فتُسجَّل محاولة ثانية لنفس السؤال في نفس الجلسة، فينتفخ عدّاد المحاولات
+       على الخادم ويصير مؤشّر الإتقان مبنيًّا على تكرار لا على تعلّم. */
+    if (initial) {
+      if (initial.sel !== undefined)
+        sel = Array.isArray(initial.sel) ? initial.sel.slice() : initial.sel;
+      checked = !!initial.checked;
+    }
+    const publish = () => onState?.({ sel: Array.isArray(sel) ? sel.slice() : sel, checked });
 
     const isCorrect = () => {
       if (q.type === 'mcq')   return q.options.find((o) => o.correct)?.k === sel;
@@ -81,6 +96,7 @@ window.C = (function () {
     };
 
     function render() {
+      publish();          // كل تغيير في الاختيار يُبلَّغ، فالرجوع يجد آخر حالة
       const right = isCorrect();
       const kids = [];
 
@@ -187,6 +203,7 @@ window.C = (function () {
             checked = true;
             Store.recordAttempt(isCorrect(), q.id,
                                 hideFeedback ? 'exam' : 'practice');
+            publish();
             // في الامتحان لا توجد مرحلة «مراجعة الشرح»، فننتقل مباشرةً
             if (hideFeedback) { onNext(isCorrect()); return; }
             render();
@@ -196,8 +213,29 @@ window.C = (function () {
            ? (index + 1 === total ? 'إنهاء' : 'السؤال التالي')
            : (hideFeedback ? (index + 1 === total ? 'إنهاء وتسليم' : 'التالي') : 'تحقّق')));
 
+      /* التخطّي: يترك السؤال بلا إجابة ويمضي — لا يُحسب خطأً ولا يُسجَّل
+         محاولةً. يظهر قبل التحقّق فقط؛ بعده صار للسؤال جواب والزرّ الأساسي
+         هو «السؤال التالي» أصلًا، فزرّ تخطٍّ إلى جانبه معناه ملتبس. */
+      if (onSkip && !checked) {
+        kids.push(h('button.btn.btn--ghost.btn--block.q__skip',
+          { style: 'margin-top:6px', onclick: () => onSkip() },
+          index + 1 === total ? 'تخطّي وإنهاء' : 'تخطّي هذا السؤال'));
+      }
+
+      // التلميح على السؤال الأول وحده: إيماءة خفيّة تحتاج تعريفًا مرّة، وتكراره
+      // على كل سؤال ضجيج يزاحم النصّ الذي جاء الطالب ليقرأه.
+      if ((onPrev || onSkip) && index === 0)
+        kids.push(h('div.q__swipe-hint', 'أو اسحب البطاقة للتنقّل بين الأسئلة'));
+
       card.replaceChildren(...kids);
     }
+
+    // السحب يفعل ما تفعله الأزرار نفسها لا أكثر: للأمام يتخطّى إن لم يُجب
+    // وينتقل إن أجاب، وللخلف يعود. الشاشة التي لا تمرّر onSkip/onPrev لا سحب فيها.
+    UI.swipe(card, {
+      onNext: onSkip ? () => (checked ? onNext(isCorrect()) : onSkip()) : null,
+      onPrev: onPrev ? () => onPrev() : null,
+    });
 
     /** الشرح يُعرض دائمًا — الطالب الذي خمّن صحيحًا يحتاجه بقدر من أخطأ. */
     function explain(q, right) {

@@ -464,35 +464,84 @@ window.Screens = window.Screens || {};
     }
     pool = pool.filter(Boolean);
 
-    let i = 0, correct = 0;
+    let i = 0;
+    /* حالة كل سؤال بمؤشّره: { sel, checked } وما إن كان صوابًا. غيابها = متخطّى.
+       نحفظها لأن الرجوع صار ممكنًا، ولو أعدنا بناء البطاقة فارغة لأجاب الطالب
+       مرّتين فسُجِّلت محاولتان لسؤال واحد. */
+    let state = {};
+    const answered = () => Object.values(state).filter((x) => x.checked);
+    const skipped = () => pool.map((_, n) => n).filter((n) => !state[n]?.checked);
+
     const wrap = h('div.screen');
     const body = h('div.screen__body', { style: 'padding:16px' });
 
     function step() {
       if (i >= pool.length) return finish();
+      if (i < 0) i = 0;
       body.replaceChildren(C.questionCard(pool[i], {
         index: i, total: pool.length,
-        onNext: (ok) => { if (ok) correct++; i++; step(); body.scrollTop = 0; },
+        initial: state[i],
+        onState: (st) => { state[i] = { ...state[i], ...st }; },
+        onNext: (ok) => { state[i] = { ...state[i], checked: true, correct: ok }; go(after(i + 1)); },
+        onSkip: () => go(after(i + 1)),
+        onPrev: i > 0 ? () => go(i - 1) : null,
       }));
     }
 
+    const go = (n) => { i = n; step(); body.scrollTop = 0; };
+
+    /* في الجولة الأولى نمضي بالترتيب. أما بعد «حلّ الأسئلة المتخطّاة» فالمضيّ
+       يقفز إلى المتخطّى التالي وحده — وإلّا مرّ الطالب ثانيةً على كل سؤال
+       أجابه ليصل إلى الذي تركه. */
+    let revisiting = false;
+    const after = (from) => {
+      if (!revisiting) return from;
+      const n = skipped().find((k) => k >= from);
+      return n === undefined ? pool.length : n;
+    };
+
     function finish() {
-      const pct = Math.round((correct / pool.length) * 100);
-      if (params.lesson) Store.completeLesson(params.lesson);
+      // النسبة تُحسب على ما أجابه الطالب لا على حجم الجلسة: احتساب المتخطّى
+      // خطأً يجعل «تخطّيت سؤالًا» و«أخطأت فيه» شيئًا واحدًا، فيتحوّل زرّ التخطّي
+      // إلى عقوبة صامتة ويكفّ عن كونه ميزة.
+      const done = answered();
+      const correct = done.filter((x) => x.correct).length;
+      const left = skipped();
+      const pct = done.length ? Math.round((correct / done.length) * 100) : 0;
+      /* الدرس يكتمل بحلّ تمارينه لا ببلوغ آخرها. قبل التخطّي كان الوصول إلى
+         هنا يعني أن الطالب أجاب كل سؤال، فكان الاكتمال صحيحًا ضمنًا؛ ومع
+         التخطّي صار ممكنًا بلوغ النهاية بلا إجابة واحدة. بلا هذا الشرط يتحوّل
+         «تخطّي» إلى طريق مختصر لإكمال المنهاج كلّه بلا حلّ شيء. */
+      if (params.lesson && !left.length) Store.completeLesson(params.lesson);
       body.replaceChildren(h('div.card.card--pad',
-        h('div.score',
-          h('div.score__n', { style: `color:${pct >= 50 ? 'var(--ok)' : 'var(--err)'}` }, ar(pct) + '٪'),
-          h('div.score__l', `${ar(correct)} صحيحة من ${ar(pool.length)}`)),
-        h('div.muted.small.center', { style: 'margin-top:14px' },
-          'سُجِّلت نتيجتك، وسيظهر أثرها في مؤشر التقدّم فورًا.'),
-        h('button.btn.btn--primary.btn--block', {
-          style: 'margin-top:18px',
-          // شاشة التقدّم المستقلّة بعد إزالة تبويب «تقدّمي» من داخل المادة
-          onclick: () => App.go('progress'),
-        }, 'شوف تقدّمك'),
+        done.length
+          ? h('div.score',
+              h('div.score__n', { style: `color:${pct >= 50 ? 'var(--ok)' : 'var(--err)'}` }, ar(pct) + '٪'),
+              h('div.score__l', `${ar(correct)} صحيحة من ${ar(done.length)} أجبتها`))
+          : h('div.score', h('div.score__l', 'تخطّيت كل الأسئلة — لم تُحسب نتيجة')),
+        left.length
+          ? h('div.muted.small.center', { style: 'margin-top:12px' },
+              `${ar(left.length)} ${left.length === 1 ? 'سؤال متخطًّى' : 'أسئلة متخطّاة'} لم تُحسب عليك`
+              + (params.lesson ? ' — يكتمل الدرس بحلّها' : ''))
+          : h('div.muted.small.center', { style: 'margin-top:14px' },
+              'سُجِّلت نتيجتك، وسيظهر أثرها في مؤشر التقدّم فورًا.'),
+        left.length
+          ? h('button.btn.btn--primary.btn--block', {
+              style: 'margin-top:18px',
+              onclick: () => { revisiting = true; go(left[0]); },
+            }, 'حلّ الأسئلة المتخطّاة')
+          : h('button.btn.btn--primary.btn--block', {
+              style: 'margin-top:18px',
+              // شاشة التقدّم المستقلّة بعد إزالة تبويب «تقدّمي» من داخل المادة
+              onclick: () => App.go('progress'),
+            }, 'شوف تقدّمك'),
+        left.length
+          ? h('button.btn.btn--ghost.btn--block',
+              { style: 'margin-top:6px', onclick: () => App.go('progress') }, 'شوف تقدّمك')
+          : null,
         h('button.btn.btn--ghost.btn--block', {
           style: 'margin-top:6px',
-          onclick: () => { i = 0; correct = 0; step(); },
+          onclick: () => { i = 0; state = {}; revisiting = false; step(); },
         }, 'أعد الجلسة')));
     }
 

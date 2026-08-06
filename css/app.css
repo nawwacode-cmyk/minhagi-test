@@ -813,10 +813,21 @@ img, svg { max-width: 100%; display: block; }
 .callout--info .callout__t { color: var(--info); }
 
 /* --- بطاقة السؤال ------------------------------------------------------------ */
-.q { padding: 18px; }
+/* pan-y: السحب الأفقي إيماءةُ البطاقة (تخطٍّ ورجوع)، فلا يُترك للمتصفّح
+   يفسّره تمريرًا. لا عنصر داخل البطاقة يمرّر أفقيًا فلا شيء يُكسر بهذا. */
+.q { padding: 18px; touch-action: pan-y; }
 .q__top { display: flex; justify-content: space-between; align-items: center;
           font-size: 12px; color: var(--txm); margin-bottom: 12px; }
 .q__stem { font-size: 17px; line-height: 1.9; margin-bottom: 16px; }
+
+/* التخطّي مخرج لا دعوة: يبقى تحت «تحقّق» بلون باهت ووزن عادي، فمن يحتاجه
+   يجده ومن لا يحتاجه لا يجذبه بصريًا عن الإجابة. */
+.q__skip { font-weight: 400; color: var(--txm); }
+.q__skip:hover { background: var(--surf2); color: var(--tx); }
+.q__swipe-hint {
+  margin-top: 10px; text-align: center;
+  font-size: 12px; color: var(--txf);
+}
 
 /* نصّ القراءة — قابل للطيّ لأنه يتكرّر مع كل سؤال من أسئلته الثمانية،
    ومحدود الارتفاع لئلّا يدفع السؤال والخيارات خارج الشاشة على الهاتف. */

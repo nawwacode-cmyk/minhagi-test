@@ -523,6 +523,23 @@ ok('اسم الصف المشتقّ هو البكالوريا لا التاسع',
 const mixed = [...new Set(['g9', 'g12'])];
 ok('بصفّين مختلفين لا يُعرض أيّهما', (mixed.length === 1 ? 'x' : '') === '');
 
+// --- التخطّي والسحب -------------------------------------------------------------
+// أربعة عقود لو انكسر أحدها تحوّل التخطّي من ميزة إلى ضرر صامت.
+const examSrc2 = fs.readFileSync(dir + 'screens/exam.js', 'utf8');
+ok('التخطّي لا يمرّ بـrecordAttempt', !/onSkip[^\n]*recordAttempt/.test(compSrc));
+ok('النسبة تُحسب على ما أُجيب لا على حجم الجلسة',
+   /correct \/ done\.length/.test(courseSrc) && !/correct \/ pool\.length/.test(courseSrc));
+ok('التخطّي ليس طريقًا مختصرًا لإكمال الدرس',
+   /params\.lesson && !left\.length\) Store\.completeLesson/.test(courseSrc));
+ok('الرجوع يعيد حالة السؤال فلا تُسجَّل محاولتان',
+   /initial: state\[/.test(courseSrc) && /initial: state\[/.test(examSrc2)
+   && /onState/.test(compSrc));
+// اتجاه السحب يتبع اصطلاح الأيقونات نفسه: تقدّم = يسار، رجوع = يمين
+ok('السحب يسارًا تقدّم ويمينًا رجوع', /\(dx < 0 \? onNext : onPrev\)/.test(uiSrc));
+ok('عتبة أفقية تمنع إطلاق النقرة', /Math\.abs\(dx\) < 60/.test(uiSrc));
+ok('التمرير العمودي لا يُطلِق السحب', /Math\.abs\(dx\) < Math\.abs\(dy\) \* 1\.5/.test(uiSrc));
+ok('البطاقة لا تترك السحب الأفقي للمتصفّح', /\.q \{[^}]*touch-action: pan-y/.test(cssSrc));
+
 // --- الأيقونات: أبعادها الحقيقية تطابق ما يعلنه الـmanifest ----------------------
 // شعارٌ يُستبدَل بملف بأبعاد أخرى يمرّ صامتًا: يُعرَض سليمًا بالمتصفح بينما
 // يرفضه أندرويد عند التثبيت، ويُحمَّل كاملًا مع القشرة لأنه في قائمة التخزين.
