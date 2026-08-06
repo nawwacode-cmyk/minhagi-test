@@ -286,4 +286,9 @@ window.SEED = {
       questions: ['q-sal-1', 'q-art-2', 'q-conj-1', 'q-voc-1'],
     },
   ],
+
+  teachers: [
+    { id: 'ustaz-sami', name: 'أستاذ تجريبي', bio: 'نبذة تجريبية للاختبار.', photo: null, subjects: ['fr'] },
+    { id: 'ustaz-rana', name: 'أستاذة بلا نبذة', bio: null, photo: null, subjects: [] },
+  ],
 };

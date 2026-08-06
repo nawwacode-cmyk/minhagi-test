@@ -207,5 +207,49 @@ const badDocs = DOCS.filter((f) =>
 ok('لا تلف في ترميز الصفحة والأنماط', badDocs.length === 0);
 badDocs.forEach((f) => console.log('   ← ترميز تالف: ' + f));
 
+// --- واجهة الاكتشاف: أساتذتنا ---------------------------------------------------
+// جلب teachers/courses اختياري ومتسامح (نفس نمط videos) — لا يجوز أن يُسقط
+// pullContent كله لو فشل، ولا أن يعيد ميتاداتا كورس كاملة أُزيلت عمدًا سابقًا.
+ok('sync يجلب teachers بأعمدة ضيّقة', /'teachers',\s*\{\s*select:\s*'id,code,name,bio,photo_path'/.test(syncSrc));
+ok('جلب teachers متسامح كـ videos', /Api\.from\('teachers',[^)]*\)\.catch\(\(\) => \[\]\)/.test(syncSrc));
+ok('sync يجلب courses بأعمدة ضيّقة فقط (teacher_id,subject_id)',
+   /'courses',\s*\{\s*select:\s*'teacher_id,subject_id'/.test(syncSrc));
+ok('جلب courses متسامح أيضًا', /Api\.from\('courses',[^)]*\)\.catch\(\(\) => \[\]\)/.test(syncSrc));
+ok('content النهائي يبني مفتاح teachers', /teachers:\s*\(teachers \|\| \[\]\)\.map/.test(syncSrc));
+
+// --- أيقونة الإعدادات ------------------------------------------------------------
+ok('ui.js يعرّف icon.settings', /settings:\s*\(s\) => svg/.test(uiSrc));
+
+// --- التنقّل: مصدر واحد يغذّي الشريط الجانبي والشريط السفلي ---------------------
+// حارس ضد افتراق القائمتين لاحقًا بالغلط: لو أضاف أحد وجهة للشريط الجانبي فقط
+// (أو العكس) فهذا الاختبار يفشل قبل أن يصل الفرق للمستخدم.
+const appSrc = fs.readFileSync(dir + 'app.js', 'utf8');
+ok('app.js يعرّف مصفوفة وجهات واحدة (RAIL_ITEMS)', /const RAIL_ITEMS = \[/.test(appSrc));
+ok('الشريط الجانبي يُبنى من RAIL_ITEMS', /rail\.replaceChildren\([\s\S]*?RAIL_ITEMS\.map\(navBtn\)/.test(appSrc));
+ok('الشريط السفلي يُبنى من نفس RAIL_ITEMS', /tabbar\.replaceChildren\(\.\.\.RAIL_ITEMS\.map\(navBtn\)\)/.test(appSrc));
+ok('«موادّي» وجهة تنقّل مستقلّة الآن', /id:\s*'subjects'/.test(appSrc));
+ok('«حسابي» لم تعد وجهة تنقّل', !/id:\s*'account'/.test(appSrc));
+ok('الشاشات الدراسية تُفعِّل «موادّي» لا «الرئيسية» بالتنقّل',
+   /course', 'lesson', 'practice', 'exam', 'result'\][\s\S]{0,40}return 'subjects'/.test(appSrc));
+
+// --- حذف شاشة الترحيب: الدخول صار الشاشة الجذر -------------------------------
+// اسم 'welcome' ما لازم يبقى بأي مسار كود حيّ. أخطر بقيّة محتملة هي
+// `Screens[c.name] || Screens.welcome` بـ render(): لو بقيت، أي اسم شاشة
+// مجهول يستدعي دالة غير موجودة فتنهار الواجهة كليًا بدل السقوط لشاشة صالحة.
+const onbSrc = fs.readFileSync(dir + 'screens/onboarding.js', 'utf8');
+ok('لا أثر لـ Screens.welcome', !/Screens\.welcome/.test(onbSrc + appSrc));
+ok('الاحتياطي عند شاشة مجهولة هو auth', /Screens\[c\.name\] \|\| Screens\.auth/.test(appSrc));
+ok('الإقلاع بلا جلسة يفتح auth', /name: signedIn \? 'home' : 'auth'/.test(appSrc));
+ok('لا تنقّل بشاشة الدخول', /cur\(\)\.name === 'auth'/.test(appSrc));
+ok('شاشة الدخول بلا زر رجوع (هي الجذر)', !/onBack/.test(onbSrc));
+ok('وضع التجربة ما زال له مدخل', /signedIn: true, username: 'زائر'/.test(onbSrc));
+// الخروج وإعادة الضبط لازم يوديا لشاشة موجودة فعلًا لا لاسم محذوف
+const mainSrc = fs.readFileSync(dir + 'screens/main.js', 'utf8');
+ok('الخروج/إعادة الضبط يودّيان إلى auth',
+   !/App\.go\('welcome'\)/.test(mainSrc) && (mainSrc.match(/App\.go\('auth'\)/g) || []).length >= 2);
+// أصل صورة الترحيب ما عاد له مستهلك — بقاؤه بالتخزين المسبق تنزيل بلا فائدة
+const swSrc = fs.readFileSync(require('node:path').join(ROOT, 'sw.js'), 'utf8');
+ok('welcome.jpg خرج من التخزين المسبق', !/welcome\.jpg/.test(swSrc));
+
 console.log('\n' + (fail.length ? `${fail.length} فشل` : 'كل الاختبارات نجحت'));
 process.exit(fail.length ? 1 : 0);
