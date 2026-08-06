@@ -501,5 +501,27 @@ ok('اسم الصف المشتقّ هو البكالوريا لا التاسع',
 const mixed = [...new Set(['g9', 'g12'])];
 ok('بصفّين مختلفين لا يُعرض أيّهما', (mixed.length === 1 ? 'x' : '') === '');
 
+// --- الأيقونات: أبعادها الحقيقية تطابق ما يعلنه الـmanifest ----------------------
+// شعارٌ يُستبدَل بملف بأبعاد أخرى يمرّ صامتًا: يُعرَض سليمًا بالمتصفح بينما
+// يرفضه أندرويد عند التثبيت، ويُحمَّل كاملًا مع القشرة لأنه في قائمة التخزين.
+{
+  const path = require('node:path');
+  const mf = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.webmanifest'), 'utf8'));
+  const swSrc = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  for (const it of mf.icons) {
+    const b = fs.readFileSync(path.join(ROOT, it.src));
+    const w = b.readUInt32BE(16), hh = b.readUInt32BE(20);
+    ok(`${path.basename(it.src)} أبعاده ${it.sizes} فعلًا`, `${w}x${hh}` === it.sizes,
+       `${w}×${hh}`);
+    ok(`${path.basename(it.src)} خفيف بما يكفي للتخزين المسبق`, b.length < 400 * 1024,
+       (b.length / 1024).toFixed(0) + ' ك.ب');
+    ok(`${path.basename(it.src)} مخزَّن مسبقًا`, swSrc.includes(it.src.replace(/^/, './')));
+  }
+  // maskable يُقصّ بقناع النظام، فبلاطة مدوّرة سلفًا تُدوَّر مرّتين
+  const msk = mf.icons.filter((i) => i.purpose === 'maskable');
+  ok('للـmaskable ملفّه المستقلّ لا نسخة الأيقونة المدوّرة',
+     msk.length === 1 && !mf.icons.some((i) => i.purpose === 'any' && i.src === msk[0].src));
+}
+
 console.log('\n' + (fail.length ? `${fail.length} فشل` : 'كل الاختبارات نجحت'));
 process.exit(fail.length ? 1 : 0);
