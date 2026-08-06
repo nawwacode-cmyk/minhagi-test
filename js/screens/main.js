@@ -146,7 +146,7 @@ window.Screens = window.Screens || {};
               // سهم الدخول بالزاوية السفلى اليسرى. عنصر زخرفي داخل الزرّ لا
               // زرّ ثانٍ: البطاقة كلها قابلة للنقر أصلًا، وزرٌّ داخل زرّ HTML
               // غير صالح ويكسر التنقّل بلوحة المفاتيح.
-              h('span.tcard__go', icon.fwd(18))))))
+              h('span.tcard__go', icon.fwd(19, { width: 2.6 }))))))
           : h('span'),
 
         h('div.sec-label', { style: 'margin-top:14px' }, 'خدماتنا'),

@@ -34,6 +34,9 @@
   --acc:#5B4B9E;     --acc-hi:#6E5BB8;  --on-acc:#FFFFFF;
   --acc-soft:#ECE7FA; --acc-tx:#453876;
   --acc-deep:#453876; --acc-lite:#6E5BB8;
+  /* بنفسجي مشبَع لعلامة واحدة صغيرة على أرضية بيضاء (سهم بطاقة الأستاذ).
+     --acc الأساسي مكتوم عمدًا لأنه يحمل مساحات واسعة؛ عند 34px يذوب. */
+  --acc-vivid:#5B21B6;
 
   --gold:#C98A2E;    --gold-soft:#FBF0DC;
   --ok:#2E7D5B;      --ok-soft:#E4F2EC;
@@ -56,6 +59,8 @@
   --acc:#9C8FE0;    --acc-hi:#B5AAEA; --on-acc:#1A1330;
   --acc-soft:#2A2249; --acc-tx:#C7BEEF;
   --acc-deep:#C7BEEF; --acc-lite:#B5AAEA;
+  /* الأرضية داكنة هنا، فالبنفسجي الغامق نفسه يختفي عليها — يُرفع لا يُنسخ */
+  --acc-vivid:#A78BFA;
 
   --gold:#E0AC63;   --gold-soft:#33281A;
   --ok:#5FBE92;     --ok-soft:#162C24;
