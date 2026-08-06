@@ -157,10 +157,23 @@ window.Api = (function () {
 
   function signOut() { save(null); }
 
+  /**
+   * رابط صورة عامة (صور الأساتذة والبانرات) من دلو public-media.
+   *
+   * عام بلا توقيع عن قصد — هذه صور تسويقية يراها الطالب قبل أن يشترك، ورابطها
+   * ثابت فيخزّنها المتصفح ويعرضها دون إنترنت. المحتوى المدفوع شيء آخر تمامًا:
+   * الفيديو على R2 برابط موقّع عشر دقائق (راجع Edge Function media-url).
+   *
+   * نخزّن المسار في القاعدة ونركّب الرابط هنا، فتغيير نطاق المشروع لا يُبطل
+   * كل صفّ مخزَّن.
+   */
+  const publicUrl = (path) =>
+    path ? `${URL_BASE}/storage/v1/object/public/public-media/${path}` : null;
+
   return {
     URL_BASE, ANON, ApiError,
     isSignedIn, userId, session: () => session, refresh,
-    request, invoke, from, upsert, rpc,
+    request, invoke, from, upsert, rpc, publicUrl,
     activate, signOut,
   };
 })();

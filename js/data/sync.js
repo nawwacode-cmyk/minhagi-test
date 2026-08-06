@@ -44,9 +44,12 @@ window.Sync = (function () {
     //
     // «courses» لم تعد مفهومًا يراه الطالب (راجع خطة إزالة طبقة الكورسات) —
     // نجلب subject_id/grade_id الخاصّين بكل وحدة عبر embed مباشر من courses
-    // بدل جلب جدول courses نفسه كمجموعة مستقلة. لا حاجة لجدول teachers هنا أيضًا.
+    // بدل جلب جدول courses نفسه كمجموعة مستقلة. جلب teachers/courses أدناه
+    // ضيّق ومقصور على بناء «أستاذ ← أي مواد يقدّمها» لواجهة الاكتشاف فقط —
+    // ليس عودة لطبقة الكورسات القديمة.
     const [subjects, grades, units, lessons,
-           questions, options, exams, examQuestions, videos] = await Promise.all([
+           questions, options, exams, examQuestions, videos,
+           teachers, teacherCourses, banners] = await Promise.all([
       Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order' }),
       Api.from('grades',    { select: 'id,code,name_ar,sort_order' }),
       Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order,courses(subject_id,grade_id)', order: 'sort_order' }),
@@ -56,6 +59,14 @@ window.Sync = (function () {
       Api.from('exams',     { select: 'id,code,title_ar,kind,duration_minutes,pass_percent,subject_id,grade_id,sort_order', order: 'sort_order' }),
       Api.from('exam_questions', { select: 'exam_id,question_id,sort_order,points' }),
       Api.from('videos',    { select: 'id,title,quality,duration_s,size_bytes' }).catch(() => []),
+      Api.from('teachers',  { select: 'id,code,name,bio,photo_path', order: 'sort_order' }).catch(() => []),
+      Api.from('courses',   { select: 'teacher_id,subject_id' }).catch(() => []),
+      // البانرات: RLS تحصرها بالمفعَّل ضمن نافذته الزمنية، فما يصل هنا هو
+      // بالضبط ما يجوز عرضه — لا تصفية تواريخ في العميل.
+      Api.from('banners', {
+        select: 'id,title_ar,subtitle_ar,image_path,target_type,target_value,sort_order',
+        order: 'sort_order',
+      }).catch(() => []),
     ]);
 
     // --- خرائط الترجمة ---
@@ -184,6 +195,23 @@ window.Sync = (function () {
           .sort((a, b) => a.sort_order - b.sort_order)
           .map((x) => Q[x.question_id]?.code)
           .filter((c) => c && mappedQuestions[c]),
+      })),
+
+      // «أساتذتنا» بشاشة الاكتشاف. RLS على teachers أصلًا تحصر النتيجة
+      // بالنشطين (is_active) فلا تصفية إضافية لازمة هنا. bio/photo قد تغيبان
+      // بصدق (لا بيانات مُختلَقة) — الواجهة تتعامل مع غيابهما كحالة متوقَّعة.
+      banners: (banners || []).map((b) => ({
+        id: b.id, title: b.title_ar, sub: b.subtitle_ar || '',
+        image: b.image_path || null,
+        target: b.target_type === 'none' ? null : { type: b.target_type, value: b.target_value },
+      })),
+
+      teachers: (teachers || []).map((t) => ({
+        id: t.code, name: t.name, bio: t.bio || null, photo: t.photo_path || null,
+        subjects: [...new Set((teacherCourses || [])
+          .filter((c) => c.teacher_id === t.id)
+          .map((c) => subjectByUuid[c.subject_id]?.code)
+          .filter(Boolean))],
       })),
     };
 

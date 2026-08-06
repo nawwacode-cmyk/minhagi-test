@@ -21,4 +21,6 @@ window.SEED = {
   lessons: {},
   questions: {},
   exams: [],
+  teachers: [],
+  banners: [],
 };
