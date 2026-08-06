@@ -1,66 +1,17 @@
 /* =============================================================================
-   الترحيب · تسجيل الدخول
+   تسجيل الدخول — الشاشة الأولى للتطبيق
+
+   لا شاشة ترحيب قبلها: كانت تعرض أربع نقاط تسويقية ثم زرًّا يقود إلى هنا،
+   أي حاجزًا كاملًا بين الطالب وبين الدخول بكوده. صار نموذج الدخول نفسه هو
+   الواجهة الأولى، وانتقلت العلامة إلى رأسه.
    ============================================================================= */
 window.Screens = window.Screens || {};
 
 (function () {
   const { h, fr, ar, icon, svg } = UI;
 
-  const check = (s = 18) => svg('<path d="m4 12 5 5L20 6"/>', s, { width: 2.6 });
-
   // ===========================================================================
-  // ١. الترحيب
-  //
-  // على الهاتف: صورة ملء الشاشة والمحتوى فوقها.
-  // على اللابتوب: عمودان — الصورة على اليمين وبطاقة الدخول على اليسار، فلا
-  // تبقى الصورة ممتدة بلا داعٍ ولا يطفو المحتوى وسط فراغ.
-  // ===========================================================================
-  Screens.welcome = () => {
-    const bullets = [
-      ['دروس بالفيديو والنص', 'شرح المنهاج درسًا درسًا، مع تمارين على كل درس.'],
-      ['بنك أسئلة وتعلّم حسب الموضوع', 'تدرّب على نقطة ضعفك تحديدًا لا على المنهاج كله.'],
-      ['امتحانات تجريبية ودورات وزارية', 'نفس نمط الأسئلة الحقيقي، بتصحيح فوري.'],
-      ['يعمل دون إنترنت', 'نزّل الدروس مرة واحدة وادرسها في أي وقت.'],
-    ];
-
-    // ترتيب DOM: الصورة أولًا (فوق على الهاتف)، واللوحة ثانيًا.
-    // على اللابتوب يقلبهما CSS بـ order فتصير اللوحة يمينًا والصورة يسارًا.
-    return h('div.screen.welcome',
-      h('div.welcome__art',
-        h('img', { src: 'assets/img/welcome.jpg', alt: 'طلاب يدرسون على أجهزتهم' })),
-
-      h('div.welcome__panel',
-        h('div.welcome__inner',
-          h('div.welcome__brand',
-            h('img', { src: 'assets/img/icon-192.png', alt: '' }),
-            h('div',
-              h('div.welcome__name', 'منهاجي'),
-              h('div.welcome__tag', 'منهاجك السوري بين يديك'))),
-
-          h('div.welcome__pitch',
-            'كل مواد منهاجك في تطبيق واحد — دروس، تمارين، وامتحانات وزارية.'),
-
-          h('div.welcome__list',
-            ...bullets.map(([t, s]) => h('div.wfeat',
-              h('span.wfeat__i', check(13)),
-              h('div',
-                h('div.wfeat__t', t),
-                h('div.wfeat__s', s))))),
-
-          h('div.welcome__actions',
-            h('button.btn.btn--primary.btn--block', { onclick: () => App.go('auth') },
-              'دخول بكود التفعيل'),
-            h('button.btn.btn--ghost.btn--block', {
-              style: 'margin-top:6px',
-              onclick: () => { Store.set({ signedIn: true, username: 'زائر' }); App.go('home'); },
-            }, 'جرّب التطبيق قبل الاشتراك'),
-            h('div.center.faint', { style: 'font-size:11.5px;margin-top:10px' },
-              'الإصدار ١٫٠٫٠')))),
-    );
-  };
-
-  // ===========================================================================
-  // ٢. تسجيل الدخول — اسم مستخدم + كود تفعيل، لا شيء غيرهما
+  // تسجيل الدخول — اسم مستخدم + كود تفعيل، لا شيء غيرهما
   //
   // لا بريد ولا كلمة مرور: الكود نفسه هو بمثابة كلمة السر، وارتباطه بجهاز
   // واحد هو ما يمنع تداوله. النتيجة المباشرة أنه **لا يوجد استرداد ذاتي**
@@ -154,11 +105,16 @@ window.Screens = window.Screens || {};
     }
     btn.addEventListener('click', submit);
 
+    // هاي الشاشة الجذر — لا زر رجوع، ما في مكان ترجع له.
     const wrap = h('div.screen',
-      C.appbar({ title: 'تسجيل الدخول', onBack: () => App.back() }),
-
       h('div.screen__body',
-        h('div.dash',
+        h('div.auth-brand',
+          h('img', { src: 'assets/img/icon-192.png', alt: '', width: 44, height: 44 }),
+          h('div',
+            h('div.auth-brand__name', 'منهاجي'),
+            h('div.auth-brand__tag', 'منهاجك السوري بين يديك'))),
+
+        h('div.dash', { style: 'padding-top:0' },
           h('div.dash__main',
             h('div.card.card--pad',
               h('div', { style: 'font-size:19px;font-weight:700;margin-bottom:4px' },
@@ -179,6 +135,16 @@ window.Screens = window.Screens || {};
 
               errBox,
               btn,
+
+              // وضع التجربة: رابط هادئ لا زر بارز — هو مسار ثانوي، والمسار
+              // الأساسي هو الدخول بكود مدفوع فوقه.
+              h('button.btn.btn--ghost.btn--block', {
+                style: 'margin-top:6px',
+                onclick: () => { Store.set({ signedIn: true, username: 'زائر' }); App.go('home'); },
+              }, 'جرّب التطبيق قبل الاشتراك'),
+
+              h('div.center.faint', { style: 'font-size:11.5px;margin-top:10px' },
+                'الإصدار ١٫٠٫٠'),
             )),
 
           h('aside.dash__side',
