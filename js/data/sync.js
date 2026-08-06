@@ -167,6 +167,10 @@ window.Sync = (function () {
       units: units.map((u) => ({
         id: u.code, title: u.title_ar,
         subject: subjectByUuid[u.courses?.subject_id]?.code || null,
+        // الصف يأتي من كورس الوحدة. هو المصدر الموثوق لصفّ الطالب: الاشتراك
+        // المبنيّ على باقة يحمل grade_id فارغًا (الباقة هي النطاق)، أما ما
+        // سمحت به RLS من وحدات فهو ما يملكه الطالب فعلًا.
+        grade: gradeByUuid[u.courses?.grade_id]?.code || null,
         lessons: (unitLessons[u.id] || []).sort((a, b) => a.sort_order - b.sort_order)
           .map((l) => l.code),
       })),
@@ -373,8 +377,51 @@ window.Sync = (function () {
       if (nextExams[code]) nextExams[code].taken = Math.max(nextExams[code].taken, n);
     }
 
-    Store.set({ lessons: nextLessons, exams: nextExams });
-    return lessons.length + exams.length;
+    // نُرجع عدد ما **تغيّر** فعلًا لا عدد ما جُلب.
+    //
+    // كان الإرجاع lessons.length + exams.length، أي رقمًا موجبًا في كل مزامنة
+    // لأي طالب له تقدّم. و app.js يعيد رسم الشاشة كلها عند أي ناتج موجب،
+    // فكانت الشاشة ترتجف دوريًا بلا سبب — ومع animation:fadeIn على .screen
+    // تبدو الرجفة تحديثًا كاملًا للتطبيق.
+    const changed =
+      Object.keys(nextLessons).filter((k) => s.lessons[k] !== nextLessons[k]).length +
+      Object.keys(nextExams).filter((k) =>
+        (s.exams[k]?.best ?? -1) !== nextExams[k].best ||
+        (s.exams[k]?.taken ?? -1) !== nextExams[k].taken).length;
+
+    if (changed) Store.set({ lessons: nextLessons, exams: nextExams });
+    return changed;
+  }
+
+  /**
+   * صفّ الطالب ومدّة اشتراكه — من السيرفر لا من قيَم مثبَّتة.
+   *
+   * ⚠️ كانا مثبَّتين في store.js: `grade: 'g9'` و `daysLeft: 283`، ولا يُحدَّثان
+   * أبدًا. فكان كل طالب يرى «الصف التاسع» مهما كان اشتراكه — حتى وكورس
+   * البكالوريا هو الوحيد الموجود — ويرى «متبقٍ ٢٨٣ يومًا» وهو رقم مختلَق
+   * عن اشتراك مدفوع. بقيّة من عهد البيانات الوهمية بقيت تُعرض كأنها حقيقة.
+   *
+   * الصف: من الوحدات التي وصلت فعلًا لا من الاشتراك — الاشتراك المبنيّ على
+   * باقة يحمل grade_id فارغًا، فـ my_entitlements تُرجع grade_code فارغة.
+   * بأكثر من صف نترك القيمة فارغة بدل ترجيح أحدهما بلا أساس.
+   */
+  async function pullEntitlements(content) {
+    let daysLeft = 0;
+    try {
+      const rows = await Api.rpc('my_entitlements');
+      const list = Array.isArray(rows) ? rows : [];
+      daysLeft = list.reduce((a, r) => Math.max(a, r.days_left || 0), 0);
+    } catch { /* بلا شبكة نُبقي ما لدينا */ }
+
+    const grades = [...new Set((content?.units || []).map((u) => u.grade).filter(Boolean))];
+    const grade = grades.length === 1 ? grades[0] : null;
+
+    const s = Store.get();
+    const patch = {};
+    if (grade && grade !== s.grade) patch.grade = grade;
+    if (daysLeft !== s.daysLeft) patch.daysLeft = daysLeft;
+    if (Object.keys(patch).length) Store.set(patch);
+    return Object.keys(patch).length;
   }
 
   // ---------------------------------------------------------------------------
@@ -420,19 +467,27 @@ window.Sync = (function () {
       if (Store.get().evicted) Store.set({ evicted: false });
 
       const push = await pushProgress();
-      let pulled = 0, progress = 0;
+      let contentChanged = false, progress = 0, entitle = 0;
 
       if (navigator.onLine) {
         if (content && !DEMO) {
+          // مقارنة نصّية لما خُزِّن قبل السحب وبعده: أدقّ إشارة ممكنة على
+          // «هل تغيّر شيء فعلًا؟» وأرخص من مقارنة الشجرة عنصرًا عنصرًا.
+          // بلا هذا كانت كل مزامنة تُعدّ تغييرًا فتُعيد رسم الشاشة.
+          const before = localStorage.getItem(CONTENT_KEY);
           const c = await pullContent();
-          applyStored();
-          pulled = Object.keys(c.lessons).length;
+          contentChanged = localStorage.getItem(CONTENT_KEY) !== before;
+          if (contentChanged) applyStored();
+          // بعد المحتوى لا قبله: الصف يُشتقّ من الوحدات التي وصلت للتوّ
+          entitle = await pullEntitlements(c);
         }
         progress = await pullProgress();
       }
 
       Store.set({ lastSync: new Date().toISOString() });
-      return { ...push, pulled, progress };
+      // `changed` هي ما يقرّر إعادة الرسم في app.js — لا مجرّد «نجحت المزامنة».
+      return { ...push, contentChanged, progress,
+               changed: contentChanged || progress > 0 || entitle > 0 || (push?.sent > 0) };
     } catch (e) {
       console.warn('sync failed', e.code || e.message);
       return null;

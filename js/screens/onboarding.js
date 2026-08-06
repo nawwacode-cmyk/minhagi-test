@@ -105,67 +105,41 @@ window.Screens = window.Screens || {};
     }
     btn.addEventListener('click', submit);
 
-    // هاي الشاشة الجذر — لا زر رجوع، ما في مكان ترجع له.
-    const wrap = h('div.screen',
+    /**
+     * شاشة الجذر — لا زرّ رجوع، ولا شيء غير الثلاثة المطلوبة:
+     * اسم المستخدم · كود التفعيل · المتابعة كزائر.
+     *
+     * أُزيلت البطاقات الجانبية (تحتاج كودًا حقيقيًا / جلسة واحدة / تبديل
+     * الجهاز) والتلميحات تحت كل حقل. كانت شرحًا لأسئلة لم تُطرح بعد: من يفتح
+     * التطبيق أول مرة يريد الدخول لا قراءة سياسة الجلسات. ما فيها من معلومات
+     * يظهر في مكانه الطبيعي — رسالة الخطأ حين يفشل الدخول، وشاشة «حسابي»
+     * لسياسة الجلسة.
+     */
+    const wrap = h('div.screen.auth',
       h('div.screen__body',
-        h('div.auth-brand',
-          h('img', { src: 'assets/img/icon-192.png', alt: '', width: 44, height: 44 }),
-          h('div',
-            h('div.auth-brand__name', 'منهاجي'),
-            h('div.auth-brand__tag', 'منهاجك السوري بين يديك'))),
+        h('div.auth-box',
+          h('div.auth-brand',
+            h('img', { src: 'assets/img/icon-192.png', alt: '', width: 52, height: 52 }),
+            h('div',
+              h('div.auth-brand__name', 'منهاجي'),
+              h('div.auth-brand__tag', 'منهاجك السوري بين يديك'))),
 
-        h('div.dash', { style: 'padding-top:0' },
-          h('div.dash__main',
-            h('div.card.card--pad',
-              h('div', { style: 'font-size:19px;font-weight:700;margin-bottom:4px' },
-                'ادخل باسمك وكود التفعيل'),
-              h('div.muted.small', { style: 'margin-bottom:20px' },
-                'لا حاجة لبريد إلكتروني ولا كلمة مرور. الكود وحده يفتح اشتراكك.'),
+          h('div.field',
+            h('label', 'اسم المستخدم'),
+            userInput),
 
-              h('div.field',
-                h('label', { for: 'u' }, 'اسم المستخدم'),
-                userInput,
-                h('div.hint', 'اسم تعرفه أنت — يظهر داخل التطبيق ويستخدمه الدعم للبحث عن حسابك.')),
+          h('div.field',
+            h('label', 'كود التفعيل'),
+            field),
 
-              h('div.field', { style: 'margin-bottom:8px' },
-                h('label', 'كود التفعيل'),
-                field,
-                h('div.hint.center', { style: 'margin-top:10px' },
-                  'الأحرف الصغيرة والشرطات مقبولة، وتُنظَّف تلقائيًا.')),
+          errBox,
+          btn,
 
-              errBox,
-              btn,
-
-              // وضع التجربة: رابط هادئ لا زر بارز — هو مسار ثانوي، والمسار
-              // الأساسي هو الدخول بكود مدفوع فوقه.
-              h('button.btn.btn--ghost.btn--block', {
-                style: 'margin-top:6px',
-                onclick: () => { Store.set({ signedIn: true, username: 'زائر' }); App.go('home'); },
-              }, 'جرّب التطبيق قبل الاشتراك'),
-
-              h('div.center.faint', { style: 'font-size:11.5px;margin-top:10px' },
-                'الإصدار ١٫٠٫٠'),
-            )),
-
-          h('aside.dash__side',
-            h('div.callout.callout--info',
-              h('div.callout__t', 'تحتاج كودًا حقيقيًا'),
-              h('div.small',
-                'التطبيق موصول بقاعدة بيانات حيّة الآن. الأكواد تُشترى من الموزّع، ',
-                'ولا تعمل أكواد التجربة السابقة.')),
-
-            h('div.card.card--pad',
-              h('div.row', { style: 'margin-bottom:8px' },
-                h('span', { style: 'color:var(--info)' }, icon.warn(20)),
-                h('div', { style: 'font-weight:700' }, 'جلسة واحدة في الوقت نفسه')),
-              h('div.muted.small',
-                'اشتراكك يعمل على أي جهاز — هاتفك أو حاسوبك — لكن على واحد '
-                + 'في الوقت نفسه. إن دخلت من جهاز آخر يُغلق السابق تلقائيًا.'),
-              h('div.small', { style: 'margin-top:12px;font-weight:600' },
-                'غيّرت جهازك أو أعدت تثبيت التطبيق؟'),
-              h('div.muted.small', { style: 'margin-top:2px' },
-                'ادخل بنفس الاسم والكود — لا شيء يضيع، وتقدّمك ينتقل معك.')),
-          ),
+          // مسار ثانوي: زرّ هادئ لا بارز — الأساسي هو الدخول بكود مدفوع فوقه
+          h('button.btn.btn--ghost.btn--block', {
+            style: 'margin-top:8px',
+            onclick: () => { Store.set({ signedIn: true, username: 'زائر' }); App.go('home'); },
+          }, 'المتابعة كزائر'),
         ),
       ),
     );

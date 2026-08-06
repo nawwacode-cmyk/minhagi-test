@@ -30,12 +30,14 @@ window.App = (function () {
    * المادة نفسها (التبويبات داخل شاشة المادة)، لا مستوى تنقّل عابر للمواد.
    * «حسابي» لم تعد وجهة تنقّل — صارت زر إعدادات بترويسة الرئيسية وموادّي.
    */
+  // ico تأخذ مقاسًا: الشريط الجانبي يعرض أيقونة صغيرة بجانب نصّها، والشريط
+  // السفلي يعرض الأيقونة وحدها فيحتاجها أكبر لتبقى هدفًا واضحًا للمس.
   const RAIL_ITEMS = [
-    { id: 'home',     label: 'الرئيسية', ico: () => icon.home(20),
+    { id: 'home',     label: 'الرئيسية', ico: (s) => icon.home(s),
       go: () => go('home') },
-    { id: 'subjects', label: 'موادّي',   ico: () => icon.grid(20),
+    { id: 'subjects', label: 'موادّي',   ico: (s) => icon.grid(s),
       go: () => go('subjects') },
-    { id: 'progress', label: 'تقدّمي',   ico: () => icon.chart(20),
+    { id: 'progress', label: 'تقدّمي',   ico: (s) => icon.chart(s),
       go: () => go('progress') },
   ];
 
@@ -63,10 +65,28 @@ window.App = (function () {
     tabbar.style.display = '';
 
     const on = activeRailId();
-    const navBtn = (it) => h('button', {
+    // الشريط الجانبي: أيقونة ٢٠ + نصّ
+    const railBtn = (it) => h('button', {
       class: on === it.id ? 'is-on' : '',
       onclick: it.go,
-    }, it.ico(), it.label);
+    }, it.ico(20), it.label);
+
+    /**
+     * الشريط السفلي: أيقونة ٢٤ وحدها بلا نصّ.
+     *
+     * حذف النصّ يوجب أمرين: aria-label وإلّا صار الزرّ بلا اسم لقارئ الشاشة،
+     * و title ليظهر عند الإبقاء بالفأرة على الحاسوب. وبلا نصّ يصير اللون
+     * وحده هو الفارق بين النشط وغيره، فأضفنا خلفية للنشط في CSS.
+     */
+    const tabBtn = (it) => h('button', {
+      class: on === it.id ? 'is-on' : '',
+      onclick: it.go,
+      'aria-label': it.label,
+      'aria-current': on === it.id ? 'page' : null,
+      title: it.label,
+      // الأيقونة داخل span: الخلفية الدائرية للنشط تحتاج صندوقًا حقيقيًا،
+      // والحشوة على <svg> مباشرةً غير موثوقة بين المتصفحات.
+    }, h('span.tabbar__ico', it.ico(24)));
 
     rail.replaceChildren(
       h('div.rail__brand',
@@ -76,7 +96,7 @@ window.App = (function () {
           h('div.rail__name', 'منهاجي'),
           h('div.rail__tag', 'منهاجك السوري بين يديك'))),
 
-      ...RAIL_ITEMS.map(navBtn),
+      ...RAIL_ITEMS.map(railBtn),
 
       h('div.rail__spacer'),
       h('div.rail__foot',
@@ -85,7 +105,7 @@ window.App = (function () {
           s.online ? 'متصل' : 'تعمل دون إنترنت')),
     );
 
-    tabbar.replaceChildren(...RAIL_ITEMS.map(navBtn));
+    tabbar.replaceChildren(...RAIL_ITEMS.map(tabBtn));
   }
 
   function render() {
@@ -135,9 +155,30 @@ window.App = (function () {
 
     // المحتوى المخزَّن يظهر فورًا، ثم تُحدّثه المزامنة إن توفّرت شبكة
     Sync.applyStored();
-    const after = (r) => { if (r) render(); };
 
-    Sync.syncNow().then(after);
+    /**
+     * إعادة الرسم بعد مزامنة خلفية — بشرطين، وكلاهما لازم:
+     *
+     * ١. أن يكون شيء قد تغيّر فعلًا. كان الشرط `if (r)` فقط، و syncNow ترجع
+     *    كائنًا عند كل نجاح، فكانت الشاشة تُعاد بناؤها دوريًا بلا سبب —
+     *    ومع animation:fadeIn على .screen تبدو رجفةً/تحديثًا للتطبيق.
+     *
+     * ٢. ألّا يكون الطالب داخل شاشة تحمل حالة في الذاكرة. إعادة الرسم تبني
+     *    الشاشة من الصفر: في الامتحان تعني **ضياع إجاباته وتصفير مؤقّته**،
+     *    وفي الدرس والتمرين تعني القفز إلى أعلى الصفحة وفقدان موضعه.
+     *    التغيير ليس عاجلًا — يظهر عند أول تنقّل، وذلك يكفي.
+     */
+    const STATEFUL = ['exam', 'result', 'practice', 'lesson'];
+    const after = (r) => {
+      if (!r) return;
+      if (r.evicted) { render(); return; }   // الطرد يتجاوز كل شيء
+      if (!r.changed) return;
+      if (STATEFUL.includes(cur().name)) return;
+      render();
+    };
+
+    // أول مزامنة يُنتظر انتهاؤها لإخفاء السبلاش — لذلك نُعيد وعدها
+    const first = Sync.syncNow().then((r) => { after(r); return r; });
     setInterval(() => Sync.syncNow({ content: false }).then(after), 300_000);
     addEventListener('online', () => Sync.syncNow().then(after));
 
@@ -149,6 +190,65 @@ window.App = (function () {
 
     // آخر فرصة لإرسال ما تبقّى قبل إغلاق التطبيق
     addEventListener('pagehide', () => Sync.pushProgress());
+
+    return first;
+  }
+
+  // ---------------------------------------------------------------------------
+  // سبلاش الإقلاع
+  // ---------------------------------------------------------------------------
+
+  // قلم يكتب بحلقة لا نهائية — طابع «تعليمي» بدل مؤشّر تحميل عام. SVG ثابت
+  // من عندنا، فاستعمال html هنا آمن (لا نصّ مستخدم يمرّ به).
+  const PENCIL_SVG = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="pencil">
+      <defs><clipPath id="pencil-eraser"><rect height="30" width="30" ry="5" rx="5"></rect></clipPath></defs>
+      <circle transform="rotate(-113,100,100)" stroke-linecap="round" stroke-dashoffset="439.82" stroke-dasharray="439.82 439.82" stroke-width="2" stroke="currentColor" fill="none" r="70" class="pencil__stroke"></circle>
+      <g transform="translate(100,100)" class="pencil__rotate">
+        <g fill="none">
+          <circle transform="rotate(-90)" stroke-dashoffset="402" stroke-dasharray="402.12 402.12" stroke-width="30" r="64" class="pencil__body1"></circle>
+          <circle transform="rotate(-90)" stroke-dashoffset="465" stroke-dasharray="464.96 464.96" stroke-width="10" r="74" class="pencil__body2"></circle>
+          <circle transform="rotate(-90)" stroke-dashoffset="339" stroke-dasharray="339.29 339.29" stroke-width="10" r="54" class="pencil__body3"></circle>
+        </g>
+        <g transform="rotate(-90) translate(49,0)" class="pencil__eraser">
+          <g class="pencil__eraser-skew">
+            <rect height="30" width="30" ry="5" rx="5" fill="var(--acc-lite)"></rect>
+            <rect clip-path="url(#pencil-eraser)" height="30" width="5" fill="var(--acc-deep)"></rect>
+            <rect height="20" width="30" fill="var(--surf3)"></rect>
+            <rect height="20" width="15" fill="var(--brd2)"></rect>
+            <rect height="20" width="5" fill="var(--brd)"></rect>
+            <rect height="2" width="30" y="6" fill="rgba(30,24,50,.2)"></rect>
+            <rect height="2" width="30" y="13" fill="rgba(30,24,50,.2)"></rect>
+          </g>
+        </g>
+        <g transform="rotate(-90) translate(49,-30)" class="pencil__point">
+          <polygon points="15 0,30 30,0 30" fill="var(--gold-soft)"></polygon>
+          <polygon points="15 0,6 30,0 30" fill="var(--gold)"></polygon>
+          <polygon points="15 0,20 10,10 10" fill="var(--tx)"></polygon>
+        </g>
+      </g>
+    </svg>`;
+
+  /**
+   * يُظهر السبلاش ويعيد دالة إخفاء.
+   *
+   * خارج #app لا داخله: buildShell يستبدل محتوى #app كليًا، فسبلاش بداخله
+   * كان سيُمحى في أول render قبل أن يُرى.
+   */
+  function showSplash() {
+    const el = h('div.splash',
+      h('div', { html: PENCIL_SVG }),
+      h('div.splash__t', 'جارٍ التحميل'));
+    document.body.appendChild(el);
+
+    let done = false;
+    return () => {
+      if (done) return;
+      done = true;
+      el.classList.add('splash--out');
+      // نزيله بعد التلاشي لا قبله — الإزالة الفورية تقطع الانتقال
+      setTimeout(() => el.remove(), 400);
+    };
   }
 
   function boot() {
@@ -181,8 +281,32 @@ window.App = (function () {
 
     stack.push(resumable ? { name: r.name, params: r.params || {} }
                          : { name: signedIn ? 'home' : 'auth', params: {} });
+
+    /**
+     * السبلاش لمن سيرى محتوى فقط. شاشة الدخول جاهزة فورًا ولا تنتظر مزامنة،
+     * فسبلاش فوقها تأخيرٌ بلا سبب.
+     *
+     * يُرفع قبل render ليغطّي البناء الأول كاملًا، ويُخفى عند أول ما يتحقّق
+     * من: انتهاء أول مزامنة، أو مرور السقف الزمني. السقف ليس تجميلًا: بلا
+     * إنترنت قد يبقى `fetch` معلّقًا طويلًا، فيُحبس الطالب خلف شاشة تحميل
+     * بينما محتواه المخزَّن جاهز خلفها فعلًا.
+     */
+    const hide = signedIn ? showSplash() : null;
+
     render();
-    startSync();
+    const first = startSync();
+
+    if (hide) {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        render();     // يرسم ما وصل بالمزامنة قبل رفع الغطاء
+        hide();
+      };
+      if (first) first.then(finish, finish); else finish();
+      setTimeout(finish, 6000);
+    }
 
     // service worker يعمل على http(s) فقط — يُتجاهل عند فتح الملف مباشرةً
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

@@ -35,11 +35,11 @@ window.SEED = {
 
   units: [
     {
-      id: 'u1', title: 'الوحدة الأولى: التعارف والتحيات', subject: 'fr',
+      id: 'u1', title: 'الوحدة الأولى: التعارف والتحيات', subject: 'fr', grade: 'g12',
       lessons: ['salutations', 'articles-definis'],
     },
     {
-      id: 'u2', title: 'الوحدة الثانية: الأفعال الأساسية', subject: 'fr',
+      id: 'u2', title: 'الوحدة الثانية: الأفعال الأساسية', subject: 'fr', grade: 'g12',
       lessons: ['etre-avoir', 'negation'],
     },
   ],

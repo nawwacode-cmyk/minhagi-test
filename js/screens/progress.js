@@ -34,7 +34,7 @@ window.Screens = window.Screens || {};
 
       return h('div.card.card--pad', { style: 'margin-bottom:14px' },
         h('div.row', { style: 'margin-bottom:14px' },
-          h('div.grow', { style: 'font-weight:700;font-size:16px' }, subject.name)),
+          h('div.grow', { style: 'font-weight:600;font-size:16px' }, subject.name)),
 
         h('div', { style: 'display:grid;place-items:center' }, ring(p.percent, 108, 10)),
 

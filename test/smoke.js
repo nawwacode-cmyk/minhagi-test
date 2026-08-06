@@ -102,6 +102,10 @@ bad.forEach((b) => console.log('   ← ' + b));
 // --- عزل النصّ اللاتيني داخل العربي (bidi) -------------------------------------
 // علامة الاستفهام في جملة فرنسية داخل فقرة عربية تقفز إلى الطرف الخطأ ما لم
 // يُعزل المقطع. نختبر التعبير النمطي نفسه المستعمل في UI.rich.
+const ROOT = require('node:path').join(__dirname, '..');
+const appSrc   = fs.readFileSync(dir + 'app.js', 'utf8');
+const mainSrc  = fs.readFileSync(dir + 'screens/main.js', 'utf8');
+const cssSrc   = fs.readFileSync(require('node:path').join(ROOT, 'css/app.css'), 'utf8');
 const uiSrc = fs.readFileSync(dir + 'ui.js', 'utf8');
 const runRe = uiSrc.match(/const LATIN_RUN = (\/.*\/g);/);
 ok('UI.rich يعرّف نمط عزل المقاطع اللاتينية', !!runRe);
@@ -200,7 +204,6 @@ corrupt.forEach((f) => console.log('   ← ترميز تالف: ' + f));
 
 // الصفحة والأنماط أيضًا: تلفهما لا يظهر في اختبارات المنطق فيمرّ صامتًا
 // إلى أن يراه المستخدم على الشاشة.
-const ROOT = require('node:path').join(__dirname, '..');
 const DOCS = ['index.html', 'css/app.css', 'css/tokens.css', 'sw.js'];
 const badDocs = DOCS.filter((f) =>
   /Ø§Ù„|Ù…Ù†|Ã˜/.test(fs.readFileSync(require('node:path').join(ROOT, f), 'utf8')));
@@ -223,10 +226,15 @@ ok('ui.js يعرّف icon.settings', /settings:\s*\(s\) => svg/.test(uiSrc));
 // --- التنقّل: مصدر واحد يغذّي الشريط الجانبي والشريط السفلي ---------------------
 // حارس ضد افتراق القائمتين لاحقًا بالغلط: لو أضاف أحد وجهة للشريط الجانبي فقط
 // (أو العكس) فهذا الاختبار يفشل قبل أن يصل الفرق للمستخدم.
-const appSrc = fs.readFileSync(dir + 'app.js', 'utf8');
 ok('app.js يعرّف مصفوفة وجهات واحدة (RAIL_ITEMS)', /const RAIL_ITEMS = \[/.test(appSrc));
-ok('الشريط الجانبي يُبنى من RAIL_ITEMS', /rail\.replaceChildren\([\s\S]*?RAIL_ITEMS\.map\(navBtn\)/.test(appSrc));
-ok('الشريط السفلي يُبنى من نفس RAIL_ITEMS', /tabbar\.replaceChildren\(\.\.\.RAIL_ITEMS\.map\(navBtn\)\)/.test(appSrc));
+ok('الشريط الجانبي يُبنى من RAIL_ITEMS', /rail\.replaceChildren\([\s\S]*?RAIL_ITEMS\.map\(railBtn\)/.test(appSrc));
+ok('الشريط السفلي يُبنى من نفس RAIL_ITEMS', /tabbar\.replaceChildren\(\.\.\.RAIL_ITEMS\.map\(tabBtn\)\)/.test(appSrc));
+// الشريط السفلي بلا نصّ ⇒ الزرّ يفقد اسمه لقارئ الشاشة بلا aria-label
+ok('أزرار الشريط السفلي بلا نصّ ظاهر', /\}, h\('span\.tabbar__ico', it\.ico\(\d+\)\)\)/.test(appSrc));
+ok('لها اسم لقارئ الشاشة', /'aria-label': it\.label/.test(appSrc));
+ok('النشط له خلفية لا لون فقط',
+   /\.tabbar button\.is-on \.tabbar__ico \{[^}]*background: var\(--acc-soft\)/.test(cssSrc));
+ok('الشريط الجانبي يبقي نصّه', /it\.ico\(20\), it\.label/.test(appSrc));
 ok('«موادّي» وجهة تنقّل مستقلّة الآن', /id:\s*'subjects'/.test(appSrc));
 ok('«حسابي» لم تعد وجهة تنقّل', !/id:\s*'account'/.test(appSrc));
 ok('الشاشات الدراسية تُفعِّل «موادّي» لا «الرئيسية» بالتنقّل',
@@ -243,13 +251,255 @@ ok('الإقلاع بلا جلسة يفتح auth', /name: signedIn \? 'home' : '
 ok('لا تنقّل بشاشة الدخول', /cur\(\)\.name === 'auth'/.test(appSrc));
 ok('شاشة الدخول بلا زر رجوع (هي الجذر)', !/onBack/.test(onbSrc));
 ok('وضع التجربة ما زال له مدخل', /signedIn: true, username: 'زائر'/.test(onbSrc));
+
+// --- شاشة الدخول: ثلاثة عناصر لا أكثر --------------------------------------------
+// من يفتح التطبيق أول مرة يريد الدخول لا قراءة سياسة الجلسات.
+ok('حقلان وزرّ زائر فقط', /اسم المستخدم/.test(onbSrc) && /كود التفعيل/.test(onbSrc)
+   && /المتابعة كزائر/.test(onbSrc));
+ok('لا بطاقات جانبية', !/dash__side/.test(onbSrc) && !/callout/.test(onbSrc));
+ok('لا تلميحات تحت الحقول', !/div\.hint/.test(onbSrc));
+ok('لا تخطيط لوحة بشاشة من ثلاثة حقول', !/h\('div\.dash'/.test(onbSrc));
+ok('عمود واحد متمركز', /\.auth \.screen__body \{[^}]*justify-content: center/.test(cssSrc));
+
+// --- سبلاش الإقلاع ---------------------------------------------------------------
+ok('سبلاش بقلم يكتب', /function showSplash/.test(appSrc) && /PENCIL_SVG/.test(appSrc));
+ok('نصّ «جارٍ التحميل» بخطّ خفيف', /h\('div\.splash__t', 'جارٍ التحميل'\)/.test(appSrc)
+   && /\.splash__t \{[^}]*font-weight: 400/.test(cssSrc));
+ok('القلم بلون الهوية', /\.splash \{[^}]*color: var\(--acc\)/.test(cssSrc)
+   && /\.pencil__body1 \{[^}]*stroke: var\(--acc\)/.test(cssSrc));
+ok('القلم صغير', /\.pencil \{[^}]*width: 62px/.test(cssSrc));
+ok('القلم يدور', /pencil__rotate \{ animation-name: pencilRotate/.test(cssSrc)
+   && /@keyframes pencilRotate/.test(cssSrc));
+// خارج #app: buildShell يستبدل محتوى #app كليًا فيمحو أي سبلاش بداخله
+ok('السبلاش خارج #app', /document\.body\.appendChild\(el\)/.test(appSrc));
+// شاشة الدخول لا تنتظر مزامنة، فسبلاش فوقها تأخير بلا سبب
+ok('لا سبلاش قبل تسجيل الدخول', /signedIn \? showSplash\(\) : null/.test(appSrc));
+// بلا إنترنت قد يبقى fetch معلّقًا؛ بلا سقف يُحبس الطالب خلف شاشة تحميل
+ok('سقف زمني يمنع التعليق', /setTimeout\(finish, 6000\)/.test(appSrc));
+ok('فشل المزامنة يرفع الغطاء أيضًا', /first\.then\(finish, finish\)/.test(appSrc));
+ok('الحركة تُطفأ لمن يطلب تقليلها', /prefers-reduced-motion[\s\S]{0,80}\.pencil \*/.test(cssSrc));
+
+// --- وزن الخطّ: لا 700 في الواجهة -------------------------------------------------
+// Alexandria عند ٧٠٠ تبدو عريضة جدًا في نصّ عربي؛ ٦٠٠ تُبقي التمييز وتخفّ.
+ok('لا وزن 700 في الأنماط', !/font-weight:\s*700/.test(cssSrc));
+ok('لا وزن 700 في الأنماط المضمّنة',
+   !/font-weight:700/.test(mainSrc) && !/font-weight:700/.test(courseSrc)
+   && !/font-weight:700/.test(onbSrc));
+// --- العلامة في الترويسة: تُقرأ «منهاجي» كاملة ------------------------------------
+// نقطتا الياء وذيل الجيم ينزلان دون خطّ الأساس. سطرٌ ضيّق مع overflow:hidden
+// كان يبترهما فيقرأ الاسم «منهاجى»، والتتبّع السالب يخنق وصلات الحرف العربي.
+const brandCss = (cssSrc.match(/\.hbrand__name \{[^}]*\}/) || [''])[0];
+ok('العلامة لا تُقصّ', !/overflow: *hidden/.test(brandCss)
+   && !/text-overflow/.test(brandCss));
+ok('سطر يتّسع لنزول الحروف', /line-height: 1\.5[0-9]?/.test(brandCss));
+ok('لا تتبّع سالب على نصّ عربي', !/letter-spacing: *-/.test(cssSrc));
 // الخروج وإعادة الضبط لازم يوديا لشاشة موجودة فعلًا لا لاسم محذوف
-const mainSrc = fs.readFileSync(dir + 'screens/main.js', 'utf8');
 ok('الخروج/إعادة الضبط يودّيان إلى auth',
    !/App\.go\('welcome'\)/.test(mainSrc) && (mainSrc.match(/App\.go\('auth'\)/g) || []).length >= 2);
 // أصل صورة الترحيب ما عاد له مستهلك — بقاؤه بالتخزين المسبق تنزيل بلا فائدة
 const swSrc = fs.readFileSync(require('node:path').join(ROOT, 'sw.js'), 'utf8');
 ok('welcome.jpg خرج من التخزين المسبق', !/welcome\.jpg/.test(swSrc));
+
+// --- الرفة الدورية: لا إعادة رسم بلا تغيير حقيقي -------------------------------
+// كانت pullProgress تُرجع عدد الصفوف المجلوبة لا المتغيّرة، فأي طالب له تقدّم
+// يجعل الناتج موجبًا في كل مزامنة، و app.js يعيد رسم الشاشة عند أي ناتج موجب.
+// مع animation:fadeIn على .screen كانت تبدو رجفةً/تحديثًا دوريًا للتطبيق.
+ok('pullProgress يُرجع المتغيّر لا المجلوب',
+   !/return lessons\.length \+ exams\.length/.test(syncSrc) && /return changed;/.test(syncSrc));
+ok('يقارن الدروس بالحالة الحالية', /s\.lessons\[k\] !== nextLessons\[k\]/.test(syncSrc));
+ok('لا يكتب الحالة إن لم يتغيّر شيء', /if \(changed\) Store\.set\(/.test(syncSrc));
+ok('المحتوى يُقارن نصًّا قبل/بعد السحب',
+   /const before = localStorage\.getItem\(CONTENT_KEY\)/.test(syncSrc)
+   && /contentChanged = localStorage\.getItem\(CONTENT_KEY\) !== before/.test(syncSrc));
+ok('syncNow يُصرّح بـchanged', /changed: contentChanged \|\| progress > 0/.test(syncSrc));
+ok('app.js لا يرسم إلا عند changed',
+   /if \(!r\.changed\) return;/.test(appSrc) && !/const after = \(r\) => \{ if \(r\) render\(\); \};/.test(appSrc));
+
+// الأخطر: إعادة الرسم أثناء امتحان تبني الشاشة من الصفر ⇒ تضيع إجابات الطالب
+// ويُصفَّر مؤقّته. الحارس هنا يمنع ذلك، والطرد وحده يتجاوزه.
+ok('لا إعادة رسم فوق شاشة تحمل حالة', /STATEFUL\.includes\(cur\(\)\.name\)/.test(appSrc));
+ok('الامتحان والدرس والتمرين محميّة',
+   /STATEFUL = \['exam', 'result', 'practice', 'lesson'\]/.test(appSrc));
+ok('الطرد يتجاوز كل الحُرّاس', /if \(r\.evicted\) \{ render\(\); return; \}/.test(appSrc));
+
+// اختبار وظيفي لمنطق القرار نفسه
+const decide = (r, screen) => {
+  const ST = ['exam', 'result', 'practice', 'lesson'];
+  if (!r) return false;
+  if (r.evicted) return true;
+  if (!r.changed) return false;
+  return !ST.includes(screen);
+};
+ok('مزامنة بلا تغيير لا ترسم', decide({ changed: false }, 'home') === false);
+ok('مزامنة بتغيير ترسم', decide({ changed: true }, 'home') === true);
+ok('تغيير أثناء الامتحان لا يقطع الطالب', decide({ changed: true }, 'exam') === false);
+ok('الطرد يرسم حتى أثناء الامتحان', decide({ evicted: true }, 'exam') === true);
+
+// --- قياسات البانر وبطاقة الأستاذ ------------------------------------------------
+ok('البانر أكبر من السابق', /\.promo \{[^}]*height: 178px/.test(cssSrc));
+ok('البانر يكبر أكثر على الشاشات الواسعة', /\.promo \{ height: 230px; \}/.test(cssSrc));
+// بطاقة الأستاذ صارت صورة مصمَّمة كاملةً — لا حقول نصّية من التطبيق فوقها،
+// وأي نصّ نضيفه سيصطدم بنصّ الصورة نفسها ويتكرّر.
+ok('لا أثر لبطاقة الحقول القديمة', !/subj-showcase/.test(cssSrc) && !/subj-showcase/.test(mainSrc));
+ok('البطاقة صورة واحدة', /\.tcard__img \{/.test(cssSrc));
+// contain لا cover: القصّ يقطع اسم الأستاذ المرسوم داخل الصورة — وهو تحديدًا
+// ما اشتكى منه المستخدم سابقًا.
+ok('لا قصّ للصورة إطلاقًا', /\.tcard__img \{[^}]*object-fit: contain/.test(cssSrc));
+ok('البطاقة عريضة تكاد تملأ العرض', /\.tcard \{[^}]*width: min\(84vw/.test(cssSrc));
+ok('بديل مرئي ريثما تُرفع الصورة', /\.tcard__blank \{/.test(cssSrc) && /tcard__blank/.test(mainSrc));
+// الملف الشخصي يعرض نفس الصورة عريضة لا داخل دائرة تقصّها
+ok('ملف الأستاذ يعرض الصورة عريضة', /\.teacher-hero-img img \{[^}]*object-fit: contain/.test(cssSrc));
+ok('لا حشر للصورة المصمَّمة في دائرة', /teacher-head--flat/.test(cssSrc) && /teacher-head--flat/.test(mainSrc));
+
+// --- ملف الأستاذ: قسمان ----------------------------------------------------------
+ok('قسما «ما يقدّمه» و«السيرة الذاتية»',
+   /\['content', 'ما يقدّمه'\]/.test(mainSrc) && /\['bio', 'السيرة الذاتية'\]/.test(mainSrc));
+ok('«ما يقدّمه» هو الافتراضي', /let pane = 'content'/.test(mainSrc));
+// تبويب واحد لا معنى له: بلا سيرة مسجَّلة لا نعرض شريطًا بخيار وحيد
+ok('لا شريط تبويبات بلا سيرة', /if \(!t\.bio\) return;/.test(mainSrc));
+
+// --- لافتة «دون إنترنت» أُزيلت من موادّي ---------------------------------------
+const subjBlock = (mainSrc.match(/Screens\.subjects = \(\) => \{[\s\S]*?\n  \};/) || [''])[0];
+ok('لا لافتة اتصال في «موادّي»', !/C\.syncBanner\(\)/.test(subjBlock));
+// وتبقى حيث تكون ذات صلة
+ok('اللافتة باقية في شاشة المادة', /C\.syncBanner\(\)/.test(courseSrc));
+
+// الصورة داخل منطقة التمرير: خارجها كانت تبقى معلّقة والنصّ ينزلق تحتها.
+// الحارس يمسك عودة البنية القديمة (hero شقيق لـ.screen__body لا ابن له).
+const heroBlock = (mainSrc.match(/wrap\.append\([\s\S]*?\n    \);/) || [''])[0];
+ok('صورة الأستاذ داخل منطقة التمرير',
+   heroBlock.indexOf("h('div.screen__body'") < heroBlock.indexOf('teacher-hero-img'));
+ok('تلاشٍ أسفل الصورة', /\.teacher-hero-img::after \{/.test(cssSrc)
+   && /linear-gradient\(to top, var\(--bg\)/.test(cssSrc));
+ok('التلاشي لا يبتلع النقرات', /\.teacher-hero-img::after \{[^}]*pointer-events: none/.test(cssSrc));
+// الصورة تمرّ، فلو مرّ زرّ الرجوع معها لضاع مسار الرجوع الوحيد
+ok('زرّ الرجوع يبقى ثابتًا', /\.teacher-back \{[^}]*position: fixed/.test(cssSrc)
+   && /teacher-back/.test(mainSrc));
+// --- قائمة الدروس كخطّ زمني ---------------------------------------------------
+ok('الدروس تُعرض كخطّ زمني', /h\('div\.tl'\)/.test(courseSrc) && /tl-row--/.test(courseSrc));
+// الخطّ على الحاوية لا على كل صفّ: خطٌّ لكل صفّ يترك فجوات عند الهوامش
+// فيبدو متقطّعًا بدل متواصل.
+ok('الخطّ على الحاوية لا على الصفوف', /\.tl::before \{/.test(cssSrc)
+   && !/\.tl-row::before \{[^}]*background: var\(--acc/.test(cssSrc));
+// طرفا الخطّ ينتهيان عند أول وآخر نقطة لا عند حافة الحاوية
+ok('الخطّ لا يتدلّى خارج النقاط', /\.tl::before \{[^}]*top: 28px; bottom: 28px/.test(cssSrc));
+ok('ثلاث حالات للدرس', ['done', 'now', 'todo'].every((x) => courseSrc.includes(`'${x}'`))
+   && /\.tl-row--done \.tl-dot/.test(cssSrc) && /\.tl-row--now  \.tl-dot/.test(cssSrc));
+ok('الخطّ بلون الهوية البنفسجي', /\.tl::before \{[^}]*background: var\(--acc-soft\)/.test(cssSrc));
+ok('النقطة المكتملة ممتلئة بالبنفسجي',
+   /\.tl-row--done \.tl-dot \{[^}]*background: var\(--acc\)/.test(cssSrc));
+
+// --- ترويسة الرئيسية/موادّي ------------------------------------------------------
+// العلامة نصًّا لا شعارًا في الترويسة — أسلوب أغلب التطبيقات الحديثة.
+// الشعار يبقى في شاشة الدخول والشريط الجانبي وأيقونة التطبيق.
+ok('لا شعار في الترويسة', !/hbrand__logo/.test(mainSrc)
+   && !/h\('div\.avatar', \(s\.username/.test(mainSrc));
+ok('اسم التطبيق هو العلامة', /hbrand__name/.test(mainSrc) && /منهاجي/.test(mainSrc));
+ok('الشعار باقٍ في الشريط الجانبي وشاشة الدخول',
+   /assets\/img\/icon-192\.png/.test(appSrc)
+   && /assets\/img\/icon-192\.png/.test(fs.readFileSync(dir + 'screens/onboarding.js', 'utf8')));
+// الترويسة اسم مجرّد: لا شعار ولا عبارة تحته. العبارة التعريفية مكانها شاشة
+// الدخول حيث يراها الطالب أول مرة، لا فوق كل شاشة يفتحها.
+ok('لا عبارة تعريفية في الترويسة', !/hbrand__tag/.test(mainSrc) && !/hbrand__tag/.test(cssSrc));
+ok('العبارة باقية في شاشة الدخول', /auth-brand__tag/.test(onbSrc));
+// الوزن ٤٠٠ هو الأخفّ المحمَّل؛ طلب ٣٠٠ يُصطنع أو يسقط لخطّ احتياطي مشوّه
+ok('لا وزن خطّ غير محمَّل', !/font-weight:\s*[123]00/.test(cssSrc));
+ok('التحية عنوان للصفحة لا سطر في شريط', /h\('div\.hgreet'/.test(mainSrc)
+   && /\.hgreet \{[^}]*font-size: 22px/.test(cssSrc));
+// الاتفاق: الهيدر شعار وإعدادات فقط، والتحية محتوى صفحة داخل منطقة التمرير.
+// الحارس يمسك عودتها إلى الهيدر: نتأكّد أن hgreet تقع بعد فتح .screen__body
+// في كلتا الشاشتين لا داخل <header>.
+const headerBlocks = mainSrc.match(/h\('header\.appbar\.appbar--home',[\s\S]*?\n      \),/g) || [];
+ok('الهيدر بلا تحية', headerBlocks.length === 2
+   && headerBlocks.every((b) => !/hgreet/.test(b)));
+ok('الهيدر يحوي العلامة والإعدادات فقط',
+   headerBlocks.every((b) => /hbrand__name/.test(b) && /iconbtn/.test(b)));
+// شاشتان تحملان تحية (الرئيسية وموادّي)
+ok('التحية موجودة بالشاشتين', (mainSrc.match(/h\('div\.hgreet'/g) || []).length === 2);
+// وجودها داخل منطقة التمرير فعليًا يتحقّق ببناء الشاشة لا بقراءة المصدر —
+// انظر render-check.js في مجلد الفحص.
+ok('زوايا سفلية بأسلوب iOS', /\.appbar--home \{[^}]*border-radius: 0 0 24px 24px/.test(cssSrc));
+ok('ظلّ بنفسجي خفيف', /rgba\(91, 75, 158, \.30\)/.test(cssSrc));
+// الظلّ الملوَّن يختفي على خلفية داكنة — يحتاج بديلًا أعمق لا نفس القيمة
+ok('ظلّ مستقلّ للوضع الليلي',
+   /:root\[data-theme="dark"\] \.appbar--home \{[^}]*box-shadow/.test(cssSrc));
+
+// سهم الدخول: عنصر زخرفي لا زرّ ثانٍ — زرٌّ داخل زرّ HTML غير صالح
+// ويكسر التنقّل بلوحة المفاتيح.
+ok('سهم الدخول موجود بالبطاقة', /tcard__go/.test(mainSrc) && /\.tcard__go \{/.test(cssSrc));
+ok('السهم span لا button', /h\('span\.tcard__go'/.test(mainSrc));
+// في RTL يبدأ المحور من اليمين، فاليسار = inset-inline-end
+ok('السهم بالزاوية اليسرى السفلى',
+   /\.tcard__go \{[^}]*bottom: 14px[^}]*inset-inline-end: 14px/.test(cssSrc));
+ok('أيقونة تشير يسارًا (اتجاه التقدّم بالعربية)', /fwd:\s*\(s\) => svg\('<path d="m14\.5 5\.5-6\.5 6\.5 6\.5 6\.5"/.test(uiSrc));
+
+// --- مجموعة الأيقونات: نمط متّسق -------------------------------------------------
+// وزن ٢ يبدو غليظًا بجانب خطّ عربي رفيع؛ ١٫٧٥ وزن أيقونات iOS تقريبًا.
+ok('وزن الخطّ الافتراضي أخفّ', /opts\.width \|\| 1\.75/.test(uiSrc));
+ok('نهايات مدوّرة لكل الأيقونات',
+   /stroke-linecap', 'round'/.test(uiSrc) && /stroke-linejoin', 'round'/.test(uiSrc));
+// الترس والشمس كانا نفس الرسم تقريبًا (دائرة + ٨ أشعّة)
+ok('الترس مسار مغلق لا أشعّة كالشمس',
+   /settings:[\s\S]{0,900}?a7\.4 7\.4 0 0 0/.test(uiSrc));
+ok('الشمس وحدها بأشعّة شعاعية', /sun:[\s\S]{0,400}?M12 2\.6v2\.1/.test(uiSrc));
+// المثلّث الحادّ يبدو خشنًا بجانب دوائر ناعمة
+ok('مثلّث التشغيل بزوايا مدوّرة', /play:[\s\S]{0,220}?a1 1 0 0 0 1\.53\.85/.test(uiSrc));
+
+// --- «تقدّمي» وجهة واحدة لا اثنتان -------------------------------------------------
+ok('تبويب «تقدّمي» أُزيل من داخل المادة', !/\['progress',\s*'تقدّمي'\]/.test(courseSrc));
+ok('لا دالة تبويب تقدّم يتيمة', !/function tabProgress/.test(courseSrc));
+ok('الافتراضي «الدروس» لا شاشة بلا زرّ', /: tabLessons\(\),/.test(courseSrc));
+ok('«شوف تقدّمك» يودّي للوجهة المستقلّة', /onclick: \(\) => App\.go\('progress'\)/.test(courseSrc));
+
+// --- مبدّل المقاطع بأسلوب iOS ------------------------------------------------------
+ok('المضمار خلفية هادئة', /\.seg \{[^}]*background: var\(--surf2\)/.test(cssSrc));
+ok('المقطع النشط مرفوع بظلّ', /\.seg button\[aria-selected="true"\] \{[^}]*box-shadow/.test(cssSrc));
+// الظلّ الأسود يختفي على سطح داكن، فيحتاج بديلًا
+ok('بديل للنشط في الوضع الليلي',
+   /:root\[data-theme="dark"\] \.seg button\[aria-selected="true"\]/.test(cssSrc));
+
+// ملف الأستاذ عمود واحد: النصّ تحت الصورة لا بجانبها
+ok('لا تخطيط عمودين بملف الأستاذ', !/tprofile/.test(mainSrc) && !/tprofile/.test(cssSrc));
+ok('الصورة وحدها محدودة العرض على الشاشات الواسعة',
+   /\.teacher-hero-img \{\s*max-width: 460px; margin-inline: auto/.test(cssSrc));
+
+ok('زرّ الرجوع مخفيّ على الحاسوب (يقع فوق الشريط الجانبي)',
+   /\.teacher-back \{ display: none; \}|\.teacher-back \{ display: none/.test(cssSrc)
+   || /\.view \.appbar__back,\s*\n\s*\.teacher-back \{ display: none/.test(cssSrc));
+
+// --- الصف ومدّة الاشتراك: من السيرفر لا مثبَّتين ---------------------------------
+// كانا `grade: 'g9'` و `daysLeft: 283` في store.js ولا يُحدَّثان أبدًا، فكان كل
+// طالب يرى «الصف التاسع» مهما اشترى — وكورس البكالوريا (الوحيد الموجود) يظهر
+// تحت التاسع — ويرى مدّة اشتراك مختلَقة عن اشتراك مدفوع.
+// نُجرّد التعليقات قبل الفحص: التعليق الذي يشرح القيمة القديمة يذكرها نصًّا،
+// فبلا التجريد يفشل الاختبار على توثيقه هو لا على الكود.
+const storeCode = fs.readFileSync(dir + 'store.js', 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+ok('لا صفّ مثبَّت في الحالة الابتدائية', !/grade:\s*'g9'/.test(storeCode));
+ok('لا مدّة اشتراك مثبَّتة', !/daysLeft:\s*283/.test(storeCode));
+ok('الصف يبدأ فارغًا لا مفترَضًا', /grade:\s*null/.test(storeCode));
+
+ok('sync يجلب صفّ كل وحدة', /grade: gradeByUuid\[u\.courses\?\.grade_id\]/.test(syncSrc));
+ok('sync يقرأ الاشتراك الحقيقي', /Api\.rpc\('my_entitlements'\)/.test(syncSrc));
+ok('sync يضبط الصف والمدّة', /function pullEntitlements/.test(syncSrc));
+ok('تغيّر الصف/المدّة يُحتسب تغييرًا', /entitle > 0/.test(syncSrc));
+
+// الشاشات تشتقّ صفّ كل مادة من وحداتها لا من صفّ عام واحد
+ok('شاشة المادة تشتقّ الصف من وحداتها',
+   /unitGrades = \[\.\.\.new Set\(subjectUnits\.map\(\(u\) => u\.grade\)/.test(courseSrc));
+ok('«موادّي» تشتقّ صفّ كل مادة', /gradeOfSubject/.test(mainSrc));
+ok('لا قراءة .name بلا حماية على الصف',
+   !/SEED\.grades\.find\(\(g\) => g\.id === s\.grade\)\.name/.test(mainSrc));
+
+// اختبار وظيفي: وحدات البكالوريا يجب ألّا تُعرض تحت التاسع
+const unitsG12 = SEED.units.filter((u) => u.subject === 'fr');
+const derived = [...new Set(unitsG12.map((u) => u.grade).filter(Boolean))];
+ok('وحدات الفرنسي مسجَّلة على البكالوريا', derived.length === 1 && derived[0] === 'g12');
+ok('اسم الصف المشتقّ هو البكالوريا لا التاسع',
+   SEED.grades.find((g) => g.id === derived[0]).name === 'البكالوريا');
+// صفّان مختلفان ⇒ لا نرجّح أحدهما
+const mixed = [...new Set(['g9', 'g12'])];
+ok('بصفّين مختلفين لا يُعرض أيّهما', (mixed.length === 1 ? 'x' : '') === '');
 
 console.log('\n' + (fail.length ? `${fail.length} فشل` : 'كل الاختبارات نجحت'));
 process.exit(fail.length ? 1 : 0);

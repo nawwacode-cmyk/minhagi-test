@@ -28,7 +28,8 @@ window.Screens = window.Screens || {};
       ['lessons',  'الدروس'],
       ['practice', 'تمارين'],
       ['exams',    'امتحانات'],
-      ['progress', 'تقدّمي'],
+      // «تقدّمي» ليست هنا: هي وجهة ثابتة بشريط التنقّل السفلي، ووجودها في
+      // الموضعين يجعل الطالب يرى نفس الشاشة بمسارين ولا يعرف أيّهما «مكانها».
     ];
 
     function drawSeg() {
@@ -43,10 +44,11 @@ window.Screens = window.Screens || {};
       const banner = C.syncBanner();
       body.replaceChildren(
         banner ? h('div', { style: 'padding:14px 16px 0' }, banner) : h('span'),
-        tab === 'lessons'    ? tabLessons()
-        : tab === 'practice' ? tabPractice()
-        : tab === 'exams'    ? tabExams()
-        : tabProgress(),
+        // الافتراضي «الدروس» لا tabProgress: التبويب أُزيل، ورابط قديم محفوظ
+        // بـ ?tab=progress كان سيعرض شاشة لا يقابلها زرّ في الشريط.
+        tab === 'practice'  ? tabPractice()
+        : tab === 'exams'   ? tabExams()
+        : tabLessons(),
       );
       body.scrollTop = 0;
     }
@@ -71,20 +73,33 @@ window.Screens = window.Screens || {};
               h('span.faint', { style: 'font-size:11px' }, `${ar(up.done)}/${ar(up.total)}`))),
           h('span.unit__chev', icon.chevron(16))));
 
+        // خطّ زمني متواصل: الحاوية تحمل الخطّ، وكل درس نقطة عليه.
+        // الخطّ على الحاوية لا على كل صفّ — الخطّ المجزّأ لكل صفّ يترك فجوات
+        // عند الهوامش فيبدو متقطّعًا لا متواصلًا.
+        const tl = h('div.tl');
         u.lessons.forEach((id, n) => {
           const l = SEED.lessons[id];
           const st = s.lessons[id];
-          det.appendChild(h('div.lesson', { onclick: () => App.go('lesson', { id, subject: subjectId }) },
-            h('div.lesson__ico.'
-              + (st === 'done' ? 'lesson__ico--done' : st ? 'lesson__ico--now' : 'lesson__ico--todo'),
-              st === 'done' ? '✓' : st ? '▸' : ar(n + 1)),
-            h('div.lesson__body',
-              h('div', l.title),
-              h('div.lesson__meta',
-                `فيديو ${l.video.length} · قراءة ${ar(l.minutes)} دقيقة · ${ar(l.exercises.length)} تمارين`)),
-            l.free && h('span.badge.badge--free', 'مجاني'),
-            s.downloaded.includes(id) && h('span.badge.badge--saved', 'محفوظ')));
+          const state = st === 'done' ? 'done' : st ? 'now' : 'todo';
+
+          tl.appendChild(h('div.tl-row.tl-row--' + state,
+            { onclick: () => App.go('lesson', { id, subject: subjectId }) },
+
+            // النقطة على الخطّ — أول عنصر ⇒ يقع على اليمين في RTL
+            h('span.tl-dot', state === 'done' ? icon.check(12) : null),
+
+            h('div.tl-body',
+              h('div.tl-title', l.title),
+              h('div.tl-meta',
+                icon.video(13),
+                h('span', `${l.video.length} دقيقة`),
+                l.free && h('span.badge.badge--free', 'مجاني'),
+                s.downloaded.includes(id) && h('span.badge.badge--saved', 'محفوظ'))),
+
+            // زرّ التشغيل/الحالة في نهاية السطر (اليسار في RTL)
+            h('span.tl-act', state === 'todo' ? ar(n + 1) : icon.play(16))));
         });
+        det.appendChild(tl);
 
         // زر تنزيل على مستوى الوحدة — الفجوة التي كانت غائبة في الموكأپ
         det.appendChild(h('div', { style: 'padding:10px 16px 14px;border-top:1px solid var(--brd)' },
@@ -114,14 +129,14 @@ window.Screens = window.Screens || {};
           next
             ? h('div.card.card--pad',
                 h('div.muted.small', { style: 'margin-bottom:4px' }, 'الدرس التالي'),
-                h('div', { style: 'font-weight:700;font-size:17px;margin-bottom:2px' }, next.title),
+                h('div', { style: 'font-weight:600;font-size:17px;margin-bottom:2px' }, next.title),
                 h('div.faint.small', { style: 'margin-bottom:14px' },
                   `فيديو ${next.video.length} · ${ar(next.exercises.length)} تمارين`),
                 h('button.btn.btn--primary.btn--block', {
                   onclick: () => App.go('lesson', { id: nextId, subject: subjectId }),
                 }, 'ابدأ الدرس'))
             : h('div.card.card--pad',
-                h('div', { style: 'font-weight:700;margin-bottom:6px' }, 'أنهيت كل الدروس'),
+                h('div', { style: 'font-weight:600;margin-bottom:6px' }, 'أنهيت كل الدروس'),
                 h('div.muted.small', { style: 'margin-bottom:12px' },
                   'جرّب امتحانًا تجريبيًا لتقيس ما ثبت فعلًا.'),
                 h('button.btn.btn--primary.btn--block', {
@@ -131,7 +146,7 @@ window.Screens = window.Screens || {};
           h('div.card.card--pad',
             h('div.row', { style: 'margin-bottom:8px' },
               h('span', { style: 'color:var(--info)' }, icon.down(20)),
-              h('div', { style: 'font-weight:700' }, 'الاستخدام دون إنترنت')),
+              h('div', { style: 'font-weight:600' }, 'الاستخدام دون إنترنت')),
             h('div.muted.small',
               savedCount
                 ? `${ar(savedCount)} من ${ar(totalLessons)} دروس محفوظة على جهازك.`
@@ -196,7 +211,7 @@ window.Screens = window.Screens || {};
 
         h('aside.dash__side',
           h('div.card.card--pad',
-            h('div', { style: 'font-weight:700;margin-bottom:12px' }, 'سجلّك في الامتحانات'),
+            h('div', { style: 'font-weight:600;margin-bottom:12px' }, 'سجلّك في الامتحانات'),
             h('div.stat-row',
               h('div.stat',
                 h('div.stat__v', { style: `color:${best >= 50 ? 'var(--ok)' : 'var(--txm)'}` },
@@ -324,7 +339,7 @@ window.Screens = window.Screens || {};
           card),
         h('aside.dash__side',
           h('div.card.card--pad',
-            h('div', { style: 'font-weight:700;margin-bottom:6px' }, 'جلسة شاملة'),
+            h('div', { style: 'font-weight:600;margin-bottom:6px' }, 'جلسة شاملة'),
             h('div.muted.small', { style: 'margin-bottom:14px' },
               `كل الأسئلة المصنَّفة — ${ar(Object.values(SEED.questions).filter((q) => q.subject === subjectId && q.section).length)} سؤالًا من الأقسام الأربعة.`),
             h('button.btn.btn--primary.btn--block', {
@@ -333,44 +348,15 @@ window.Screens = window.Screens || {};
       );
     }
 
-    // --- تبويب التقدّم ----------------------------------------------------------
-    function tabProgress() {
-      const p = Store.subjectProgress(subjectId);
-
-      return h('div.dash',
-        h('div.dash__main',
-          h('div.card.card--pad',
-            h('div', { style: 'display:grid;place-items:center' }, ring(p.percent, 132, 11)),
-            h('div.center.muted.small', { style: 'margin-top:10px' }, `تقدّمك في ${subject?.name || 'المادة'}`),
-
-            // تفصيل المعادلة — المؤشر الذي لا يُفهم كيف يرتفع يفقد قدرته على التحفيز
-            h('div', { style: 'margin-top:18px;border-top:1px solid var(--brd);padding-top:16px' },
-              ...[
-                ['الدروس المكتملة', p.lessonPct, '٧٥٪ من المؤشر'],
-                ['أفضل امتحان',     p.bestExam,  '٢٥٪ من المؤشر'],
-              ].map(([label, val, w]) => h('div', { style: 'margin-bottom:13px' },
-                h('div.row', { style: 'margin-bottom:5px' },
-                  h('div.grow.small', label),
-                  h('span.faint', { style: 'font-size:11px' }, w),
-                  h('span.mono.small', ar(val) + '٪')),
-                bar(val, 'bar--thin')))))),
-
-        h('aside.dash__side',
-          h('div.card.card--pad',
-            h('div', { style: 'font-weight:700;margin-bottom:12px' }, 'إحصائياتك'),
-            h('div.stat-row',
-              h('div.stat',
-                h('div.stat__v', ar(p.lessonsDone)),
-                h('div.stat__k', 'درس مكتمل')),
-              h('div.stat',
-                h('div.stat__v', { style: 'color:var(--ok)' }, ar(p.bestExam) + '٪'),
-                h('div.stat__k', 'أفضل امتحان'))))),
-      );
-    }
 
     drawSeg();
     drawBody();
-    const gradeName = SEED.grades.find((g) => g.id === Store.get().grade)?.name || '';
+    // صفّ هذه المادة من وحداتها هي، لا صفّ الطالب العام: كان الأخير قيمة
+    // مثبَّتة ('g9') فكانت شاشة كورس البكالوريا تحمل عنوان «الصف التاسع».
+    const unitGrades = [...new Set(subjectUnits.map((u) => u.grade).filter(Boolean))];
+    const gradeName = unitGrades.length === 1
+      ? (SEED.grades.find((g) => g.id === unitGrades[0])?.name || '')
+      : '';
     wrap.append(
       C.appbar({ title: subject?.name || 'مادتي', sub: gradeName, onBack: () => App.back() }),
       seg, body);
@@ -403,7 +389,7 @@ window.Screens = window.Screens || {};
 
     // العمود الجانبي على اللابتوب: بقية دروس الوحدة تبقى مرئية أثناء القراءة
     const siblings = h('div.card', { style: 'overflow:hidden' });
-    siblings.appendChild(h('div', { style: 'padding:14px 16px 10px;font-weight:700' }, unit.title));
+    siblings.appendChild(h('div', { style: 'padding:14px 16px 10px;font-weight:600' }, unit.title));
     unit.lessons.forEach((id, n) => {
       const o = SEED.lessons[id];
       const st = s.lessons[id];
@@ -432,7 +418,7 @@ window.Screens = window.Screens || {};
 
         h('aside.dash__side',
           h('div.card.card--pad',
-            h('div', { style: 'font-weight:700;margin-bottom:6px' }, 'تمارين هذا الدرس'),
+            h('div', { style: 'font-weight:600;margin-bottom:6px' }, 'تمارين هذا الدرس'),
             h('div.muted.small', { style: 'margin-bottom:14px' },
               `${ar(l.exercises.length)} تمارين تُحدّث إتقانك فورًا.`),
             h('button.btn.btn--primary.btn--block', {
@@ -501,7 +487,8 @@ window.Screens = window.Screens || {};
           'سُجِّلت نتيجتك، وسيظهر أثرها في مؤشر التقدّم فورًا.'),
         h('button.btn.btn--primary.btn--block', {
           style: 'margin-top:18px',
-          onclick: () => App.go('course', { tab: 'progress', subject: params.subject }, true),
+          // شاشة التقدّم المستقلّة بعد إزالة تبويب «تقدّمي» من داخل المادة
+          onclick: () => App.go('progress'),
         }, 'شوف تقدّمك'),
         h('button.btn.btn--ghost.btn--block', {
           style: 'margin-top:6px',

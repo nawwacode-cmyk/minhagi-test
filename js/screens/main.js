@@ -6,6 +6,23 @@ window.Screens = window.Screens || {};
 (function () {
   const { h, fr, ar, icon, ring, bar } = UI;
 
+  /** اسم الصف من رمزه — فارغ إن لم يُعرَف بعد، لا اسم مفترَض. */
+  const gradeNameOf = (code) =>
+    (code && (SEED.grades || []).find((g) => g.id === code)?.name) || '';
+
+  /**
+   * صفّ مادةٍ بعينها، من وحداتها هي.
+   *
+   * أدقّ من صفّ الطالب العام: قد يشترك بمادتين في صفّين مختلفين، وعرض صفٍّ
+   * واحد على كل البطاقات يكذب على إحداها. وهذا بالضبط ما حدث حين كان الصف
+   * قيمة مثبَّتة: كورس البكالوريا كان يُعرض «الصف التاسع».
+   */
+  const gradeOfSubject = (code) => {
+    const g = [...new Set((SEED.units || [])
+      .filter((u) => u.subject === code).map((u) => u.grade).filter(Boolean))];
+    return g.length === 1 ? gradeNameOf(g[0]) : '';
+  };
+
   // --- ٥. الرئيسية (اكتشاف) -----------------------------------------------------
   // «الرئيسية» هنا واجهة تعريفية/ترويجية (بانر، أساتذتنا، خدماتنا) منفصلة عن
   // «موادّي» (Screens.subjects أدناه) التي تحمل لوحة الدراسة الفعلية. كل نصّ
@@ -64,15 +81,20 @@ window.Screens = window.Screens || {};
         h('b', title), h('span', sub));
 
     return h('div.screen',
+      // الهيدر: الشعار والإعدادات فقط. التحية محتوى الصفحة لا شريط أدوات،
+      // فمكانها داخل منطقة التمرير تحته.
       h('header.appbar.appbar--home',
-        h('div.avatar', (s.username || '؟')[0]),
-        h('div.appbar__title', `مرحبًا، ${s.username || 'زائر'}`,
-          h('div.appbar__sub.appbar__sub--plain', 'شوف جديدنا وأساتذتنا')),
+        // بلا شعار: الاسم وحده يكفي كعلامة في الترويسة — والشعار يبقى في
+        // شاشة الدخول والشريط الجانبي وأيقونة التطبيق، فلا يضيع التعرّف عليه.
+        h('div.hbrand__name', 'منهاجي'),
         h('button.iconbtn', { onclick: () => App.go('account'), 'aria-label': 'حسابي وإعداداتي' },
           icon.settings(17)),
       ),
 
       h('div.screen__body', { style: 'padding:10px 16px 8px' },
+        h('div.hgreet', `مرحبًا، ${s.username || 'زائر'}`),
+        h('div.hgreet__sub', { style: 'margin-bottom:14px' }, 'شوف جديدنا وأساتذتنا'),
+
         // أكثر من ستّ شرائح لا يراها الطالب أصلًا (دورة تتجاوز الدقيقتين)،
         // ولا إطارات مفتاحية لها — نكتفي بالستّ الأولى بحسب الترتيب.
         h('div.promo' + (slides.length === 1 ? '.promo--single'
@@ -99,25 +121,32 @@ window.Screens = window.Screens || {};
           ? h('div.promo-dots', ...slides.slice(0, 6).map(() => h('i')))
           : null,
 
+        // بطاقة الأستاذ = صورة واحدة مصمَّمة كاملةً باللوحة (الاسم والمادة
+        // والخبرة مرسومة داخلها). لا نصّ فوقها من التطبيق: أي نصّ نضعه هنا
+        // سيصطدم بنصّ الصورة نفسها ويتكرّر.
+        //
+        // object-fit: contain لا cover — الصورة مصمَّمة بنسبة يختارها المصمّم،
+        // والقصّ يقطع اسم الأستاذ أو وجهه. لا قصّ إطلاقًا، ولو بقي هامش.
         teachers.length ? h('div',
-          h('div.sec-label', { style: 'margin-top:20px' }, 'أساتذتنا'),
+          h('div.sec-label', { style: 'margin-top:20px' }, 'معلمونا المميزون'),
           h('div.teacher-scroll',
-            ...teachers.map((t, i) => h('button.subj-showcase', {
+            ...teachers.map((t) => h('button.tcard', {
               onclick: () => App.go('teacher', { id: t.id }),
+              'aria-label': t.name,
             },
-              // الصورة الحقيقية إن رُفعت من اللوحة، وإلا تدرّج + حرف أول.
-              // البديل ليس حالة خطأ: أستاذ بلا صورة بعدُ حالة عادية متوقَّعة.
-              h('div.subj-showcase__img', { style: `background:${CARD_TINTS[i % CARD_TINTS.length]}` },
-                Api.publicUrl(t.photo)
-                  ? h('img.subj-showcase__photo', { src: Api.publicUrl(t.photo), alt: '', loading: 'lazy' })
-                  : [h('span.doodle', icon.book(22)), h('span.init', t.name[0])]),
-              h('div.subj-showcase__title',
-                t.subjects.length ? subjectName(t.subjects[0]) : 'المنهاج السوري'),
-              h('div.subj-showcase__teacher', h('i', t.name[0]), t.name),
-              h('span.subj-showcase__chip',
-                t.subjects.length
-                  ? `${ar(t.subjects.length)} ${t.subjects.length === 1 ? 'مادة' : 'مواد'}`
-                  : 'الملف الشخصي')))))
+              Api.publicUrl(t.photo)
+                ? h('img.tcard__img', { src: Api.publicUrl(t.photo), alt: t.name, loading: 'lazy' })
+                // بلا صورة بعد: بطاقة نصّية هادئة بدل مستطيل فارغ يبدو عطلًا
+                : h('div.tcard__blank',
+                    h('span.tcard__init', t.name[0]),
+                    h('div.tcard__name', t.name),
+                    t.subjects.length
+                      ? h('div.tcard__sub', subjectName(t.subjects[0]))
+                      : null),
+              // سهم الدخول بالزاوية السفلى اليسرى. عنصر زخرفي داخل الزرّ لا
+              // زرّ ثانٍ: البطاقة كلها قابلة للنقر أصلًا، وزرٌّ داخل زرّ HTML
+              // غير صالح ويكسر التنقّل بلوحة المفاتيح.
+              h('span.tcard__go', icon.fwd(18))))))
           : h('span'),
 
         h('div.sec-label', { style: 'margin-top:14px' }, 'خدماتنا'),
@@ -138,7 +167,6 @@ window.Screens = window.Screens || {};
     // قبل أول مزامنة ناجحة تكون SEED فارغة تمامًا — لا صف ولا مادة ولا درس.
     // كل قراءة من SEED هنا يجب أن تحتمل ذلك، وإلّا انهارت الشاشة الأولى نفسها
     // على طالب فتح التطبيق أول مرة أو بلا إنترنت.
-    const gradeName = SEED.grades.find((g) => g.id === s.grade)?.name || '';
 
     // «موادّي» = المواد المشترَك بها فعليًا (بعد إزالة طبقة الكورسات) لا كل
     // ما في الكتالوج. sync.js يحسب entitled من وجود وحدات وصلت عبر RLS —
@@ -163,21 +191,29 @@ window.Screens = window.Screens || {};
           / entitledSubjects.length)
       : 0;
 
-    const banner = C.syncBanner();
+    // لا لافتة «تعمل دون إنترنت» هنا: «موادّي» شاشة عمل يومي يفتحها الطالب
+    // عشرات المرّات، ولافتة دائمة تعلوها تُقرأ كتحذير متكرّر بلا فعل مطلوب.
+    // تبقى في شاشة المادة و«حسابي» حيث تكون ذات صلة فعلًا.
 
     return h('div.screen',
       h('header.appbar.appbar--home',
-        h('div.avatar', (s.username || '؟')[0]),
-        h('div.appbar__title', 'موادّي',
-          h('div.appbar__sub', s.activated
-            ? `اشتراكك فعّال — متبقٍ ${ar(s.daysLeft)} يومًا`
-            : 'وضع التجربة')),
+        // بلا شعار: الاسم وحده يكفي كعلامة في الترويسة — والشعار يبقى في
+        // شاشة الدخول والشريط الجانبي وأيقونة التطبيق، فلا يضيع التعرّف عليه.
+        h('div.hbrand__name', 'منهاجي'),
         h('button.iconbtn', { onclick: () => App.go('account'), 'aria-label': 'حسابي وإعداداتي' },
           icon.settings(17)),
       ),
 
       h('div.screen__body',
-        banner ? h('div', { style: 'padding:14px 16px 0' }, banner) : null,
+        // (اللافتة أُزيلت من هذه الشاشة — انظر التعليق أعلاه)
+
+        // العنوان محتوى الصفحة لا شريط أدوات — لذلك هو هنا لا في الهيدر.
+        // حشوة صريحة لأن .screen__body بلا حشوة بهذه الشاشة (‎.dash يملك حشوته).
+        h('div', { style: 'padding:14px 16px 0' },
+          h('div.hgreet', 'موادّي'),
+          h('div.hgreet__sub' + (s.activated ? '.hgreet__sub--gold' : ''), s.activated
+            ? `اشتراكك فعّال — متبقٍ ${ar(s.daysLeft)} يومًا`
+            : 'وضع التجربة')),
 
         h('div.dash',
           // --- العمود الرئيسي: المواد ---
@@ -201,7 +237,9 @@ window.Screens = window.Screens || {};
                       h('div.subject__body',
                         h('div.subject__title', subject.name),
                         h('div.subject__meta',
-                          `${gradeName} · ${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا`),
+                          // بلا فاصل يتيم حين يكون الصف مجهولًا
+                          [gradeOfSubject(subject.id), `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا`]
+                            .filter(Boolean).join(' · ')),
                         freeCount
                           ? h('div.subject__sub',
                               `${ar(freeCount)} ${freeCount === 1 ? 'درس مجاني متاح' : 'دروس مجانية متاحة'}`)
@@ -231,7 +269,7 @@ window.Screens = window.Screens || {};
             // «تفاصيل تقدّمك» لم يعد زرًّا هنا: «تقدّمي» صار وجهة ثابتة بشريط
             // التنقّل السفلي، فالزر تكرار لطريق موجود أصلًا على بُعد نقرة.
             h('div.card.card--pad',
-              h('div', { style: 'font-weight:700;font-size:13.5px;margin-bottom:6px' }, 'لمحة سريعة'),
+              h('div', { style: 'font-weight:600;font-size:13.5px;margin-bottom:6px' }, 'لمحة سريعة'),
               h('div.stat-row',
                 h('div.stat',
                   h('div.stat__v', ar(overallPct) + '٪'),
@@ -268,7 +306,6 @@ window.Screens = window.Screens || {};
       return wrap;
     }
 
-    const gradeName = SEED.grades.find((g) => g.id === Store.get().grade)?.name || '';
 
     const subjectRows = t.subjects.map((code) => {
       const subject = SEED.subjects.find((sub) => sub.id === code);
@@ -277,7 +314,7 @@ window.Screens = window.Screens || {};
       return h('button.tsubj', { onclick: () => App.go('course', { subject: code }) },
         h('div.tsubj__ico', subject?.native ? subject.native.slice(0, 2) : (subject?.name || code)[0]),
         h('div.tsubj__b',
-          h('b', subject?.name + (gradeName ? ` — ${gradeName}` : '')),
+          h('b', subject?.name + (gradeOfSubject(code) ? ` — ${gradeOfSubject(code)}` : '')),
           h('span', `${ar(lessons)} درسًا · ${ar(units.length)} وحدات`)),
         h('span.tsubj__chip' + (subject?.entitled ? '.tsubj__chip--on' : ''),
           subject?.entitled ? 'مشترَك' : 'تفاصيل'));
@@ -288,37 +325,75 @@ window.Screens = window.Screens || {};
       ? 'أستاذ ' + (SEED.subjects.find((x) => x.id === t.subjects[0])?.name || '')
       : '';
 
-    wrap.append(
-      h('div.teacher-cover',
-        h('button.iconbtn', { onclick: () => App.back(), 'aria-label': 'رجوع' }, icon.back(16))),
+    const photo = Api.publicUrl(t.photo);
 
-      h('div.teacher-head',
-        h('div.teacher-av', Api.publicUrl(t.photo)
-          ? h('img', { src: Api.publicUrl(t.photo), alt: '' })
-          : t.name[0]),
-        h('div.teacher-name', t.name),
-        tag && h('div.teacher-tag', tag),
-        // إحصاءات حقيقية محسوبة من المحتوى الواصل فعلًا: لا «سنوات خبرة» ولا
-        // «تقييم طلاب» — لا مصدر لهما بقاعدة البيانات، واختلاقهما عن شخص
-        // حقيقي كذب صريح لا مجرّد نقص بيانات.
-        h('div.teacher-stats',
-          h('div', h('b', ar(t.subjects.length)), ` ${t.subjects.length === 1 ? 'مادة' : 'مواد'}`),
-          h('div', h('b', ar(t.subjects.reduce((a, c) =>
-            a + SEED.units.filter((u) => u.subject === c).flatMap((u) => u.lessons || []).length, 0))),
-            ' درسًا'))),
+    let pane = 'content';
+    const tabsEl = h('div.seg');
+    const paneEl = h('div');
+
+    wrap.append(
+      // زرّ الرجوع وحده يبقى ثابتًا فوق الشاشة. الصورة تمرّ مع المحتوى
+      // (كانت خارج .screen__body فتبقى معلّقة والنصّ ينزلق تحتها)، ولو مرّ
+      // الزرّ معها لاختفى مسار الرجوع الوحيد بمجرّد تمرير سطرين.
+      h('button.iconbtn.teacher-back',
+        { onclick: () => App.back(), 'aria-label': 'رجوع' }, icon.back(16)),
 
       h('div.screen__body', { style: 'padding-top:0' },
-        t.bio ? h('div.teacher-bio', t.bio) : h('div', { style: 'height:12px' }),
+        // عمود واحد على كل المقاسات: الصورة ثم النصّ تحتها. الصورة وحدها
+        // تُحدّ عرضًا على الشاشات الواسعة (CSS) فلا تبتلع الشاشة.
+        // وهي داخل منطقة التمرير ⇒ تمرير طبيعي لا ترويسة مثبّتة.
+        photo
+          ? h('div.teacher-hero-img', h('img', { src: photo, alt: t.name }))
+          : h('div.teacher-cover'),
 
-        h('div.sec-label', { style: 'padding:6px 18px 4px;margin-top:8px' }, 'المواد التي يقدّمها'),
-        subjectRows.length
-          ? h('div', ...subjectRows)
-          : h('div', { style: 'padding:0 16px' },
-              C.empty({ title: 'لا مواد مرتبطة بهذا الأستاذ بعد' })),
+        h('div.teacher-head' + (photo ? '.teacher-head--flat' : ''),
+          photo ? null : h('div.teacher-av', t.name[0]),
+          h('div.teacher-name', t.name),
+          tag && h('div.teacher-tag', tag),
+          // إحصاءات حقيقية محسوبة من المحتوى الواصل فعلًا: لا «سنوات خبرة»
+          // ولا «تقييم طلاب» — لا مصدر لهما بقاعدة البيانات، واختلاقهما عن
+          // شخص حقيقي كذب صريح لا مجرّد نقص بيانات.
+          h('div.teacher-stats',
+            h('div', h('b', ar(t.subjects.length)), ` ${t.subjects.length === 1 ? 'مادة' : 'مواد'}`),
+            h('div', h('b', ar(t.subjects.reduce((a, c) =>
+              a + SEED.units.filter((u) => u.subject === c).flatMap((u) => u.lessons || []).length, 0))),
+              ' درسًا'))),
 
+        tabsEl,
+        paneEl,
         h('div', { style: 'height:20px' }),
       ),
     );
+
+    // --- قسمان: «ما يقدّمه» أولًا، ثم «السيرة الذاتية» ------------------------
+    // ما يبحث عنه الطالب أولًا هو المحتوى لا السيرة، فهو التبويب الافتراضي.
+    // بلا سيرة مسجَّلة لا نعرض تبويبًا فارغًا — يبقى القسم الأول وحده بلا شريط.
+    function paneContent() {
+      return subjectRows.length
+        ? h('div', ...subjectRows)
+        : h('div', { style: 'padding:0 16px' },
+            C.empty({ title: 'لا مواد مرتبطة بهذا الأستاذ بعد' }));
+    }
+    function paneBio() {
+      return h('div.teacher-bio', t.bio);
+    }
+
+    function drawPane() {
+      paneEl.replaceChildren(pane === 'bio' ? paneBio() : paneContent());
+    }
+    function drawTabs() {
+      if (!t.bio) return;   // لا شريط بتبويب واحد
+      tabsEl.replaceChildren(...[
+        ['content', 'ما يقدّمه'],
+        ['bio', 'السيرة الذاتية'],
+      ].map(([id, label]) => h('button', {
+        'aria-selected': pane === id ? 'true' : 'false',
+        onclick: () => { pane = id; drawTabs(); drawPane(); },
+      }, label)));
+    }
+    drawTabs();
+    drawPane();
+
     return wrap;
   };
 
@@ -338,21 +413,24 @@ window.Screens = window.Screens || {};
         h('div.dash',
           h('div.dash__main',
             h('div.card.card--pad',
-              h('div', { style: 'font-weight:700' }, 'اشتراك اللغة الفرنسية'),
+              h('div', { style: 'font-weight:600' }, 'اشتراك اللغة الفرنسية'),
               s.activated
                 ? h('div', { style: 'color:var(--gold);font-weight:600;font-size:14px;margin-top:4px' },
                     `متبقٍ ${ar(s.daysLeft)} يومًا`)
                 : h('div.muted.small', { style: 'margin-top:4px' }, 'غير مفعّل — أنت في وضع التجربة'),
+              // بلا `?.` كان هذا يرمي استثناءً ويُسقط شاشة «حسابي» كليًا حالما
+              // يصير الصف فارغًا (وهو الوضع الطبيعي قبل أول مزامنة).
               h('div.faint.small', { style: 'margin-top:4px' },
                 s.activated
-                  ? `المستخدم: ${s.username} · ${SEED.grades.find((g) => g.id === s.grade).name}`
+                  ? `المستخدم: ${s.username}`
+                    + (gradeNameOf(s.grade) ? ` · ${gradeNameOf(s.grade)}` : '')
                   : 'الدروس المجانية فقط متاحة'),
               !s.activated && h('button.btn.btn--primary.btn--sm', {
                 style: 'margin-top:12px', onclick: () => App.go('auth'),
               }, 'دخول بكود التفعيل')),
 
             h('div.card',
-              h('div', { style: 'padding:16px 16px 10px;font-weight:700' }, 'التنزيلات'),
+              h('div', { style: 'padding:16px 16px 10px;font-weight:600' }, 'التنزيلات'),
               dl.length
                 ? h('div.list-sep', ...dl.map((l) => h('div.row', { style: 'padding:12px 16px' },
                     h('div.grow',
@@ -379,7 +457,7 @@ window.Screens = window.Screens || {};
             // والدخول الجديد يُنهي السابق. النصّ هنا يجب أن يقول ذلك بوضوح
             // وإلّا ظنّ الطالب أنه مقيَّد بجهاز واحد إلى الأبد.
             h('div.card',
-              h('div', { style: 'padding:16px 16px 8px;font-weight:700' }, 'جلستك الحالية'),
+              h('div', { style: 'padding:16px 16px 8px;font-weight:600' }, 'جلستك الحالية'),
               s.activated
                 ? h('div', { style: 'padding:0 16px 12px' },
                     h('div.small', { style: 'font-weight:600' }, Device.label()),
@@ -405,7 +483,7 @@ window.Screens = window.Screens || {};
             // كوجهة لا كخيار، وشكله (شمس/قمر) كان يُخلط بزر الإعدادات نفسه.
             h('div.card.card--pad.row',
               h('div.grow',
-                h('div', { style: 'font-weight:700' }, 'مظهر التطبيق'),
+                h('div', { style: 'font-weight:600' }, 'مظهر التطبيق'),
                 h('div.faint', { style: 'font-size:12px;margin-top:2px' },
                   s.theme === 'dark' ? 'الوضع الليلي مفعّل' : 'الوضع النهاري مفعّل')),
               h('div.theme-toggle',
@@ -418,7 +496,7 @@ window.Screens = window.Screens || {};
 
             h('div.card.card--pad.row',
               h('div.grow',
-                h('div', { style: 'font-weight:700' }, 'محاكاة انقطاع الإنترنت'),
+                h('div', { style: 'font-weight:600' }, 'محاكاة انقطاع الإنترنت'),
                 h('div.faint', { style: 'font-size:12px;margin-top:2px' },
                   'لتجربة سلوك التطبيق دون اتصال')),
               h('button.switch' + (!s.online ? '.is-on' : ''), {

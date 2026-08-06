@@ -68,7 +68,7 @@ img, svg { max-width: 100%; display: block; }
     background: var(--surf); border-inline-end: 1px solid var(--brd);
   }
   .rail__brand { display: flex; align-items: center; gap: 11px; padding: 4px 8px 18px; }
-  .rail__name  { font-weight: 700; font-size: 19px; letter-spacing: -.3px; }
+  .rail__name  { font-weight: 600; font-size: 19px; line-height: 1.55; }
   .rail__tag   { font-size: 11px; color: var(--txm); }
 
   .rail button {
@@ -86,7 +86,7 @@ img, svg { max-width: 100%; display: block; }
     content: ''; position: absolute; inset-inline-start: 0; top: 22%; bottom: 22%;
     width: 3px; border-radius: 3px; background: var(--acc);
   }
-  .rail__sec { padding: 16px 14px 6px; font-size: 11px; font-weight: 700; color: var(--txf); }
+  .rail__sec { padding: 16px 14px 6px; font-size: 11px; font-weight: 600; color: var(--txf); }
 
   .rail__card {
     margin: 6px 4px 0; padding: 14px; border-radius: var(--r-md);
@@ -96,8 +96,11 @@ img, svg { max-width: 100%; display: block; }
   .rail__foot { padding: 12px 10px 2px; font-size: 12px; color: var(--txf);
                 border-top: 1px solid var(--brd); }
 
-  /* زر الرجوع يفقد معناه مع تنقّل جانبي دائم */
-  .view .appbar__back { display: none; }
+  /* زر الرجوع يفقد معناه مع تنقّل جانبي دائم.
+     .teacher-back معه: هو `position: fixed` وفي RTL يقع على اليمين — أي فوق
+     الشريط الجانبي تمامًا لو بقي ظاهرًا على الحاسوب. */
+  .view .appbar__back,
+  .teacher-back { display: none; }
 
   /* اللابتوب يحتمل قياسًا أريح — الشاشة أبعد عن العين من الهاتف */
   body { font-size: 17px; }
@@ -110,20 +113,28 @@ img, svg { max-width: 100%; display: block; }
 .tabbar {
   position: fixed; inset-inline: 0; bottom: 0; z-index: 5;
   display: flex; background: var(--surf); border-top: 1px solid var(--brd);
-  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  padding: 4px 10px calc(4px + env(safe-area-inset-bottom));
 }
+/* أيقونة وحدها بلا نصّ. بلا النصّ يصير اللون هو الفارق الوحيد بين النشط
+   وغيره — وهو فارق ضعيف على شاشة صغيرة — فنضيف خلفية دائرية للنشط. */
 .tabbar button {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  flex: 1; display: grid; place-items: center;
   padding: 4px 0; border: 0; background: none; color: var(--txf);
-  font-size: 10.5px; font-weight: 700;
   transition: color var(--dur) var(--ease);
 }
+.tabbar__ico {
+  display: grid; place-items: center;
+  padding: 5px 18px; border-radius: var(--r-full);
+  transition: background var(--dur) var(--ease);
+}
 .tabbar button.is-on { color: var(--acc); }
+.tabbar button.is-on .tabbar__ico { background: var(--acc-soft); }
 
 /* مساحة محجوزة أسفل كل شاشة كي لا يغطّي الشريط الثابت آخر عنصر فيها —
    على .view لا .screen__body، فتنكمش منطقة التمرير الداخلية معها تلقائيًا
    ويبقى .screen__foot ظاهرًا فوق الشريط لا خلفه. */
-.view { padding-bottom: calc(62px + env(safe-area-inset-bottom)); }
+/* ارتفاع الشريط: 4 حشوة + 4 زرّ + 5 أيقونة + 24 رسم + 5 + 4 + 4 + حدّ = ~52 */
+.view { padding-bottom: calc(53px + env(safe-area-inset-bottom)); }
 
 @media (min-width: 1100px) {
   .tabbar { display: none; }
@@ -168,7 +179,7 @@ img, svg { max-width: 100%; display: block; }
    الثلاثة كانت تُثقل بطاقة صغيرة أصلًا. */
 .stat-row { display: flex; gap: 10px; margin-top: 4px; }
 .stat { flex: 1; text-align: center; }
-.stat__v { font-size: 18px; font-weight: 700; line-height: 1.3; color: var(--acc); }
+.stat__v { font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--acc); }
 .stat__k { font-size: 11px; color: var(--txf); margin-top: 2px; }
 
 /* --- شبكات ثنائية على اللوحي والحاسوب ---------------------------------------- */
@@ -198,7 +209,7 @@ img, svg { max-width: 100%; display: block; }
   background: var(--surf);
   flex: 0 0 auto;
 }
-.appbar__title { flex: 1; font-weight: 700; font-size: 16px; min-width: 0;
+.appbar__title { flex: 1; font-weight: 600; font-size: 16px; min-width: 0;
                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .appbar__sub { font-size: 12px; font-weight: 400; color: var(--txm); }
 
@@ -220,7 +231,7 @@ img, svg { max-width: 100%; display: block; }
 .avatar {
   width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%;
   background: linear-gradient(145deg, var(--acc), var(--acc-deep)); color: var(--on-acc);
-  display: grid; place-items: center; font-weight: 700; font-size: 16px;
+  display: grid; place-items: center; font-weight: 600; font-size: 16px;
 }
 
 /* --- الأزرار --------------------------------------------------------------- */
@@ -257,18 +268,18 @@ img, svg { max-width: 100%; display: block; }
 .card--tap { cursor: pointer; transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
 .card--tap:hover { transform: translateY(-1px); box-shadow: var(--sh-2); }
 
-.section-label { padding: 18px 20px 8px; font-size: 13px; font-weight: 700; color: var(--txm); }
-.sec-label { font-size: 12.5px; font-weight: 700; color: var(--txf); letter-spacing: .02em; margin: 4px 0 10px; }
+.section-label { padding: 18px 20px 8px; font-size: 13px; font-weight: 600; color: var(--txm); }
+.sec-label { font-size: 12.5px; font-weight: 600; color: var(--txf); letter-spacing: .02em; margin: 4px 0 10px; }
 
 /* بطاقة «تابع من حيث توقفت» */
 .next-eyebrow { font-size: 11.5px; color: var(--txm); margin-bottom: 4px; }
-.next-title { font-weight: 700; font-size: 15.5px; margin-bottom: 3px; }
+.next-title { font-weight: 600; font-size: 15.5px; margin-bottom: 3px; }
 .next-meta { font-size: 12px; color: var(--txf); margin-bottom: 14px; }
 .pad-x { padding-inline: 20px; }
 
 /* --- الشارات --------------------------------------------------------------- */
 .badge {
-  font-size: 12px; font-weight: 700; padding: 3px 9px;
+  font-size: 12px; font-weight: 600; padding: 3px 9px;
   border-radius: var(--r-full); white-space: nowrap; flex: 0 0 auto;
 }
 .badge--free { background: var(--gold-soft); color: var(--gold); }
@@ -286,7 +297,7 @@ img, svg { max-width: 100%; display: block; }
 .ring__fill  { stroke: var(--acc); transition: stroke-dashoffset 700ms var(--ease); }
 .ring__label {
   position: absolute; inset: 0; display: grid; place-items: center;
-  font-weight: 700; color: var(--acc-tx);
+  font-weight: 600; color: var(--acc-tx);
 }
 
 /* --- شريط التقدّم ----------------------------------------------------------- */
@@ -299,15 +310,15 @@ img, svg { max-width: 100%; display: block; }
 /* --- بطاقة المادة ---------------------------------------------------------- */
 .subject { display: flex; gap: 14px; align-items: center; padding: 14px; }
 .subject__body { flex: 1; min-width: 0; }
-.subject__title { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.subject__title { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
 .subject__meta { font-size: 12px; color: var(--txm); }
-.subject__sub { font-size: 11.5px; color: var(--gold); font-weight: 700; margin-top: 5px; }
+.subject__sub { font-size: 11.5px; color: var(--gold); font-weight: 600; margin-top: 5px; }
 
 .subject--soon { opacity: .72; }
 .subject__icon {
   width: 46px; height: 46px; flex: 0 0 46px; border-radius: var(--r-md);
   background: var(--surf2); color: var(--txm);
-  display: grid; place-items: center; font-weight: 700;
+  display: grid; place-items: center; font-weight: 600;
 }
 
 /* --- غلاف مصوَّر لبطاقة المادة ------------------------------------------------
@@ -346,7 +357,7 @@ img, svg { max-width: 100%; display: block; }
 .course-cover--tall { aspect-ratio: 16 / 8; border-radius: var(--r-lg); }
 
 .course-card__body  { padding: 14px 16px 16px; }
-.course-card__title { font-weight: 700; font-size: 16px; line-height: 1.4; margin-bottom: 4px; }
+.course-card__title { font-weight: 600; font-size: 16px; line-height: 1.4; margin-bottom: 4px; }
 .course-card__meta  { font-size: 13px; color: var(--txm); margin-bottom: 10px; }
 .course-card__badges{ display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 
@@ -361,13 +372,43 @@ img, svg { max-width: 100%; display: block; }
 
 /* ترويسة الرئيسية/موادّي: بلا حدّ سفلي ولا سطح منفصل — تذوب في الخلفية
    لتصدّر البانرَ والمحتوى، بخلاف ترويسة الشاشات الداخلية. */
+/* ترويسة الرئيسية/موادّي: الشعار والإعدادات فقط، بزوايا سفلية كبيرة بأسلوب
+   iOS وظلّ بنفسجي خفيف يفصلها عن المحتوى بلا خطّ حادّ.
+   التحية ليست هنا — هي محتوى الصفحة ومكانها داخل منطقة التمرير. */
 .appbar--home {
-  background: transparent; border-bottom: 0;
-  padding: calc(14px + env(safe-area-inset-top)) 18px 6px; gap: 12px;
+  justify-content: space-between;
+  background: var(--surf); border-bottom: 0;
+  border-radius: 0 0 24px 24px;
+  padding: calc(10px + env(safe-area-inset-top)) 20px 12px;
+  margin-bottom: 2px;
+  box-shadow: 0 10px 30px -12px rgba(91, 75, 158, .30),
+              0 2px 6px rgba(91, 75, 158, .06);
 }
-.appbar--home .appbar__title { font-size: 15.5px; }
-.appbar--home .appbar__sub { font-size: 12px; color: var(--gold); font-weight: 600; margin-top: 2px; }
-.appbar--home .appbar__sub--plain { color: var(--txm); font-weight: 500; }
+/* الظلّ الملوَّن يختفي على خلفية داكنة (لون على لون قريب منه)، فيحتاج بديلًا
+   أعمق وإلّا ذابت الترويسة بالخلفية وضاعت حدودها. */
+:root[data-theme="dark"] .appbar--home {
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, .55);
+}
+
+/* العلامة اسمًا مجرّدًا — لا شعار ولا عبارة تحته. الترويسة تُعرّف بالمكان
+   وحسب؛ العبارة التعريفية مكانها شاشة الدخول حيث يراها الطالب أول مرة. */
+/* لا قصّ ولا تتبّع سالب: العربية خطّ متّصل، فالنقطتان تحت الياء والذيل تحت
+   الجيم تنزلان دون خطّ الأساس — و«overflow:hidden» مع سطر ١٫٢ كان يبترهما
+   فتُقرأ «منهاجى». والتتبّع السالب عادةٌ لاتينية تخنق وصلات الحروف. */
+.hbrand__name {
+  font-size: 20px; font-weight: 600; line-height: 1.55;
+  white-space: nowrap;
+}
+
+/* عنوان الصفحة — داخل منطقة التمرير لا في الترويسة */
+.hgreet { font-size: 22px; font-weight: 600; line-height: 1.35; }
+.hgreet__sub { font-size: 13px; color: var(--txm); margin-top: 3px; }
+.hgreet__sub--gold { color: var(--gold); font-weight: 600; }
+
+@media (min-width: 700px) {
+  .appbar--home { padding: calc(14px + env(safe-area-inset-top)) 26px 15px; }
+  .hgreet { font-size: 26px; }
+}
 
 /* --- بانر العروض المتحرّك: تلاشٍ CSS بحت بلا JS --------------------------------
    بلا مؤقّت JavaScript عن قصد: الشاشات هنا تُعاد بناؤها عند كل render، فمؤقّت
@@ -376,9 +417,13 @@ img, svg { max-width: 100%; display: block; }
    عدد الشرائح صار متغيّرًا (تُدار من اللوحة)، فلا يصحّ زمن ثابت مضبوط على
    ثلاث: بأربع شرائح كانت الرابعة تتراكب مع الأولى، وبواحدة كانت تختفي
    وتظهر بلا سبب. لكل عدد إطاراتُه المفتاحية، ونصيبُ كل شريحة 100/N. */
-.promo { position: relative; height: 132px; border-radius: 18px; overflow: hidden; box-shadow: var(--sh-2); }
+.promo { position: relative; height: 178px; border-radius: 20px; overflow: hidden; box-shadow: var(--sh-2); }
+/* الشاشات الأوسع تحتمل بانرًا أطول — الارتفاع ثابت لا نسبة، لأن النسبة مع
+   حدّ العرض 820px بالحاسوب كانت تعطي بانرًا بارتفاع نصف الشاشة. */
+@media (min-width: 700px) { .promo { height: 230px; } }
+
 .promo__slide {
-  position: absolute; inset: 0; padding: 18px;
+  position: absolute; inset: 0; padding: 22px;
   display: flex; flex-direction: column; justify-content: center;
   color: #fff; opacity: 0;
 }
@@ -419,9 +464,13 @@ img, svg { max-width: 100%; display: block; }
   .promo .promo__slide { animation: none; opacity: 0; }
   .promo .promo__slide:first-child { opacity: 1; }
 }
-.promo__tag { font-size: 10.5px; font-weight: 700; opacity: .85; margin-bottom: 6px; }
-.promo__t { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.promo__s { font-size: 11.5px; opacity: .9; }
+.promo__tag { font-size: 11.5px; font-weight: 600; opacity: .85; margin-bottom: 8px; }
+.promo__t { font-size: 20px; font-weight: 600; margin-bottom: 6px; line-height: 1.35; text-wrap: balance; }
+.promo__s { font-size: 13px; opacity: .92; line-height: 1.6; }
+@media (min-width: 700px) {
+  .promo__t { font-size: 25px; }
+  .promo__s { font-size: 14.5px; }
+}
 .promo-dots { display: flex; justify-content: center; gap: 5px; margin-top: 10px; }
 .promo-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--brd); }
 .promo-dots i:first-child { width: 14px; border-radius: 4px; background: var(--acc); }
@@ -429,42 +478,63 @@ img, svg { max-width: 100%; display: block; }
 /* --- بطاقة الأستاذ الغنيّة ضمن شريط أفقي --------------------------------------
    بديل الصورة الفوتوغرافية: تدرّج لوني + أيقونة موضوعية باهتة + الحرف الأول،
    فتبدو البطاقة مكتملة حتى قبل توفّر صور حقيقية للأساتذة. */
+/* الحشوة الجانبية 4px لا 2: ظلّ البطاقة يمتدّ خارج حدّها، وبحشوة أضيق
+   يُقصّ عند حافة منطقة التمرير فيبدو الظلّ مقطوعًا. */
 .teacher-scroll {
-  display: flex; gap: 12px; overflow-x: auto; padding: 2px 2px 10px;
+  display: flex; gap: 14px; overflow-x: auto; padding: 4px 4px 12px;
   scrollbar-width: none; -ms-overflow-style: none;
+  scroll-snap-type: x proximity;
 }
+.teacher-scroll > * { scroll-snap-align: start; }
 .teacher-scroll::-webkit-scrollbar { display: none; }
-.subj-showcase {
-  flex: none; width: 168px; display: flex; flex-direction: column; gap: 9px;
-  padding: 10px; border: 1px solid var(--brd); border-radius: 16px;
+/* بطاقة الأستاذ = صورة مصمَّمة كاملةً باللوحة (الاسم والمادة والخبرة مرسومة
+   داخلها). لا نصّ من التطبيق فوقها: أي نصّ نضيفه سيصطدم بنصّ الصورة ويتكرّر.
+   البطاقة عريضة تكاد تملأ العرض، ويظهر طرف التالية ليُفهم أن الصفّ يُمرَّر. */
+.tcard {
+  flex: none; width: min(84vw, 400px); position: relative;
+  border: 1px solid var(--brd); border-radius: 22px; overflow: hidden;
   background: var(--surf); box-shadow: var(--sh-2); cursor: pointer;
-  text-align: start; font: inherit; color: inherit;
+  padding: 0; font: inherit; color: inherit;
   transition: transform var(--dur) var(--ease);
 }
-.subj-showcase:hover { transform: translateY(-2px); }
-.subj-showcase__img {
-  width: 100%; height: 78px; border-radius: 12px; position: relative; overflow: hidden;
+.tcard:hover { transform: translateY(-2px); }
+
+/* سهم الدخول — الزاوية السفلى اليسرى. في RTL تبدأ المحاور من اليمين،
+   فاليسار هو inset-inline-end لا start. */
+.tcard__go {
+  position: absolute; bottom: 14px; inset-inline-end: 14px;
+  width: 38px; height: 38px; border-radius: 50%;
   display: grid; place-items: center;
+  background: var(--surf); color: var(--acc);
+  box-shadow: var(--sh-2); border: 1px solid var(--brd);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
-.subj-showcase__img .doodle { position: absolute; top: 6px; inset-inline-end: 6px; color: #fff; opacity: .28; }
-.subj-showcase__img .init { color: #fff; font-size: 22px; font-weight: 700; z-index: 1; }
-/* الصورة الحقيقية تملأ اللوحة كاملة وتحلّ محلّ التدرّج والحرف */
-.subj-showcase__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tcard:hover .tcard__go { background: var(--acc); color: var(--on-acc); }
+
+/* contain لا cover: الصورة مصمَّمة بنسبة يختارها المصمّم، والقصّ يقطع اسم
+   الأستاذ أو وجهه. هامش صغير أهون من اسم مقطوع. */
+.tcard__img {
+  display: block; width: 100%; aspect-ratio: 3 / 2;
+  object-fit: contain; background: var(--surf);
+}
+
+/* بديل ريثما تُرفع الصورة — لا يحاكي التصميم، فقط يمنع بطاقة فارغة تبدو عطلًا */
+.tcard__blank {
+  aspect-ratio: 3 / 2; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px; padding: 18px;
+  background: linear-gradient(135deg, var(--acc-soft), var(--surf));
+}
+.tcard__init {
+  width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center;
+  background: linear-gradient(145deg, var(--acc), var(--acc-deep));
+  color: #fff; font-size: 26px; font-weight: 600;
+}
+.tcard__name { font-weight: 600; font-size: 16px; }
+.tcard__sub { font-size: 13px; color: var(--txm); }
 
 /* التمركز على 30٪ رأسيًا لا 50٪: الوجه في صور البورتريه أعلى من مركز
    الإطار، فالتمركز التام يقطع الجبهة ويترك فراغ الكتفين. */
 .teacher-av img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; border-radius: 50%; }
-.subj-showcase__title { font-weight: 700; font-size: 13px; line-height: 1.4; }
-.subj-showcase__teacher { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--txm); }
-.subj-showcase__teacher i {
-  width: 17px; height: 17px; border-radius: 50%; display: inline-flex; align-items: center;
-  justify-content: center; font-size: 8px; font-weight: 700; color: #fff; flex: none; font-style: normal;
-  background: linear-gradient(145deg, var(--acc), var(--acc-deep));
-}
-.subj-showcase__chip {
-  align-self: flex-start; font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
-  background: var(--acc-soft); color: var(--acc-tx);
-}
 
 /* --- شبكة خدماتنا ------------------------------------------------------------- */
 .svc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -492,15 +562,56 @@ img, svg { max-width: 100%; display: block; }
   background: rgba(255,255,255,.22); color: #fff;
 }
 .teacher-cover .iconbtn:hover { background: rgba(255,255,255,.34); }
+/* صورة الأستاذ المصمَّمة كترويسة للملف — بنفس نسبة البطاقة وبلا قصّ.
+   الخلفية بلون الصفحة لا السطح: الصورة معروضة بـcontain، فأي هامش جانبي
+   يجب أن يذوب في الصفحة بدل أن يظهر كشريط أبيض بحوافّ. */
+.teacher-hero-img { position: relative; background: var(--bg); flex: none; }
+.teacher-hero-img img { width: 100%; aspect-ratio: 3 / 2; object-fit: contain; display: block; }
+
+/* تلاشٍ سفلي يذيب حدّ الصورة في المحتوى بدل خطّ فاصل حادّ.
+   pointer-events:none حتى لا يبتلع نقرة على ما تحته. */
+.teacher-hero-img::after {
+  content: ''; position: absolute; inset-inline: 0; bottom: -1px; height: 34%;
+  background: linear-gradient(to top, var(--bg) 14%, transparent 100%);
+  pointer-events: none;
+}
+
+/* زرّ الرجوع ثابت فوق الشاشة لا داخل الصورة: الصورة صارت تمرّ مع المحتوى،
+   ولو مرّ الزرّ معها لاختفى مسار الرجوع بعد سطرين من التمرير. */
+.teacher-back {
+  position: fixed; z-index: 6;
+  top: calc(14px + env(safe-area-inset-top)); inset-inline-start: 14px;
+  background: rgba(255,255,255,.86); color: #1E1832;
+  backdrop-filter: blur(8px); box-shadow: var(--sh-1);
+}
+.teacher-back:hover { background: #fff; color: #1E1832; }
+:root[data-theme="dark"] .teacher-back { background: rgba(31,24,48,.88); color: var(--tx); }
+:root[data-theme="dark"] .teacher-back:hover { background: var(--surf2); color: var(--tx); }
+
 .teacher-head { padding: 0 18px; margin-top: -34px; position: relative; z-index: 2; }
+/* مع صورة الترويسة لا أفاتار يركب على الحدّ؛ إزاحة صغيرة ترفع الاسم داخل
+   التلاشي فيبدو النصّ نابعًا من الصورة لا ملصوقًا تحتها. */
+.teacher-head--flat { margin-top: -14px; }
+
+/* =============================================================================
+   ملف الأستاذ على الشاشات الكبيرة — عمود واحد دائمًا، النصّ تحت الصورة.
+   الصورة وحدها تُحدّ عرضًا وتتوسّط: بعرض ٨٢٠px تصير ٥٤٧px ارتفاعًا فتملأ شاشة
+   اللابتوب وحدها ولا يُرى الاسم ولا النبذة إلا بعد تمرير طويل.
+   ============================================================================= */
+@media (min-width: 700px) {
+  .teacher-hero-img {
+    max-width: 460px; margin-inline: auto;
+    border-radius: 18px; overflow: hidden;
+  }
+}
 .teacher-av {
   width: 76px; height: 76px; border-radius: 50%; border: 4px solid var(--bg);
-  display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 26px;
+  display: grid; place-items: center; color: #fff; font-weight: 600; font-size: 26px;
   background: linear-gradient(145deg, var(--acc), var(--acc-deep));
   box-shadow: var(--sh-2); overflow: hidden;   /* يقصّ الصورة على الدائرة */
 }
-.teacher-name { font-size: 18px; font-weight: 700; margin-top: 10px; }
-.teacher-tag { font-size: 12.5px; color: var(--gold); font-weight: 700; margin-top: 2px; }
+.teacher-name { font-size: 18px; font-weight: 600; margin-top: 10px; }
+.teacher-tag { font-size: 12.5px; color: var(--gold); font-weight: 600; margin-top: 2px; }
 .teacher-stats { display: flex; gap: 18px; margin-top: 12px; }
 .teacher-stats div { font-size: 12px; color: var(--txm); }
 .teacher-stats b { color: var(--tx); font-size: 14px; }
@@ -516,28 +627,42 @@ img, svg { max-width: 100%; display: block; }
 .tsubj:hover { transform: translateY(-1px); }
 .tsubj__ico {
   width: 40px; height: 40px; border-radius: 12px; background: var(--acc-soft); color: var(--acc-tx);
-  display: grid; place-items: center; flex: none; font-weight: 700;
+  display: grid; place-items: center; flex: none; font-weight: 600;
 }
 .tsubj__b { flex: 1; min-width: 0; }
 .tsubj__b b { display: block; font-size: 13.5px; }
 .tsubj__b span { font-size: 11px; color: var(--txf); }
 .tsubj__chip {
-  font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; flex: none;
+  font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; flex: none;
   background: var(--acc-soft); color: var(--acc-tx);
 }
 .tsubj__chip--on { background: var(--gold-soft); color: var(--gold); }
 
 /* --- التبويبات المجزّأة ----------------------------------------------------- */
-/* بلا سطح خلفي للشريط كله: التبويب النشط وحده يحمل لونًا (بنفسجي فاتح)،
-   وهو أهدأ بصريًا من صندوق رمادي دائم يحيط بالأربعة. */
-.seg { display: flex; gap: 4px; padding: 4px 16px 14px; }
-.seg button {
-  flex: 1; padding: 8px 4px; border: 0; border-radius: 10px;
-  font-size: 12.5px; font-weight: 700;
-  background: transparent; color: var(--txf);
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+/* مُبدِّل مقاطع بأسلوب iOS: مضمار هادئ، والمقطع النشط «حصاة» مرفوعة عنه
+   بسطح فاتح وظلّ خفيف. الإحساس بالارتفاع هو ما يجعل النشط مقروءًا فورًا —
+   تلوين الخلفية وحده يجعل الأربعة تبدو من طبقة واحدة. */
+.seg {
+  display: flex; gap: 3px;
+  margin: 4px 16px 14px; padding: 4px;
+  background: var(--surf2); border-radius: var(--r-full);
 }
-.seg button[aria-selected="true"] { background: var(--acc-soft); color: var(--acc-tx); }
+.seg button {
+  flex: 1; padding: 9px 4px; border: 0; border-radius: var(--r-full);
+  font-size: 13px; font-weight: 600;
+  background: transparent; color: var(--txm);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+              box-shadow var(--dur) var(--ease);
+}
+.seg button:hover { color: var(--tx); }
+.seg button[aria-selected="true"] {
+  background: var(--surf); color: var(--acc-tx); font-weight: 600;
+  box-shadow: 0 1px 3px rgba(30, 24, 50, .12), 0 1px 1px rgba(30, 24, 50, .06);
+}
+/* على السطح الداكن يختفي الظلّ الأسود؛ الحدّ الرقيق يعوّض عنه */
+:root[data-theme="dark"] .seg button[aria-selected="true"] {
+  background: var(--surf3); box-shadow: none;
+}
 
 /* --- الوحدات والدروس --------------------------------------------------------
    كل وحدة بطاقة مستقلة (لا صفوف داخل بطاقة واحدة طويلة): الفصل البصري يجعل
@@ -548,16 +673,69 @@ img, svg { max-width: 100%; display: block; }
 }
 .unit__head { display: flex; align-items: center; gap: 10px; padding: 13px 14px; cursor: pointer; list-style: none; }
 .unit__head::-webkit-details-marker { display: none; }
-.unit__title { font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+.unit__title { font-weight: 600; font-size: 13.5px; margin-bottom: 6px; }
 .unit__chev { color: var(--txf); transition: transform var(--dur) var(--ease); flex: 0 0 auto; }
 .unit[open] .unit__chev { transform: rotate(180deg); }
+
+/* =============================================================================
+   قائمة الدروس كخطّ زمني متواصل
+   الخطّ على الحاوية لا على كل صفّ: خطٌّ مجزّأ لكل صفّ يترك فجوات عند الهوامش
+   فيبدو متقطّعًا. وهو يبدأ من أول نقطة وينتهي عند آخرها لا عند حافة الحاوية،
+   وإلّا تدلّى طرفٌ سائب فوق أول درس وتحت آخره.
+   ============================================================================= */
+.tl { position: relative; padding: 6px 0 10px; }
+.tl::before {
+  content: ''; position: absolute; z-index: 0;
+  inset-inline-start: 27px;          /* منتصف النقطة: 14 حشوة + 13 نصف قطر */
+  top: 28px; bottom: 28px; width: 2px;
+  background: var(--acc-soft);
+}
+
+.tl-row {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.tl-row:hover { background: var(--surf2); }
+
+/* النقطة على الخطّ */
+.tl-dot {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 2px solid var(--acc-soft); background: var(--surf);
+  color: var(--on-acc);
+}
+.tl-row--done .tl-dot { background: var(--acc); border-color: var(--acc); }
+.tl-row--now  .tl-dot { border-color: var(--acc); box-shadow: 0 0 0 4px var(--acc-soft); }
+
+.tl-body { flex: 1; min-width: 0; }
+.tl-title { font-size: 14px; font-weight: 600; line-height: 1.5; }
+.tl-row--done .tl-title { color: var(--txm); }
+.tl-meta {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--txf); margin-top: 4px;
+}
+.tl-meta svg { flex: none; }
+
+/* زرّ الحالة في نهاية السطر */
+.tl-act {
+  flex: none; width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--acc-soft); color: var(--acc-tx);
+  font-weight: 600; font-size: 14px;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.tl-row--now .tl-act  { background: var(--acc); color: var(--on-acc); }
+.tl-row--done .tl-act { background: var(--acc-soft); color: var(--acc); }
+.tl-row:hover .tl-act { background: var(--acc); color: var(--on-acc); }
 
 .lesson { display: flex; align-items: center; gap: 10px; padding: 11px 14px;
           border-top: 1px solid var(--brd); cursor: pointer; }
 .lesson:hover { background: var(--surf2); }
 .lesson__ico {
   width: 28px; height: 28px; flex: 0 0 28px; border-radius: var(--r-full);
-  display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  display: grid; place-items: center; font-size: 12px; font-weight: 600;
 }
 /* المكتمل ذهبي لا أخضر: الذهبي هنا لون الإنجاز في الهوية، والأخضر محجوز
    للتغذية الراجعة «إجابة صحيحة» فلا يُستهلك معناه في مكانين. */
@@ -620,7 +798,7 @@ img, svg { max-width: 100%; display: block; }
 .prose td, .prose th { padding: 9px 6px; border-bottom: 1px solid var(--brd); text-align: start; }
 .prose th { color: var(--txm); font-weight: 600; font-size: 13px; }
 .prose tr:last-child td { border-bottom: 0; }
-.prose b, .prose strong { font-weight: 700; }
+.prose b, .prose strong { font-weight: 600; }
 
 .callout {
   border-radius: var(--r-md); padding: 13px 15px; margin: 0 0 18px;
@@ -628,7 +806,7 @@ img, svg { max-width: 100%; display: block; }
   background: var(--warn-soft); border: 1px solid var(--warn);
 }
 .callout--info { background: var(--info-soft); border-color: var(--info); }
-.callout__t { font-weight: 700; color: var(--warn); margin-bottom: 4px; }
+.callout__t { font-weight: 600; color: var(--warn); margin-bottom: 4px; }
 .callout--info .callout__t { color: var(--info); }
 
 /* --- بطاقة السؤال ------------------------------------------------------------ */
@@ -664,7 +842,7 @@ img, svg { max-width: 100%; display: block; }
 .opt:hover:not(.is-locked) { border-color: var(--acc); background: var(--acc-soft); }
 .opt__k {
   width: 26px; height: 26px; flex: 0 0 26px; border-radius: var(--r-full);
-  display: grid; place-items: center; font-size: 13px; font-weight: 700;
+  display: grid; place-items: center; font-size: 13px; font-weight: 600;
   background: var(--surf2); color: var(--txm);
 }
 .opt.is-sel   { border-color: var(--acc); background: var(--acc-soft); }
@@ -700,14 +878,14 @@ img, svg { max-width: 100%; display: block; }
 .fb { border-radius: var(--r-md); padding: 14px; margin-top: 12px; animation: fadeIn 220ms var(--ease); }
 .fb--ok { background: var(--ok-soft);  border: 1px solid var(--ok); }
 .fb--no { background: var(--err-soft); border: 1px solid var(--err); }
-.fb__h { font-weight: 700; margin-bottom: 6px; }
+.fb__h { font-weight: 600; margin-bottom: 6px; }
 .fb--ok .fb__h { color: var(--ok); }
 .fb--no .fb__h { color: var(--err); }
 .fb__b { font-size: 14px; line-height: 1.7; }
 
 /* --- الامتحان ---------------------------------------------------------------- */
 .timer {
-  font-family: var(--mono); font-size: 20px; font-weight: 700;
+  font-family: var(--mono); font-size: 20px; font-weight: 600;
   padding: 7px 13px; border-radius: var(--r-md);
   background: var(--acc-soft); color: var(--acc-tx);
 }
@@ -725,7 +903,7 @@ img, svg { max-width: 100%; display: block; }
 }
 .qnav button {
   aspect-ratio: 1; border-radius: var(--r-sm); border: 1.5px solid transparent;
-  font-size: 14px; font-weight: 700; background: var(--surf2); color: var(--txm);
+  font-size: 14px; font-weight: 600; background: var(--surf2); color: var(--txm);
   display: grid; place-items: center; padding: 0;
   font-variant-numeric: tabular-nums;
 }
@@ -734,10 +912,10 @@ img, svg { max-width: 100%; display: block; }
 .qnav button.is-current  { border-color: var(--acc); background: var(--acc-soft); color: var(--acc-tx); }
 
 .score { text-align: center; padding: 10px 0 4px; }
-.score__n { font-size: 54px; font-weight: 700; line-height: 1; }
+.score__n { font-size: 54px; font-weight: 600; line-height: 1; }
 .score__l { color: var(--txm); font-size: 14px; margin-top: 6px; }
 .verdict { display: inline-block; margin-top: 12px; padding: 6px 18px;
-           border-radius: var(--r-full); font-weight: 700; font-size: 14px; }
+           border-radius: var(--r-full); font-weight: 600; font-size: 14px; }
 .verdict--pass { background: var(--ok-soft);  color: var(--ok); }
 .verdict--fail { background: var(--err-soft); color: var(--err); }
 
@@ -766,7 +944,7 @@ img, svg { max-width: 100%; display: block; }
    اللصق والحذف بسلوك متوقّع. تباعد الأحرف يجعله يُقرأ كبطاقة مطبوعة. */
 .codeline {
   width: 100%; height: 58px; padding: 0 14px;
-  font-family: var(--mono); font-size: clamp(17px, 5.2vw, 22px); font-weight: 700;
+  font-family: var(--mono); font-size: clamp(17px, 5.2vw, 22px); font-weight: 600;
   letter-spacing: .12em; text-align: center; text-transform: uppercase;
   color: var(--acc-tx); background: var(--surf);
   border: 1.5px solid var(--brd2); border-radius: var(--r-md);
@@ -781,14 +959,14 @@ img, svg { max-width: 100%; display: block; }
 .codebox__g { display: flex; gap: 6px; }
 .codebox input {
   width: 42px; height: 54px; text-align: center; padding: 0;
-  font-family: var(--mono); font-size: 21px; font-weight: 700;
+  font-family: var(--mono); font-size: 21px; font-weight: 600;
   background: var(--surf); border: 1.5px solid var(--brd2); border-radius: var(--r-md);
   color: var(--tx); text-transform: uppercase;
 }
 .codebox input:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
 .codebox input.is-filled { border-color: var(--acc); background: var(--acc-soft); color: var(--acc-tx); }
 .codebox.is-err input { border-color: var(--err); background: var(--err-soft); color: var(--err); }
-.codebox__sep { align-self: center; color: var(--txf); font-weight: 700; }
+.codebox__sep { align-self: center; color: var(--txf); font-weight: 600; }
 
 .switch { width: 40px; height: 23px; border-radius: var(--r-full); border: 0;
           background: var(--brd); position: relative; flex: 0 0 auto;
@@ -821,19 +999,26 @@ img, svg { max-width: 100%; display: block; }
 /* --- الحالة الفارغة والرسوم ---------------------------------------------------- */
 .empty { text-align: center; padding: 30px 22px; }
 .empty img { width: 150px; margin: 0 auto 16px; }
-.empty__t { font-weight: 700; font-size: 17px; margin-bottom: 6px; }
+.empty__t { font-weight: 600; font-size: 17px; margin-bottom: 6px; }
 .empty__s { color: var(--txm); font-size: 14px; line-height: 1.7; max-width: 32ch; margin: 0 auto 16px; }
 
 /* =============================================================================
    ترويسة العلامة في شاشة الدخول
    بديل شاشة الترحيب المحذوفة: العلامة نفسها تبقى، بلا صفحة كاملة قبل النموذج.
    ============================================================================= */
-.auth-brand {
-  display: flex; align-items: center; gap: 12px;
-  padding: calc(26px + env(safe-area-inset-top)) 20px 18px;
+/* الشاشة كلها عمود واحد متمركز — نموذج من ثلاثة عناصر لا يحتاج تخطيطًا */
+.auth .screen__body { display: flex; align-items: center; justify-content: center; }
+.auth-box {
+  width: 100%; max-width: 380px;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  margin-inline: auto;
 }
-.auth-brand img { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 13px; }
-.auth-brand__name { font-size: 20px; font-weight: 700; line-height: 1.2; }
+.auth-brand {
+  display: flex; align-items: center; gap: 13px;
+  padding: 0 0 26px;
+}
+.auth-brand img { width: 52px; height: 52px; flex: 0 0 52px; border-radius: 15px; }
+.auth-brand__name { font-size: 22px; font-weight: 600; line-height: 1.2; }
 /* مسافة صريحة: السطران كانا ملتصقين لأن ارتفاع السطر وحده لا يفصلهما */
 .auth-brand__tag { font-size: 12px; color: var(--txm); line-height: 1.4; margin-top: 5px; }
 
@@ -856,3 +1041,86 @@ img, svg { max-width: 100%; display: block; }
 .mb-6 { margin-bottom: 6px; } .mb-14 { margin-bottom: 14px; }
 .p-16 { padding: 16px; } .p-18 { padding: 18px; }
 .hidden { display: none !important; }
+
+/* =============================================================================
+   سبلاش الإقلاع — قلم يكتب بحلقة إلى أن يجهز التطبيق فعلًا
+
+   يبقى ظاهرًا حتى تنتهي أول مزامنة ويُبنى المحتوى، فلا يرى الطالب شاشة نصف
+   فارغة تمتلئ أمامه على دفعات. وله سقف زمني: بلا إنترنت لا ينتظر إلى الأبد.
+   ============================================================================= */
+.splash {
+  position: fixed; inset: 0; z-index: 100;
+  display: grid; place-items: center; align-content: center; gap: 22px;
+  background: var(--bg); color: var(--acc);
+  transition: opacity 320ms var(--ease), visibility 320ms var(--ease);
+}
+.splash--out { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.pencil { display: block; width: 62px; height: 62px; }
+
+/* «بخط نحيف جدًا»: ٤٠٠ أخفّ وزن محمَّل — الرهافة من الحجم والتباعد واللون
+   لا من وزن غير موجود يصطنعه المتصفح مشوّهًا. */
+.splash__t {
+  font-size: 13px; font-weight: 400; color: var(--txm);
+  letter-spacing: .04em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pencil * { animation: none !important; }
+}
+
+
+
+
+/* مدّة أطول (كانت 3s) كي تكتمل اللفّة كاملةً بوضوح لا أن تمرّ خاطفة */
+.pencil__body1, .pencil__body2, .pencil__body3,
+.pencil__eraser, .pencil__eraser-skew, .pencil__point,
+.pencil__rotate, .pencil__stroke {
+  animation-duration: 6s; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+/* لون القلم الرئيسي = لون التطبيق التركوازي (--acc) بدل الأزرق الأصلي —
+   CSS هنا يتغلّب على سمة stroke المكتوبة داخل الـ SVG نفسها. */
+.pencil__body1 { animation-name: pencilBody1; stroke: var(--acc); }
+.pencil__body2 { animation-name: pencilBody2; stroke: color-mix(in srgb, var(--acc) 65%, white); }
+.pencil__body3 { animation-name: pencilBody3; stroke: color-mix(in srgb, var(--acc) 65%, black); }
+.pencil__eraser { animation-name: pencilEraser; animation-timing-function: cubic-bezier(.4,0,.2,1); }
+.pencil__eraser-skew { animation-name: pencilEraserSkew; animation-timing-function: cubic-bezier(.4,0,.2,1); }
+.pencil__point { animation-name: pencilPoint; }
+.pencil__rotate { animation-name: pencilRotate; animation-timing-function: linear; }
+.pencil__stroke { animation-name: pencilStroke; }
+
+@keyframes pencilBody1 {
+  from, to { stroke-dashoffset: 351.86; transform: rotate(-90deg); }
+  50%      { stroke-dashoffset: 150.8;  transform: rotate(-225deg); }
+}
+@keyframes pencilBody2 {
+  from, to { stroke-dashoffset: 406.84; transform: rotate(-90deg); }
+  50%      { stroke-dashoffset: 174.36; transform: rotate(-225deg); }
+}
+@keyframes pencilBody3 {
+  from, to { stroke-dashoffset: 296.88; transform: rotate(-90deg); }
+  50%      { stroke-dashoffset: 127.23; transform: rotate(-225deg); }
+}
+@keyframes pencilEraser {
+  from, to { transform: rotate(-45deg) translate(49px,0); }
+  50%      { transform: rotate(0deg) translate(49px,0); }
+}
+@keyframes pencilEraserSkew {
+  from, 32.5%, 67.5%, to { transform: skewX(0); }
+  35%, 65%               { transform: skewX(-4deg); }
+  37.5%, 62.5%           { transform: skewX(8deg); }
+  40%, 45%, 50%, 55%, 60% { transform: skewX(-15deg); }
+  42.5%, 47.5%, 52.5%, 57.5% { transform: skewX(15deg); }
+}
+@keyframes pencilPoint {
+  from, to { transform: rotate(-90deg) translate(49px,-30px); }
+  50%      { transform: rotate(-225deg) translate(49px,-30px); }
+}
+@keyframes pencilRotate {
+  from { transform: translate(100px,100px) rotate(0); }
+  to   { transform: translate(100px,100px) rotate(720deg); }
+}
+@keyframes pencilStroke {
+  from     { stroke-dashoffset: 439.82; transform: translate(100px,100px) rotate(-113deg); }
+  50%      { stroke-dashoffset: 164.93; transform: translate(100px,100px) rotate(-113deg); }
+  75%, to  { stroke-dashoffset: 439.82; transform: translate(100px,100px) rotate(112deg); }
+}

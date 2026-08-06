@@ -8,7 +8,7 @@
    إلى الأبد ما لم يتغيّر هذا السطر، فيرى الطالب تطبيقًا قديمًا رغم النشر.
    ============================================================================= */
 
-const VERSION = 'manhaji-shell-v10';
+const VERSION = 'manhaji-shell-v16';
 
 const SHELL = [
   './', './index.html',
@@ -20,6 +20,7 @@ const SHELL = [
   './assets/img/cover-fr.jpg',
   './assets/img/video-thumb.svg', './assets/img/empty-download.svg',
   './assets/img/icon-192.png', './assets/img/icon-512.png',
+  './assets/img/icon-maskable-512.png',
   './assets/fonts/Alexandria-400.woff2',
   './assets/fonts/Alexandria-600.ttf',
   './assets/fonts/Alexandria-700.woff2',

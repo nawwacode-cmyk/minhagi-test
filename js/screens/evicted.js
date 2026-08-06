@@ -27,7 +27,7 @@ window.Screens = window.Screens || {};
                      + 'display:grid;place-items:center;background:var(--warn-soft);color:var(--warn)',
               }, icon.wifiOff(30)),
 
-              h('div', { style: 'font-size:20px;font-weight:700;margin-bottom:8px' },
+              h('div', { style: 'font-size:20px;font-weight:600;margin-bottom:8px' },
                 'تم تسجيل خروجك من هذا الجهاز'),
 
               h('div.muted', { style: 'line-height:1.8;max-width:38ch;margin:0 auto 6px' },

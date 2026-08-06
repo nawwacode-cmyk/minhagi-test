@@ -90,7 +90,7 @@ window.Screens = window.Screens || {};
           qBox,
           h('div.exam-side',
             h('div.card.card--pad',
-              h('div', { style: 'font-weight:700;margin-bottom:10px' }, 'التنقّل بين الأسئلة'),
+              h('div', { style: 'font-weight:600;margin-bottom:10px' }, 'التنقّل بين الأسئلة'),
               navBox,
               h('div.hint', { style: 'margin-top:10px' }, 'الأزرق: مُجاب · الرمادي: فارغ')))),
       ),
