@@ -9,7 +9,7 @@ window.App = (function () {
   const { h, icon } = UI;
 
   const stack = [];                 // [{ name, params }]
-  let shell, rail, view;
+  let shell, rail, view, tabbar;
 
   const cur = () => stack[stack.length - 1];
 
@@ -17,49 +17,57 @@ window.App = (function () {
     const root = document.getElementById('app');
     rail = h('aside.rail');
     view = h('main.view');
-    root.replaceChildren(rail, view);
+    tabbar = h('nav.tabbar');
+    root.replaceChildren(rail, view, tabbar);
     shell = root;
   }
 
   /**
-   * الشريط الجانبي (حاسوب فقط — مخفي بـ CSS دون ذلك).
+   * وجهات التنقّل الثلاث — تُرسم في **كلا** الشريط الجانبي (حاسوب) والشريط
+   * السفلي (هاتف) من نفس المصدر، فلا يمكن أن يفترقا لاحقًا بالغلط.
    *
    * الدروس والتمارين والامتحانات لا تظهر هنا كوجهات مستقلة — هي أقسام داخل
    * المادة نفسها (التبويبات داخل شاشة المادة)، لا مستوى تنقّل عابر للمواد.
-   * لا عنصر "كورسات/كتالوج" — بعد إزالة تلك الطبقة، "موادّي" بالرئيسية هي
-   * نقطة الدخول الوحيدة للمواد. الشريط يحمل فقط: الرئيسية، التقدّم الكلّي،
-   * والحساب.
+   * «حسابي» لم تعد وجهة تنقّل — صارت زر إعدادات بترويسة الرئيسية وموادّي.
    */
   const RAIL_ITEMS = [
     { id: 'home',     label: 'الرئيسية', ico: () => icon.home(20),
       go: () => go('home') },
+    { id: 'subjects', label: 'موادّي',   ico: () => icon.grid(20),
+      go: () => go('subjects') },
     { id: 'progress', label: 'تقدّمي',   ico: () => icon.chart(20),
       go: () => go('progress') },
-    { id: 'account',  label: 'حسابي',    ico: () => icon.user(20),
-      go: () => go('account') },
   ];
 
   function activeRailId() {
     const c = cur();
     if (!c) return null;
     // كل ما يجري داخل مادة (درس، تمرين، امتحان، نتيجة) ينتمي منطقيًا
-    // لقسم «الرئيسية» — لا وجود لكتالوج كوجهة شريط مستقلة بعد الآن.
+    // لقسم «موادّي» لا «الرئيسية» — الرئيسية صارت واجهة اكتشاف/ترويج مستقلة.
     if (['course', 'lesson', 'practice', 'exam', 'result'].includes(c.name))
-      return 'home';
+      return 'subjects';
     return c.name;
   }
 
   function drawRail() {
     const s = Store.get();
-    // شاشات ما قبل الدخول بلا شريط جانبي — لا معنى للتنقّل قبل وجود حساب
-    if (['welcome', 'auth'].includes(cur().name)) {
+    // شاشة ما قبل الدخول بلا تنقّل — لا معنى له قبل وجود حساب
+    if (cur().name === 'auth') {
       rail.replaceChildren();
       rail.style.display = 'none';
+      tabbar.replaceChildren();
+      tabbar.style.display = 'none';
       return;
     }
     rail.style.display = '';
+    tabbar.style.display = '';
 
     const on = activeRailId();
+    const navBtn = (it) => h('button', {
+      class: on === it.id ? 'is-on' : '',
+      onclick: it.go,
+    }, it.ico(), it.label);
+
     rail.replaceChildren(
       h('div.rail__brand',
         h('img', { src: 'assets/img/icon-192.png', alt: '', width: 40, height: 40,
@@ -68,10 +76,7 @@ window.App = (function () {
           h('div.rail__name', 'منهاجي'),
           h('div.rail__tag', 'منهاجك السوري بين يديك'))),
 
-      ...RAIL_ITEMS.map((it) => h('button', {
-        class: on === it.id ? 'is-on' : '',
-        onclick: it.go,
-      }, it.ico(), it.label)),
+      ...RAIL_ITEMS.map(navBtn),
 
       h('div.rail__spacer'),
       h('div.rail__foot',
@@ -79,6 +84,8 @@ window.App = (function () {
         h('div', { style: 'margin-top:6px' },
           s.online ? 'متصل' : 'تعمل دون إنترنت')),
     );
+
+    tabbar.replaceChildren(...RAIL_ITEMS.map(navBtn));
   }
 
   function render() {
@@ -95,11 +102,11 @@ window.App = (function () {
 
     // تُحفَظ الشاشة الحالية لتُستأنف بعد تحديث الصفحة بدل العودة إلى
     // الرئيسية — لا معنى لحفظ شاشات ما قبل الدخول.
-    if (s.signedIn && !['welcome', 'auth'].includes(c.name)) {
+    if (s.signedIn && c.name !== 'auth') {
       Store.set({ route: { name: c.name, params: c.params || {} } });
     }
 
-    const fn = Screens[c.name] || Screens.welcome;
+    const fn = Screens[c.name] || Screens.auth;
     view.replaceChildren(fn(c.params || {}));
     drawRail();
   }
@@ -167,12 +174,13 @@ window.App = (function () {
     const signedIn = Api.isSignedIn() && s.signedIn;
 
     // استئناف آخر شاشة بعد تحديث الصفحة — بشرط أن تكون شاشة حقيقية موجودة
-    // فعلًا (لا اسم قديم بقي من نسخة سابقة للتطبيق تغيّرت شاشاتها).
+    // فعلًا (لا اسم قديم بقي من نسخة سابقة للتطبيق تغيّرت شاشاتها؛ ومنها
+    // 'welcome' المحذوفة — مسار محفوظ باسمها يسقط هنا إلى الرئيسية بأمان).
     const r = s.route;
-    const resumable = signedIn && r && Screens[r.name] && !['welcome', 'auth'].includes(r.name);
+    const resumable = signedIn && r && Screens[r.name] && r.name !== 'auth';
 
     stack.push(resumable ? { name: r.name, params: r.params || {} }
-                         : { name: signedIn ? 'home' : 'welcome', params: {} });
+                         : { name: signedIn ? 'home' : 'auth', params: {} });
     render();
     startSync();
 

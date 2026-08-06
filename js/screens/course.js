@@ -55,7 +55,9 @@ window.Screens = window.Screens || {};
     function tabLessons() {
       const s = Store.get();
 
-      const list = h('div.card', { style: 'overflow:hidden' });
+      // كل وحدة بطاقتها الخاصة (.unit) لا صفوف داخل بطاقة واحدة — الحاوية هنا
+      // مجرّد مكدّس بلا مظهر، وإلّا ظهرت بطاقة داخل بطاقة.
+      const list = h('div');
       subjectUnits.forEach((u, i) => {
         const up = Store.unitProgress(u);
         const allDown = u.lessons.every((id) => s.downloaded.includes(id));
@@ -64,10 +66,10 @@ window.Screens = window.Screens || {};
         det.appendChild(h('summary.unit__head',
           h('div.grow',
             h('div.unit__title', u.title),
-            h('div.row', { style: 'margin-top:8px' },
+            h('div.row', { style: 'gap:8px' },
               bar(up.pct),
-              h('span.faint', { style: 'font-size:12px' }, `${ar(up.done)}/${ar(up.total)}`))),
-          h('span.unit__chev', icon.chevron(20))));
+              h('span.faint', { style: 'font-size:11px' }, `${ar(up.done)}/${ar(up.total)}`))),
+          h('span.unit__chev', icon.chevron(16))));
 
         u.lessons.forEach((id, n) => {
           const l = SEED.lessons[id];
@@ -380,7 +382,7 @@ window.Screens = window.Screens || {};
   // ===========================================================================
   Screens.lesson = (params) => {
     const l = SEED.lessons[params.id];
-    if (!l) return Screens.home();
+    if (!l) return Screens.subjects();
     Store.startLesson(l.id);
 
     // يُمرَّر لكل تنقّل صادر من هنا (درس شقيق، بدء تمارين) ليبقى الرجوع

@@ -15,7 +15,7 @@ window.Screens = window.Screens || {};
   // ===========================================================================
   Screens.exam = (params) => {
     const exam = SEED.exams.find((e) => e.id === params.id);
-    if (!exam) return Screens.home();
+    if (!exam) return Screens.subjects();
 
     const qs = exam.questions.map((id) => SEED.questions[id]).filter(Boolean);
     const answers = {};            // index → { correct }
