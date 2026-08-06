@@ -21,34 +21,41 @@
   --lh-body:1.75;
 }
 
+/* الهوية: بنفسجي غامق × ذهبي دافئ.
+   المحايدات نفسها مائلة للبنفسجي لا رمادية محضة ولا مائلة للأخضر كما كانت —
+   خلفية رمادية محضة تحت أكسنت بنفسجي تبدو غير مقصودة، وهذا كان أوضح فرق بين
+   التطبيق والتصميم المعتمَد. --acc-deep و --acc-lite طرفا التدرّجات
+   (الأفاتار، غلاف الأستاذ، البانر) ولا يُستعملان كلونَي نصّ. */
 :root, :root[data-theme="light"] {
-  --bg:#F6F8F8;      --surf:#FFFFFF;    --surf2:#EFF3F3;  --surf3:#E4EAEA;
-  --brd:#DCE2E2;     --brd2:#BFC9C9;
-  --tx:#111D1D;      --txm:#556363;     --txf:#8B9797;
+  --bg:#F7F5FB;      --surf:#FFFFFF;    --surf2:#EFEBFA;  --surf3:#E4DEF5;
+  --brd:#E1DAF0;     --brd2:#C7BCE4;
+  --tx:#1E1832;      --txm:#6B5F8C;     --txf:#9A90B8;
 
-  --acc:#2F6F73;     --acc-hi:#265C60;  --on-acc:#FFFFFF;
-  --acc-soft:#EBF4F4; --acc-tx:#1D484B;
+  --acc:#5B4B9E;     --acc-hi:#6E5BB8;  --on-acc:#FFFFFF;
+  --acc-soft:#ECE7FA; --acc-tx:#453876;
+  --acc-deep:#453876; --acc-lite:#6E5BB8;
 
-  --gold:#B67F35;    --gold-soft:#FBEEDA;
+  --gold:#C98A2E;    --gold-soft:#FBF0DC;
   --ok:#2E7D5B;      --ok-soft:#E4F2EC;
   --err:#C2453D;     --err-soft:#FAE9E7;
   --warn:#9C6D18;    --warn-soft:#FBF1DD;
   --info:#3A6EA5;    --info-soft:#E9F0F8;
 
-  --sh-1:0 1px 2px rgba(17,29,29,.06), 0 1px 3px rgba(17,29,29,.05);
-  --sh-2:0 2px 6px rgba(17,29,29,.07), 0 10px 24px rgba(17,29,29,.06);
-  --sh-3:0 18px 48px rgba(17,29,29,.14);
+  --sh-1:0 1px 2px rgba(30,24,50,.06), 0 1px 3px rgba(30,24,50,.05);
+  --sh-2:0 1px 2px rgba(30,24,50,.06), 0 20px 40px -18px rgba(30,24,50,.35);
+  --sh-3:0 18px 48px rgba(30,24,50,.16);
 
-  --scrim:rgba(8,16,16,.55);
+  --scrim:rgba(20,14,38,.55);
 }
 
 :root[data-theme="dark"] {
-  --bg:#0E1616;     --surf:#16201F;   --surf2:#1D2928;  --surf3:#25332F;
-  --brd:#2A3736;    --brd2:#3D4E4D;
-  --tx:#E7EFEE;     --txm:#A2B0AF;    --txf:#788685;
+  --bg:#16121F;     --surf:#1F1830;   --surf2:#271F3D;  --surf3:#33294D;
+  --brd:#332950;    --brd2:#463A69;
+  --tx:#EDE9F7;     --txm:#B3A8CE;    --txf:#756A93;
 
-  --acc:#57A9AD;    --acc-hi:#6BBBBF; --on-acc:#062120;
-  --acc-soft:#17302F; --acc-tx:#9FD3D5;
+  --acc:#9C8FE0;    --acc-hi:#B5AAEA; --on-acc:#1A1330;
+  --acc-soft:#2A2249; --acc-tx:#C7BEEF;
+  --acc-deep:#C7BEEF; --acc-lite:#B5AAEA;
 
   --gold:#E0AC63;   --gold-soft:#33281A;
   --ok:#5FBE92;     --ok-soft:#162C24;
@@ -57,7 +64,7 @@
   --info:#7BA9DC;   --info-soft:#1A2634;
 
   --sh-1:0 1px 2px rgba(0,0,0,.4);
-  --sh-2:0 2px 8px rgba(0,0,0,.45), 0 12px 28px rgba(0,0,0,.35);
+  --sh-2:0 1px 2px rgba(0,0,0,.4), 0 20px 44px -18px rgba(0,0,0,.6);
   --sh-3:0 18px 48px rgba(0,0,0,.55);
 
   --scrim:rgba(0,0,0,.6);
