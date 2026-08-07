@@ -22,6 +22,14 @@ window.C = (function () {
     const s = Store.get();
     const queued = Store.pending();
 
+    /* امتلاء المساحة يسبق «بلا إنترنت»: الطالب المتّصل الذي لا يصله محتوى
+       جديد يظنّ العطل في الخدمة، والسبب على جهازه. ولا يزول إلّا بفعلٍ منه. */
+    if (s.storageFull) {
+      return h('div.banner.banner--warn', icon.warn(20),
+        h('div', h('b', 'مساحة التخزين ممتلئة'),
+          h('span', 'المحتوى الجديد لا يُحفظ. أفرِغ مساحة على جهازك أو '
+                  + 'احذف تنزيلات لم تعد تحتاجها، ثم أعد فتح التطبيق.')));
+    }
     if (!s.online) {
       return h('div.banner.banner--off', icon.wifiOff(20),
         h('div', h('b', 'تعمل دون إنترنت'),

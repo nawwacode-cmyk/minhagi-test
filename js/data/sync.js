@@ -12,6 +12,45 @@ window.Sync = (function () {
 
   const CONTENT_KEY = 'manhaji.content.v1';
   const IDMAP_KEY   = 'manhaji.idmap.v1';
+  const VERSION_KEY = 'manhaji.content.ver';
+
+  /**
+   * حفظ المحتوى وخريطة معرّفاته معًا — أو لا حفظ إطلاقًا.
+   *
+   * علّتان كانتا هنا، وكلتاهما صامتة:
+   *
+   * ١. `localStorage` له حصّة ~٥ م.ب، ويخزّن UTF-16 — أي بايتان لكل حرف عربي.
+   *    مادة واحدة ≈ ٠٫٩ م.ب نصًّا، فتشغل ~١٫٥ م.ب من الحصّة: الجدار عند ثلاث
+   *    مواد لا خمس. وتجاوزُها يرمي QuotaExceededError كان يُبتلع في catch
+   *    أعلى ويُطبع تحذيرًا في الطرفية — فيتوقّف المحتوى عن التحدّث **إلى
+   *    الأبد** بلا أن يلاحظ الطالب أو نعرف نحن السبب.
+   *
+   * ٢. الكتابتان كانتا منفصلتين. نجاح الأولى وفشل الثانية يترك خريطة معرّفات
+   *    لا تطابق المحتوى — وهي التي تترجم رموز الدروس إلى UUID عند رفع التقدّم.
+   *    أي: تقدّم الطالب يُرسل إلى صفوف خاطئة. الكتابة الجزئية أسوأ من لا كتابة،
+   *    فنُرجع الحالة السابقة كما كانت عند أي فشل.
+   */
+  function storeContent(content, idMap) {
+    const prevC = localStorage.getItem(CONTENT_KEY);
+    const prevM = localStorage.getItem(IDMAP_KEY);
+    try {
+      localStorage.setItem(CONTENT_KEY, JSON.stringify(content));
+      localStorage.setItem(IDMAP_KEY, JSON.stringify(idMap));
+      if (Store.get().storageFull) Store.set({ storageFull: false });
+      return true;
+    } catch (e) {
+      const restore = (k, v) => {
+        try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }
+        catch { /* لا شيء نفعله أكثر */ }
+      };
+      restore(CONTENT_KEY, prevC);
+      restore(IDMAP_KEY, prevM);
+      // العلامة تُقرأ في الواجهة: الطالب يرى سببًا مفهومًا بدل محتوى متجمّد
+      Store.set({ storageFull: true });
+      console.error('تعذّر حفظ المحتوى — مساحة التخزين ممتلئة', e);
+      return false;
+    }
+  }
 
   /**
    * وضع المعاينة — `index.html?demo=1`.
@@ -222,8 +261,7 @@ window.Sync = (function () {
       })),
     };
 
-    localStorage.setItem(CONTENT_KEY, JSON.stringify(content));
-    localStorage.setItem(IDMAP_KEY, JSON.stringify(idMap));
+    if (!storeContent(content, idMap)) return null;
     return content;
   }
 
@@ -464,11 +502,44 @@ window.Sync = (function () {
   // ---------------------------------------------------------------------------
   let running = false;
 
+  /* ---------------------------------------------------------------------------
+     هل يستحقّ المحتوى سحبًا؟
+
+     كل فتحة للتطبيق كانت تسحب الكتالوج كاملًا — ١٢ استعلامًا ومئات الكيلوبايت —
+     ولو لم يتغيّر حرف. المحتوى يتغيّر مرّةً في الأسبوع تقريبًا والطالب يفتح
+     التطبيق عدّة مرّات يوميًا، فالغالبية العظمى من ذلك النقل مهدورة.
+
+     نسأل أولًا عن بصمة واحدة (`content_version`, انظر الهجرة 20260807000100).
+     إن طابقت المحفوظة **وكان عندنا محتوى فعلًا** تخطّينا السحب كليًا.
+
+     أي شكّ ⇒ نسحب: تعذّر الاتصال بالدالة، أو بصمة فارغة، أو لا محتوى مخزَّنًا.
+     الخطأ في اتجاه «سحبٌ زائد» يكلّف نطاقًا؛ وفي الاتجاه الآخر يكلّف محتوًى
+     قديمًا عند الطالب لا يعرف أحد أنه قديم.
+  --------------------------------------------------------------------------- */
+  let pendingVersion = null;
+
+  async function contentStale() {
+    pendingVersion = null;
+    let ver;
+    try { ver = await Api.rpc('content_version'); }
+    catch { return true; }
+    if (typeof ver !== 'string' || !ver || ver === 'empty') return true;
+    pendingVersion = ver;
+    if (!localStorage.getItem(CONTENT_KEY)) return true;
+    return localStorage.getItem(VERSION_KEY) !== ver;
+  }
+
+  function commitVersion() {
+    if (!pendingVersion) return;
+    try { localStorage.setItem(VERSION_KEY, pendingVersion); } catch { /* غير حرج */ }
+    pendingVersion = null;
+  }
+
   /**
    * دورة مزامنة كاملة. الترتيب مقصود:
    *   ١. فحص الجلسة  — لا فائدة من أي شيء بعده إن كنّا مطرودين
    *   ٢. رفع الطابور — قبل أي سحب، لئلّا يُطمس نشاط لم يُرسل
-   *   ٣. سحب المحتوى ثم التقدّم
+   *   ٣. سحب المحتوى (إن تغيّر) ثم الاستحقاق ثم التقدّم
    */
   async function syncNow({ content = true } = {}) {
     if (running || !Api.isSignedIn()) return null;
@@ -485,15 +556,25 @@ window.Sync = (function () {
 
       if (navigator.onLine) {
         if (content && !DEMO) {
-          // مقارنة نصّية لما خُزِّن قبل السحب وبعده: أدقّ إشارة ممكنة على
-          // «هل تغيّر شيء فعلًا؟» وأرخص من مقارنة الشجرة عنصرًا عنصرًا.
-          // بلا هذا كانت كل مزامنة تُعدّ تغييرًا فتُعيد رسم الشاشة.
-          const before = localStorage.getItem(CONTENT_KEY);
-          const c = await pullContent();
-          contentChanged = localStorage.getItem(CONTENT_KEY) !== before;
-          if (contentChanged) applyStored();
-          // بعد المحتوى لا قبله: الصف يُشتقّ من الوحدات التي وصلت للتوّ
-          entitle = await pullEntitlements(c);
+          let c = null;
+          if (await contentStale()) {
+            // مقارنة نصّية لما خُزِّن قبل السحب وبعده: أدقّ إشارة ممكنة على
+            // «هل تغيّر شيء فعلًا؟» وأرخص من مقارنة الشجرة عنصرًا عنصرًا.
+            // بلا هذا كانت كل مزامنة تُعدّ تغييرًا فتُعيد رسم الشاشة.
+            const before = localStorage.getItem(CONTENT_KEY);
+            c = await pullContent();
+            contentChanged = localStorage.getItem(CONTENT_KEY) !== before;
+            if (contentChanged) applyStored();
+            /* البصمة تُسجَّل بعد نجاح الحفظ لا قبله: `pullContent` تُرجع null إن
+               امتلأت المساحة، وتسجيلُها حينها يعني تخطّي السحب إلى الأبد
+               ومحتوًى متجمّدًا بلا سبب ظاهر. */
+            if (c) commitVersion();
+          }
+          /* الاستحقاق يُسحب دائمًا وإن تخطّينا المحتوى: أيام الاشتراك تنقص
+             بمرور الوقت لا بتغيّر المحتوى، ولو ربطناه بالسحب لبقي اشتراكٌ
+             منتهٍ يعرض أيامًا متبقّية إلى أن يعدّل أحدٌ درسًا.
+             وعند التخطّي نمرّر المحتوى المطبَّق ليبقى اشتقاق الصف صحيحًا. */
+          entitle = await pullEntitlements(c || window.SEED);
         }
         progress = await pullProgress();
       }

@@ -523,6 +523,31 @@ ok('اسم الصف المشتقّ هو البكالوريا لا التاسع',
 const mixed = [...new Set(['g9', 'g12'])];
 ok('بصفّين مختلفين لا يُعرض أيّهما', (mixed.length === 1 ? 'x' : '') === '');
 
+// --- كلفة المزامنة وحصّة التخزين -------------------------------------------------
+{
+  const s = fs.readFileSync(dir + 'data/sync.js', 'utf8');
+  ok('الكتالوج لا يُسحب إلّا إذا تغيّرت البصمة', /if \(await contentStale\(\)\)/.test(s)
+     && /Api\.rpc\('content_version'\)/.test(s));
+  ok('أي شكّ في البصمة ⇒ سحب لا تخطٍّ',
+     /catch \{ return true; \}/.test(s)
+     && /if \(!localStorage\.getItem\(CONTENT_KEY\)\) return true;/.test(s));
+  // البصمة بعد نجاح الحفظ لا قبله، وإلّا تجمّد المحتوى إلى الأبد عند امتلاء المساحة
+  ok('البصمة تُثبَّت بعد نجاح الحفظ فقط', /if \(c\) commitVersion\(\);/.test(s));
+  // الاستحقاق لا يُربط بتغيّر المحتوى: أيام الاشتراك تنقص بمرور الوقت
+  ok('الاستحقاق يُسحب حتى حين يُتخطّى المحتوى',
+     /entitle = await pullEntitlements\(c \|\| window\.SEED\);/.test(s)
+     && !/contentStale\(\)[\s\S]{0,400}?pullEntitlements[\s\S]{0,20}\n\s*\}\n\s*\}/.test(s));
+  ok('الحفظ محميّ من امتلاء الحصّة', /function storeContent/.test(s)
+     && /catch \(e\) \{[\s\S]{0,400}storageFull: true/.test(s));
+  ok('لا كتابة نصفية: الحالة السابقة تُرجَع',
+     /restore\(CONTENT_KEY, prevC\);[\s\S]{0,60}restore\(IDMAP_KEY, prevM\);/.test(s));
+  ok('لا كتابة مباشرة للمفتاحين خارج storeContent',
+     (s.match(/localStorage\.setItem\(CONTENT_KEY/g) || []).length === 1
+     && (s.match(/localStorage\.setItem\(IDMAP_KEY/g) || []).length === 1);
+  ok('الطالب يرى سبب توقّف المحتوى', /s\.storageFull/.test(compSrc)
+     && /مساحة التخزين ممتلئة/.test(compSrc));
+}
+
 // --- «يضلّ جارٍ التحميل»: لا مسار يحبس الطالب خلف السبلاش -------------------------
 // علّتان كانتا تُعطّلان السقف الزمني نفسه، فيبقى الغطاء إلى الأبد.
 ok('السقف الزمني يُسجَّل قبل أي شيء قد ينكسر',
