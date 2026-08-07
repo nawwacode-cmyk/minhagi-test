@@ -152,12 +152,26 @@ window.Api = (function () {
        فريد دائمًا. */
     q.set('order', order ? `${order},${pageKey}` : pageKey);
 
+    /* الصفحة التالية بالمفتاح لا بالإزاحة، حين يكون الترتيب هو المفتاح وحده.
+       السبب من القياس: `OFFSET 9000` تحت RLS يعني تقييم السياسة على ٩٠٠٠ صفّ
+       ثم رميها. على ١٠ صفحات ذلك ~٤٥٠٠٠ تقييم مهدور مقابل ٩٦٠٠ نافع — فكلفة
+       السحب تصير تربيعية بعدد الصفحات لا خطّية. أمّا `id > آخر ما رأينا` فمسح
+       مدًى على الفهرس: ثابتٌ مهما بعُدت الصفحة.
+
+       وتُشترط وحدةُ عمود الترتيب: مع ترتيبٍ مركّب يحتاج الأمر مقارنة صفّية
+       `(a,b) > (x,y)` لا يعبّر عنها PostgREST، فنُبقي الإزاحة هناك. */
+    const keyset = !order && !pageKey.includes(',');
+
     const out = [];
     let full = null;            // سعة الصفحة كما تعلّمناها من الخادم
     let prevHead = null;        // أول صفّ في الصفحة السابقة
+    let cursor = null;
     for (let offset = 0, pages = 0; ; pages++) {
+      if (keyset && cursor !== null) q.set(pageKey, `gt.${cursor}`);
       const page = await request(`/rest/v1/${table}?${q}`, {
-        headers: { 'Range-Unit': 'items', Range: `${offset}-${offset + PAGE - 1}` },
+        headers: keyset
+          ? { 'Range-Unit': 'items', Range: `0-${PAGE - 1}` }
+          : { 'Range-Unit': 'items', Range: `${offset}-${offset + PAGE - 1}` },
       });
       if (!Array.isArray(page)) return page;   // خطأ أو شكل غير متوقَّع
 
@@ -177,6 +191,14 @@ window.Api = (function () {
       if (full === null) full = page.length;   // أول صفحة تحدّد السعة الفعلية
       if (page.length < full) break;           // صفحة أقصر ⇒ بلغنا النهاية
       offset += page.length;
+      if (keyset) {
+        cursor = page[page.length - 1][pageKey];
+        // بلا مؤشّر لا سبيل للتقدّم — الرجوع للإزاحة أأمن من حلقةٍ تعيد نفسها
+        if (cursor === undefined || cursor === null) {
+          console.error(`${table}: عمود ${pageKey} غير مُنتقى، تعذّر الترقيم بالمفتاح`);
+          break;
+        }
+      }
 
       if (pages >= 200) {                      // ٢٠٠ صفحة ≈ ٢٠٠ ألف صفّ
         console.error(`ترقيم ${table} تجاوز الحدّ المعقول — توقّفنا عند ${out.length} صفًّا`);

@@ -108,7 +108,11 @@ window.Sync = (function () {
       Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order,courses(subject_id,grade_id)', order: 'sort_order' }),
       Api.from('lessons',   { select: 'id,code,title_ar,body_html,est_minutes,is_free,unit_id,video_id,sort_order', order: 'sort_order' }),
       Api.from('questions', { select: 'id,code,type,stem_md,passage_md,answer_key,difficulty,explanation_md,lesson_id,section,unit_code,subject_id' }),
-      Api.from('question_options', { select: 'id,question_id,code,text_md,is_correct,sort_order', order: 'sort_order' }),
+      /* بلا `order` عمدًا — وهو أكبر جدول يُسحب. الترتيب هنا كان زائدًا أصلًا:
+         التحويل أدناه يرتّب خيارات كل سؤال بـsort_order بنفسه. وإسقاطه يسمح
+         بالترقيم بالمفتاح بدل الإزاحة، وقد قِسنا الفرق: الإزاحة تحت RLS تُقيّم
+         السياسة على كل صفّ تتخطّاه ثم ترميه. */
+      Api.from('question_options', { select: 'id,question_id,code,text_md,is_correct,sort_order' }),
       Api.from('exams',     { select: 'id,code,title_ar,kind,duration_minutes,pass_percent,subject_id,grade_id,sort_order', order: 'sort_order' }),
       // بلا عمود id — مفتاحها مركّب، فيُثبَّت الترقيم به
       Api.from('exam_questions', { select: 'exam_id,question_id,sort_order,points',
