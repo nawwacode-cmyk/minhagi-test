@@ -523,6 +523,25 @@ ok('اسم الصف المشتقّ هو البكالوريا لا التاسع',
 const mixed = [...new Set(['g9', 'g12'])];
 ok('بصفّين مختلفين لا يُعرض أيّهما', (mixed.length === 1 ? 'x' : '') === '');
 
+// --- الترقيم: PostgREST يقصّ عند db-max-rows بلا أي إشارة خطأ ---------------------
+// قِسنا الأثر على الإنتاج: ١٣٠١ خيارًا ⇒ ١٠٠٠ تصل، فـ٩٥ سؤالًا يظهر بلا خيارات.
+{
+  const a = fs.readFileSync(dir + 'data/api.js', 'utf8');
+  const s = fs.readFileSync(dir + 'data/sync.js', 'utf8');
+  ok('from() تُرقّم الصفحات بترويسة Range',
+     /Range: `\$\{offset\}-\$\{offset \+ PAGE - 1\}`/.test(a));
+  // السعة تُتعلَّم لا تُفترض: خفضُ db-max-rows لاحقًا يجب ألّا يُعيد القصّ
+  ok('سعة الصفحة تُتعلَّم من أول صفحة', /if \(full === null\) full = page\.length;/.test(a)
+     && /if \(page\.length < full\) break;/.test(a));
+  // ترتيب غير فريد ⇒ الخادم حرّ في ترتيب المتساويات، فيتكرّر صفّ ويسقط آخر
+  ok('الترتيب يُذيَّل بمفتاح فريد', /order \? `\$\{order\},\$\{pageKey\}` : pageKey/.test(a));
+  ok('exam_questions تُرقَّم بمفتاحها المركّب (لا عمود id فيها)',
+     /pageKey: 'exam_id,question_id'/.test(s));
+  // وسيطٌ يتجاهل Range كان سيجعل الحلقة لا تنتهي والمصفوف ينمو حتى يموت التبويب
+  ok('حارس ضدّ حلقة لا تنتهي', /head === prevHead/.test(a) && /pages >= 200/.test(a));
+  ok('limit صريح يتجاوز الترقيم', /if \(limit\) \{[\s\S]{0,160}return request/.test(a));
+}
+
 // --- كلفة المزامنة وحصّة التخزين -------------------------------------------------
 {
   const s = fs.readFileSync(dir + 'data/sync.js', 'utf8');

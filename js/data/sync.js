@@ -99,7 +99,9 @@ window.Sync = (function () {
       Api.from('questions', { select: 'id,code,type,stem_md,passage_md,answer_key,difficulty,explanation_md,lesson_id,section,unit_code,subject_id' }),
       Api.from('question_options', { select: 'id,question_id,code,text_md,is_correct,sort_order', order: 'sort_order' }),
       Api.from('exams',     { select: 'id,code,title_ar,kind,duration_minutes,pass_percent,subject_id,grade_id,sort_order', order: 'sort_order' }),
-      Api.from('exam_questions', { select: 'exam_id,question_id,sort_order,points' }),
+      // بلا عمود id — مفتاحها مركّب، فيُثبَّت الترقيم به
+      Api.from('exam_questions', { select: 'exam_id,question_id,sort_order,points',
+                                   pageKey: 'exam_id,question_id' }),
       Api.from('videos',    { select: 'id,title,quality,duration_s,size_bytes' }).catch(() => []),
       Api.from('teachers',  { select: 'id,code,name,bio,photo_path', order: 'sort_order' }).catch(() => []),
       Api.from('courses',   { select: 'teacher_id,subject_id' }).catch(() => []),

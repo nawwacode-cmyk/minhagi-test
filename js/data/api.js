@@ -105,19 +105,85 @@ window.Api = (function () {
   const invoke = (name, body, opts = {}) =>
     request(`/functions/v1/${name}`, { method: 'POST', body: body ?? {}, ...opts });
 
+  /* ---------------------------------------------------------------------------
+     الترقيم إلزامي لا تحسين.
+
+     PostgREST يقصّ كل استجابة عند `db-max-rows` (١٠٠٠ على مشروعنا) **بلا أي
+     إشارة خطأ**: يرجع ٢٠٠ ومعه ١٠٠٠ صفّ وكأنها كل ما هناك. قِسنا الأثر على
+     الإنتاج: جدول question_options فيه ١٣٠١ صفًّا، فكان ٣٠١ خيارًا لا يصل أي
+     جهاز — أي ٩٧ سؤالًا من ٤١٣ تظهر للطالب **بلا خيارات إطلاقًا**، لا يستطيع
+     حلّها ولا يفهم لماذا.
+
+     نطلب صفحاتٍ متتالية، والسعة الفعلية **تُتعلَّم من أول صفحة** لا تُفترض:
+     لو خُفِّض `db-max-rows` على السيرفر يومًا إلى ٥٠٠، بقي الترقيم صحيحًا بلا
+     تعديل هنا. افتراضُ الرقم بدل تعلّمه هو ما يُعيد الخلل صامتًا بعد سنة.
+
+     الثمن: طلبٌ إضافي واحد لكل جدول (الصفحة التي تُثبت النهاية). مقبول — السحب
+     الكامل صار نادرًا أصلًا بعد بصمة `content_version`.
+  --------------------------------------------------------------------------- */
+  const PAGE = 1000;
+
   /**
-   * قراءة جدول عبر PostgREST.
+   * قراءة جدول عبر PostgREST — بكل صفوفه.
    * الصلاحية تفرضها RLS على السيرفر — لا نمرّر أي شرط أمني من هنا.
    *   from('lessons', { select: '*', order: 'sort_order', gt: ['updated_at', iso] })
    */
-  function from(table, { select = '*', order, limit, gt, eq, in: inFilter } = {}) {
+  async function from(table, {
+    select = '*', order, limit, gt, eq, in: inFilter,
+    // مفتاح فريد يُذيَّل به الترتيب لتثبيت الترقيم. `id` يصلح لكل جداولنا عدا
+    // exam_questions فمفتاحها مركّب ولا عمود id فيها إطلاقًا.
+    pageKey = 'id',
+  } = {}) {
     const q = new URLSearchParams({ select });
-    if (order) q.set('order', order);
-    if (limit) q.set('limit', String(limit));
     if (gt)    q.set(gt[0], `gt.${gt[1]}`);
     if (eq)    q.set(eq[0], `eq.${eq[1]}`);
     if (inFilter) q.set(inFilter[0], `in.(${inFilter[1].join(',')})`);
-    return request(`/rest/v1/${table}?${q}`);
+
+    // حدٌّ صريح من المنادي = يريد هذا العدد بالضبط، فلا ترقيم
+    if (limit) {
+      if (order) q.set('order', order);
+      q.set('limit', String(limit));
+      return request(`/rest/v1/${table}?${q}`);
+    }
+
+    /* الترتيب الفريد شرطُ صحّة للترقيم لا تجميل: `sort_order` وحده غير فريد،
+       وترتيبٌ غير فريد يجعل الخادم حرًّا في ترتيب المتساويات بين صفحة وأخرى —
+       فيتكرّر صفّ ويسقط آخر بلا أي خطأ ظاهر. لذلك نذيّل ترتيب المنادي بمفتاح
+       فريد دائمًا. */
+    q.set('order', order ? `${order},${pageKey}` : pageKey);
+
+    const out = [];
+    let full = null;            // سعة الصفحة كما تعلّمناها من الخادم
+    let prevHead = null;        // أول صفّ في الصفحة السابقة
+    for (let offset = 0, pages = 0; ; pages++) {
+      const page = await request(`/rest/v1/${table}?${q}`, {
+        headers: { 'Range-Unit': 'items', Range: `${offset}-${offset + PAGE - 1}` },
+      });
+      if (!Array.isArray(page)) return page;   // خطأ أو شكل غير متوقَّع
+
+      /* حارس ضدّ حلقة لا تنتهي: لو تجاهل وسيطٌ أو إعدادٌ ترويسة Range لعاد
+         الخادم بالصفحة الأولى نفسها إلى الأبد، فيتضخّم المصفوف حتى يموت
+         التبويب. نكتفي حينها بما وصل ونصرخ — الانهيار أسوأ من نقصٍ معلَن،
+         و probe-pagination هو من يكشف النقص الحقيقي في التشغيل. */
+      const head = page.length ? JSON.stringify(page[0]) : null;
+      if (head !== null && head === prevHead) {
+        console.error(`الخادم يتجاهل ترويسة Range على ${table} — قد تكون النتيجة ناقصة`);
+        break;
+      }
+      prevHead = head;
+
+      out.push(...page);
+      if (!page.length) break;
+      if (full === null) full = page.length;   // أول صفحة تحدّد السعة الفعلية
+      if (page.length < full) break;           // صفحة أقصر ⇒ بلغنا النهاية
+      offset += page.length;
+
+      if (pages >= 200) {                      // ٢٠٠ صفحة ≈ ٢٠٠ ألف صفّ
+        console.error(`ترقيم ${table} تجاوز الحدّ المعقول — توقّفنا عند ${out.length} صفًّا`);
+        break;
+      }
+    }
+    return out;
   }
 
   /** كتابة صفوف. `onConflict` يجعلها upsert. */
