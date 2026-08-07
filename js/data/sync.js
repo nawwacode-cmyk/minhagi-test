@@ -10,9 +10,17 @@
    ============================================================================= */
 window.Sync = (function () {
 
-  const CONTENT_KEY = 'manhaji.content.v1';
-  const IDMAP_KEY   = 'manhaji.idmap.v1';
-  const VERSION_KEY = 'manhaji.content.ver';
+  const CONTENT_KEY = 'manhaji.content.v1';   // مفتاح localStorage القديم — للترحيل فقط
+  const IDMAP_KEY   = 'manhaji.idmap.v1';     // نفسه
+  const VERSION_KEY = 'manhaji.content.ver';  // صغير، يبقى في localStorage
+  const B_CONTENT = 'content';                // مفاتيح IndexedDB
+  const B_IDMAP   = 'idmap';
+
+  /* خريطة «رمز ← uuid» تُقرأ تزامنيًا في مسار رفع التقدّم (idOf/reverseMap)،
+     وIndexedDB غير متزامن. فنُبقيها في الذاكرة ونكتبها إلى القرص فقط.
+     القرص للبقاء بين الجلسات؛ الذاكرة هي المصدر أثناء الجلسة. */
+  let idMap = {};
+  let loaded = false;             // هل قرأنا القرص في هذه الجلسة؟
 
   /**
    * حفظ المحتوى وخريطة معرّفاته معًا — أو لا حفظ إطلاقًا.
@@ -25,26 +33,29 @@ window.Sync = (function () {
    *    أعلى ويُطبع تحذيرًا في الطرفية — فيتوقّف المحتوى عن التحدّث **إلى
    *    الأبد** بلا أن يلاحظ الطالب أو نعرف نحن السبب.
    *
-   * ٢. الكتابتان كانتا منفصلتين. نجاح الأولى وفشل الثانية يترك خريطة معرّفات
-   *    لا تطابق المحتوى — وهي التي تترجم رموز الدروس إلى UUID عند رفع التقدّم.
+   * ٢. الكتابتان منفصلتان. نجاح الأولى وفشل الثانية يترك خريطة معرّفات لا
+   *    تطابق المحتوى — وهي التي تترجم رموز الدروس إلى UUID عند رفع التقدّم.
    *    أي: تقدّم الطالب يُرسل إلى صفوف خاطئة. الكتابة الجزئية أسوأ من لا كتابة،
-   *    فنُرجع الحالة السابقة كما كانت عند أي فشل.
+   *    فنُرجع الحالة السابقة كما كانت عند أي فشل. الضمان نفسه لازمٌ على
+   *    IndexedDB أيضًا: معاملتان منفصلتان لا واحدة ذرّية.
    */
-  function storeContent(content, idMap) {
-    const prevC = localStorage.getItem(CONTENT_KEY);
-    const prevM = localStorage.getItem(IDMAP_KEY);
+  async function storeContent(content, map) {
+    const prevC = await Blob2.get(B_CONTENT);
+    const prevM = await Blob2.get(B_IDMAP);
     try {
-      localStorage.setItem(CONTENT_KEY, JSON.stringify(content));
-      localStorage.setItem(IDMAP_KEY, JSON.stringify(idMap));
+      await Blob2.set(B_CONTENT, content);
+      await Blob2.set(B_IDMAP, map);
+      idMap = map;
       if (Store.get().storageFull) Store.set({ storageFull: false });
       return true;
     } catch (e) {
-      const restore = (k, v) => {
-        try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }
+      const restore = async (k, v) => {
+        try { if (v === null) await Blob2.del(k); else await Blob2.set(k, v); }
         catch { /* لا شيء نفعله أكثر */ }
       };
-      restore(CONTENT_KEY, prevC);
-      restore(IDMAP_KEY, prevM);
+      await restore(B_CONTENT, prevC);
+      await restore(B_IDMAP, prevM);
+      idMap = prevM || {};
       // العلامة تُقرأ في الواجهة: الطالب يرى سببًا مفهومًا بدل محتوى متجمّد
       Store.set({ storageFull: true });
       console.error('تعذّر حفظ المحتوى — مساحة التخزين ممتلئة', e);
@@ -263,7 +274,7 @@ window.Sync = (function () {
       })),
     };
 
-    if (!storeContent(content, idMap)) return null;
+    if (!await storeContent(content, idMap)) return null;
     return content;
   }
 
@@ -279,12 +290,16 @@ window.Sync = (function () {
    * الشاشات تقرأ `SEED` كما هي بلا أي تعديل — لذلك اخترنا مطابقة الشكل تمامًا
    * في التحويل أعلاه بدل تغيير عشرات المواضع في الواجهة.
    */
-  function applyStored() {
+  async function applyStored() {
     if (DEMO) return false;
     try {
-      const raw = localStorage.getItem(CONTENT_KEY);
-      if (!raw) return false;
-      const c = JSON.parse(raw);
+      /* الترحيل من مفاتيح localStorage القديمة يسبق أي قراءة، ومرّةً واحدة:
+         طالبٌ قائم يحمل محتواه هناك، وقراءةُ IndexedDB الفارغة قبل نقله تعني
+         أنه يفتح التطبيق على شاشة فارغة ثم ينتظر مزامنة كاملة — أو لا يرى
+         شيئًا إن كان بلا إنترنت. */
+      await ensureLoaded();
+      const c = await Blob2.get(B_CONTENT);
+      if (!c) return false;
       if (!c.lessons || !Object.keys(c.lessons).length) return false;
       /* كتلةٌ محفوظة من نسخة أقدم قد تنقصها حقول أضافتها نسخة أحدث. وبما أن
          هذا السطر يستبدل SEED **كاملًا**، تصير الشاشة تقرأ حقلًا غير موجود
@@ -302,21 +317,30 @@ window.Sync = (function () {
     } catch { return false; }
   }
 
-  const idOf = (kind, code) => {
-    try { return JSON.parse(localStorage.getItem(IDMAP_KEY) || '{}')[`${kind}:${code}`] || null; }
-    catch { return null; }
-  };
+  /**
+   * تحميل خريطة المعرّفات من القرص مرّة واحدة في الجلسة.
+   *
+   * كانت `idOf` تقرأ localStorage عند كل نداء، فلم يكن للترتيب معنى. ومع
+   * IndexedDB صارت تقرأ الذاكرة، فأي مسار يبلغ رفع التقدّم قبل `applyStored`
+   * يجد خريطة فارغة — فيُرسل تقدّم الطالب بمعرّفات فارغة ويضيع بصمت.
+   * فبدل الاعتماد على ترتيب النداءات، يضمن كل مسار حاجته بنفسه.
+   */
+  async function ensureLoaded() {
+    if (loaded) return;
+    await Blob2.migrate([[CONTENT_KEY, B_CONTENT], [IDMAP_KEY, B_IDMAP]]);
+    idMap = (await Blob2.get(B_IDMAP)) || {};
+    loaded = true;
+  }
+
+  const idOf = (kind, code) => idMap[`${kind}:${code}`] || null;
 
   /** العكس: uuid ← رمز. نبنيه عند الحاجة لأن سحب التقدّم يعود بمعرّفات السيرفر. */
   function reverseMap(kind) {
     const out = {};
-    try {
-      const map = JSON.parse(localStorage.getItem(IDMAP_KEY) || '{}');
-      for (const [k, uuid] of Object.entries(map)) {
-        const [t, code] = k.split(':');
-        if (t === kind) out[uuid] = code;
-      }
-    } catch { /* خريطة فارغة */ }
+    for (const [k, uuid] of Object.entries(idMap)) {
+      const [t, code] = k.split(':');
+      if (t === kind) out[uuid] = code;
+    }
     return out;
   }
 
@@ -332,6 +356,7 @@ window.Sync = (function () {
    * على `client_updated_at`.
    */
   async function pushProgress() {
+    await ensureLoaded();          // idOf يقرأ الذاكرة الآن، فلا بدّ من تحميلها
     const queue = Store.get().outbox || [];
     if (!queue.length || !Api.isSignedIn()) return { sent: 0, failed: 0 };
 
@@ -394,6 +419,7 @@ window.Sync = (function () {
    */
   async function pullProgress() {
     if (!Api.isSignedIn()) return 0;
+    await ensureLoaded();          // reverseMap يقرأ الذاكرة الآن
 
     const [lessons, exams] = await Promise.all([
       Api.from('lesson_progress',  { select: 'lesson_id,status,completed_at,client_updated_at' }),
@@ -527,7 +553,8 @@ window.Sync = (function () {
     catch { return true; }
     if (typeof ver !== 'string' || !ver || ver === 'empty') return true;
     pendingVersion = ver;
-    if (!localStorage.getItem(CONTENT_KEY)) return true;
+    // بصمة مطابقة بلا محتوى على القرص = جهاز جديد أو تخزين مُسِح ⇒ نسحب
+    if (!await Blob2.get(B_CONTENT)) return true;
     return localStorage.getItem(VERSION_KEY) !== ver;
   }
 
@@ -560,13 +587,14 @@ window.Sync = (function () {
         if (content && !DEMO) {
           let c = null;
           if (await contentStale()) {
-            // مقارنة نصّية لما خُزِّن قبل السحب وبعده: أدقّ إشارة ممكنة على
-            // «هل تغيّر شيء فعلًا؟» وأرخص من مقارنة الشجرة عنصرًا عنصرًا.
-            // بلا هذا كانت كل مزامنة تُعدّ تغييرًا فتُعيد رسم الشاشة.
-            const before = localStorage.getItem(CONTENT_KEY);
+            /* «هل تغيّر شيء؟» كانت تُجاب بمقارنة النصّ المخزَّن قبل السحب
+               وبعده. لم يعد المحتوى نصًّا (صار كائنًا في IndexedDB)، والبصمة
+               صارت **مقصورة على نطاق الطالب** — فوصولنا إلى هنا يعني أن شيئًا
+               في نطاقه تغيّر فعلًا. هي إشارة أدقّ من السابقة لا أضعف: المقارنة
+               النصّية كانت تُعلن تغييرًا لأي فرقٍ في الترتيب أو التنسيق. */
             c = await pullContent();
-            contentChanged = localStorage.getItem(CONTENT_KEY) !== before;
-            if (contentChanged) applyStored();
+            contentChanged = !!c;
+            if (contentChanged) await applyStored();
             /* البصمة تُسجَّل بعد نجاح الحفظ لا قبله: `pullContent` تُرجع null إن
                امتلأت المساحة، وتسجيلُها حينها يعني تخطّي السحب إلى الأبد
                ومحتوًى متجمّدًا بلا سبب ظاهر. */
@@ -596,9 +624,15 @@ window.Sync = (function () {
    * وإبقاؤه يعني أن الطالب التالي على الجهاز نفسه يرى محتوى سابقه إلى أن
    * تكتمل أول مزامنة له.
    */
-  function clearContent() {
+  async function clearContent() {
+    await Blob2.del(B_CONTENT);
+    await Blob2.del(B_IDMAP);
+    // ومفاتيح localStorage القديمة إن بقيت من نسخة سابقة لم تُرحَّل بعد
     localStorage.removeItem(CONTENT_KEY);
     localStorage.removeItem(IDMAP_KEY);
+    localStorage.removeItem(VERSION_KEY);   // وإلّا تخطّى الطالب التالي السحب
+    idMap = {};
+    loaded = false;
   }
 
   return { pullContent, applyStored, pushProgress, pullProgress,

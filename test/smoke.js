@@ -308,9 +308,12 @@ ok('pullProgress يُرجع المتغيّر لا المجلوب',
    !/return lessons\.length \+ exams\.length/.test(syncSrc) && /return changed;/.test(syncSrc));
 ok('يقارن الدروس بالحالة الحالية', /s\.lessons\[k\] !== nextLessons\[k\]/.test(syncSrc));
 ok('لا يكتب الحالة إن لم يتغيّر شيء', /if \(changed\) Store\.set\(/.test(syncSrc));
-ok('المحتوى يُقارن نصًّا قبل/بعد السحب',
-   /const before = localStorage\.getItem\(CONTENT_KEY\)/.test(syncSrc)
-   && /contentChanged = localStorage\.getItem\(CONTENT_KEY\) !== before/.test(syncSrc));
+/* المحتوى لم يعد نصًّا في localStorage بل كائنًا في IndexedDB، فلا مقارنة
+   نصّية. الإشارة صارت البصمة المقصورة على نطاق الطالب: بلوغُ السحب يعني أن
+   شيئًا في نطاقه تغيّر فعلًا. */
+ok('التغيّر يُستدلّ عليه بالبصمة لا بمقارنة نصّية',
+   /contentChanged = !!c;/.test(syncSrc)
+   && !/localStorage\.getItem\(CONTENT_KEY\) !== before/.test(syncSrc));
 ok('syncNow يُصرّح بـchanged', /changed: contentChanged \|\| progress > 0/.test(syncSrc));
 ok('app.js لا يرسم إلا عند changed',
    /if \(!r\.changed\) return;/.test(appSrc) && !/const after = \(r\) => \{ if \(r\) render\(\); \};/.test(appSrc));
@@ -549,7 +552,7 @@ ok('بصفّين مختلفين لا يُعرض أيّهما', (mixed.length ===
      && /Api\.rpc\('content_version'\)/.test(s));
   ok('أي شكّ في البصمة ⇒ سحب لا تخطٍّ',
      /catch \{ return true; \}/.test(s)
-     && /if \(!localStorage\.getItem\(CONTENT_KEY\)\) return true;/.test(s));
+     && /if \(!await Blob2\.get\(B_CONTENT\)\) return true;/.test(s));
   // البصمة بعد نجاح الحفظ لا قبله، وإلّا تجمّد المحتوى إلى الأبد عند امتلاء المساحة
   ok('البصمة تُثبَّت بعد نجاح الحفظ فقط', /if \(c\) commitVersion\(\);/.test(s));
   // الاستحقاق لا يُربط بتغيّر المحتوى: أيام الاشتراك تنقص بمرور الوقت
@@ -559,10 +562,28 @@ ok('بصفّين مختلفين لا يُعرض أيّهما', (mixed.length ===
   ok('الحفظ محميّ من امتلاء الحصّة', /function storeContent/.test(s)
      && /catch \(e\) \{[\s\S]{0,400}storageFull: true/.test(s));
   ok('لا كتابة نصفية: الحالة السابقة تُرجَع',
-     /restore\(CONTENT_KEY, prevC\);[\s\S]{0,60}restore\(IDMAP_KEY, prevM\);/.test(s));
+     /restore\(B_CONTENT, prevC\);[\s\S]{0,80}restore\(B_IDMAP, prevM\);/.test(s));
+  // وخريطة الذاكرة تُرَدّ مع القرص: خريطة أحدث من المحفوظ ترسل التقدّم لصفوف لم تُكتب
+  ok('وخريطة الذاكرة تُرَدّ معها', /idMap = prevM \|\| \{\};/.test(s));
   ok('لا كتابة مباشرة للمفتاحين خارج storeContent',
-     (s.match(/localStorage\.setItem\(CONTENT_KEY/g) || []).length === 1
-     && (s.match(/localStorage\.setItem\(IDMAP_KEY/g) || []).length === 1);
+     (s.match(/Blob2\.set\(B_CONTENT/g) || []).length === 1
+     && (s.match(/Blob2\.set\(B_IDMAP/g) || []).length === 1);
+  // --- التخزين: IndexedDB بدل حصّة الخمسة ميغابايت -------------------------------
+  {
+    const b = fs.readFileSync(dir + 'data/blobstore.js', 'utf8');
+    const code = b.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    ok('المحتوى يُخزَّن في IndexedDB', /indexedDB\.open/.test(code));
+    // الكائن يُخزَّن كما هو: لا JSON.stringify عند الحفظ ولا parse عند الإقلاع
+    ok('بلا JSON في مسار IndexedDB', !/JSON\.(stringify|parse)/.test(code.split('const lsKey')[0]));
+    ok('وبديلٌ يعمل حين يُمنع IndexedDB (تصفّح خاص)', /const lsKey/.test(code));
+    // الترحيل ينقل ولا ينسخ، ولا يحذف القديم إلّا بعد نجاح الكتابة
+    ok('الترحيل ينقل ولا ينسخ', /await set\(newKey, value\); localStorage\.removeItem\(oldKey\)/.test(code));
+    ok('الخروج يمسح البصمة أيضًا', /removeItem\(VERSION_KEY\)/.test(s),
+       'بصمة باقية تجعل الطالب التالي يتخطّى السحب فلا يرى شيئًا');
+    ok('مسارات التقدّم تُحمّل الخريطة بنفسها',
+       (s.match(/await ensureLoaded\(\);/g) || []).length >= 3,
+       'idOf صار يقرأ الذاكرة، فمسارٌ يسبق applyStored يرفع تقدّمًا بمعرّفات فارغة');
+  }
   ok('الطالب يرى سبب توقّف المحتوى', /s\.storageFull/.test(compSrc)
      && /مساحة التخزين ممتلئة/.test(compSrc));
 }

@@ -8,12 +8,12 @@
    إلى الأبد ما لم يتغيّر هذا السطر، فيرى الطالب تطبيقًا قديمًا رغم النشر.
    ============================================================================= */
 
-const VERSION = 'manhaji-shell-v23';
+const VERSION = 'manhaji-shell-v24';
 
 const SHELL = [
   './', './index.html',
   './css/tokens.css', './css/app.css',
-  './js/ui.js', './js/data/seed.js', './js/store.js', './js/components.js',
+  './js/ui.js', './js/data/blobstore.js', './js/data/seed.js', './js/store.js', './js/components.js',
   './js/data/api.js', './js/data/device.js', './js/data/sync.js', './js/data/media.js',
   './js/screens/onboarding.js', './js/screens/evicted.js', './js/screens/progress.js',
   './js/screens/main.js', './js/screens/course.js', './js/screens/exam.js', './js/app.js',

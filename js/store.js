@@ -96,11 +96,14 @@ window.Store = (function () {
 
   function reset() {
     localStorage.removeItem(KEY);
-    // محتوى مزامنة حقيقي سابق (sync.js: manhaji.content.v1/idmap.v1) يبقى
-    // في localStorage إلى الأبد لو لم يُمسح هنا أيضًا، فيستبدل SEED التجريبي
-    // بصمت عند كل إقلاع تالٍ — "إعادة ضبط" لا تُبقي أثرًا خفيًا كهذا.
+    /* محتوى مزامنة حقيقي سابق يبقى إلى الأبد لو لم يُمسح هنا أيضًا، فيستبدل
+       SEED التجريبي بصمت عند كل إقلاع تالٍ — "إعادة ضبط" لا تُبقي أثرًا خفيًا.
+       المحتوى انتقل إلى IndexedDB، فلا يكفي مسح مفاتيح localStorage القديمة:
+       تركُ نسخة IndexedDB يعني إعادة ضبطٍ لا تُعيد ضبط شيء. */
     localStorage.removeItem('manhaji.content.v1');
     localStorage.removeItem('manhaji.idmap.v1');
+    localStorage.removeItem('manhaji.content.ver');
+    if (window.Sync?.clearContent) Sync.clearContent();
     state = initial();
     subs.forEach((fn) => fn(state));
   }
