@@ -23,6 +23,9 @@ window.Sync = (function () {
    */
   const DEMO = new URLSearchParams(location.search).has('demo');
 
+  /** مصفوفات «عقد الشكل» كما يعلنها seed.js — تُلتقط قبل أن يستبدله applyStored. */
+  const SHAPE = Object.keys(window.SEED || {}).filter((k) => Array.isArray(window.SEED[k]));
+
   // ---------------------------------------------------------------------------
   // ترجمة أنواع الأسئلة
   // ---------------------------------------------------------------------------
@@ -243,7 +246,18 @@ window.Sync = (function () {
       if (!raw) return false;
       const c = JSON.parse(raw);
       if (!c.lessons || !Object.keys(c.lessons).length) return false;
-      window.SEED = c;
+      /* كتلةٌ محفوظة من نسخة أقدم قد تنقصها حقول أضافتها نسخة أحدث. وبما أن
+         هذا السطر يستبدل SEED **كاملًا**، تصير الشاشة تقرأ حقلًا غير موجود
+         فتنكسر عند أول رسم — أي قبل أن تصل مزامنة تُصلح الكتلة.
+
+         نُكمل الناقص من الهيكل ولا نرفض الكتلة: الرفض يحرم طالبًا بلا إنترنت
+         من كل محتواه المخزَّن لمجرّد غياب حقل واحد أضافته نسخة أحدث.
+
+         المرجع هو seed.js نفسه — «عقد الشكل» المعلَن الذي تقرأ عليه الشاشات
+         (انظر تعليقه)، فأي مصفوفة تُضاف إليه مستقبلًا تدخل هذا الإكمال تلقائيًا. */
+      const filled = { ...window.SEED, ...c };
+      for (const k of SHAPE) if (!Array.isArray(filled[k])) filled[k] = [];
+      window.SEED = filled;
       return true;
     } catch { return false; }
   }

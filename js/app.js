@@ -293,20 +293,32 @@ window.App = (function () {
      */
     const hide = signedIn ? showSplash() : null;
 
-    render();
-    const first = startSync();
+    /* ترتيب هذه الأسطر هو الإصلاح، لا محتواها. الصياغة السابقة كانت تحبس
+       الطالب خلف «جارٍ التحميل» إلى الأبد في مسارين اثنين:
 
-    if (hide) {
-      let settled = false;
-      const finish = () => {
-        if (settled) return;
-        settled = true;
-        render();     // يرسم ما وصل بالمزامنة قبل رفع الغطاء
-        hide();
-      };
-      if (first) first.then(finish, finish); else finish();
-      setTimeout(finish, 6000);
-    }
+       ١) `settled = true` قبل `render()`: أي استثناء في الرسم يمنع `hide()`
+          من العمل، وفي الوقت نفسه يكون السقف الزمني قد استُهلك — فيعود
+          فورًا عند `if (settled) return`. الغطاء يبقى ولا شيء يرفعه.
+       ٢) السقف كان يُسجَّل **بعد** `render()` و`startSync()`: استثناء في
+          أيّهما ينهي `boot` قبل تسجيله، فلا سقف أصلًا.
+
+       القاعدة الآن: السقف أولًا، والرفع مضمون مهما فعل الرسم. شاشةٌ نصف
+       مبنيّة يراها الطالب ويستطيع الخروج منها؛ أما الغطاء الدائم فلا. */
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      try { render(); } catch (e) { console.error('تعذّر رسم الشاشة بعد المزامنة', e); }
+      if (hide) hide();
+    };
+    if (hide) setTimeout(finish, 6000);
+
+    try { render(); } catch (e) { console.error('تعذّر الرسم الأول', e); }
+
+    let first;
+    try { first = startSync(); } catch (e) { console.error('تعذّر بدء المزامنة', e); }
+
+    if (hide) { if (first) first.then(finish, finish); else finish(); }
 
     // service worker يعمل على http(s) فقط — يُتجاهل عند فتح الملف مباشرةً
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

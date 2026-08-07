@@ -39,7 +39,7 @@ window.Screens = window.Screens || {};
     const s = Store.get();
     const teachers = SEED.teachers || [];
     const firstEntitled = (SEED.subjects || []).find((sub) => sub.entitled);
-    const subjectName = (code) => SEED.subjects.find((x) => x.id === code)?.name || code;
+    const subjectName = (code) => (SEED.subjects || []).find((x) => x.id === code)?.name || code;
 
     // البانرات المُدارة من اللوحة وحدها. ما يصل هنا مفعَّل وضمن نافذته
     // الزمنية أصلًا (تفرضها RLS)، فلا تصفية تواريخ هنا.
@@ -305,8 +305,8 @@ window.Screens = window.Screens || {};
 
 
     const subjectRows = t.subjects.map((code) => {
-      const subject = SEED.subjects.find((sub) => sub.id === code);
-      const units = SEED.units.filter((u) => u.subject === code);
+      const subject = (SEED.subjects || []).find((sub) => sub.id === code);
+      const units = (SEED.units || []).filter((u) => u.subject === code);
       const lessons = units.flatMap((u) => u.lessons || []).length;
       return h('button.tsubj', { onclick: () => App.go('course', { subject: code }) },
         h('div.tsubj__ico', subject?.native ? subject.native.slice(0, 2) : (subject?.name || code)[0]),
@@ -319,7 +319,7 @@ window.Screens = window.Screens || {};
 
     // سطر تعريفي مشتقّ من المواد التي يقدّمها فعلًا — لا لقب مُختلَق.
     const tag = t.subjects.length
-      ? 'أستاذ ' + (SEED.subjects.find((x) => x.id === t.subjects[0])?.name || '')
+      ? 'أستاذ ' + ((SEED.subjects || []).find((x) => x.id === t.subjects[0])?.name || '')
       : '';
 
     const photo = Api.publicUrl(t.photo);

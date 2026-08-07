@@ -523,6 +523,28 @@ ok('اسم الصف المشتقّ هو البكالوريا لا التاسع',
 const mixed = [...new Set(['g9', 'g12'])];
 ok('بصفّين مختلفين لا يُعرض أيّهما', (mixed.length === 1 ? 'x' : '') === '');
 
+// --- «يضلّ جارٍ التحميل»: لا مسار يحبس الطالب خلف السبلاش -------------------------
+// علّتان كانتا تُعطّلان السقف الزمني نفسه، فيبقى الغطاء إلى الأبد.
+ok('السقف الزمني يُسجَّل قبل أي شيء قد ينكسر',
+   appSrc.indexOf('setTimeout(finish, 6000)') < appSrc.indexOf('const first = startSync')
+   || /if \(hide\) setTimeout\(finish, 6000\);[\s\S]{0,120}try \{ render\(\)/.test(appSrc));
+ok('رفع الغطاء مضمون ولو انكسر الرسم',
+   /try \{ render\(\); \} catch[^\n]*\n\s*if \(hide\) hide\(\);/.test(appSrc));
+ok('الرسم الأول محاط بحارس', /try \{ render\(\); \} catch \(e\) \{[^\n]*الرسم الأول/.test(appSrc));
+ok('بدء المزامنة محاط بحارس', /try \{ first = startSync\(\); \} catch/.test(appSrc));
+// عقد الشكل: كتلة محفوظة ناقصة كانت تستبدل SEED السليم بآخر يكسر الشاشة
+{
+  const syncSrc2 = fs.readFileSync(dir + 'data/sync.js', 'utf8');
+  const seedSrc = fs.readFileSync(dir + 'data/seed.js', 'utf8');
+  ok('مصفوفات الشكل تُشتقّ من seed.js لا تُكتب يدويًا',
+     /const SHAPE = Object\.keys\(window\.SEED[^\n]*Array\.isArray/.test(syncSrc2));
+  ok('الكتلة الناقصة تُكمَّل لا تُرفض (لئلّا يفقد الطالب محتواه بلا إنترنت)',
+     /for \(const k of SHAPE\) if \(!Array\.isArray\(filled\[k\]\)\) filled\[k\] = \[\];/.test(syncSrc2)
+     && /window\.SEED = filled;/.test(syncSrc2));
+  ok('seed.js ما زال يعلن الشكل بلا محتوى',
+     /subjects: \[\]/.test(seedSrc) && /units: \[\]/.test(seedSrc));
+}
+
 // --- التخطّي والسحب -------------------------------------------------------------
 // أربعة عقود لو انكسر أحدها تحوّل التخطّي من ميزة إلى ضرر صامت.
 const examSrc2 = fs.readFileSync(dir + 'screens/exam.js', 'utf8');
