@@ -252,10 +252,25 @@ ok('الشريط يطفو لا يلتصق بالحافة',
    /\.tabbar \{[^}]*inset-inline: 16px[^}]*bottom: calc\(14px/.test(cssSrc));
 ok('بحبّة كاملة الاستدارة', /\.tabbar \{[^}]*border-radius: var\(--r-full\)/.test(cssSrc));
 ok('على أرضية بنفسجية من التوكنات لا هكس مكتوب',
-   /\.tabbar \{[^}]*var\(--nav-hi\), var\(--nav\)/.test(cssSrc));
+   /\.tabbar \{[^}]*var\(--vio-hi\), var\(--vio\)/.test(cssSrc));
+
+/* --- بنفسجيٌّ واحد ---------------------------------------------------------
+   كانت ثلاث عائلات بأصباغ مختلفة (٢٥٠° و٢٤٨° و٢٦٤°) فتُقرأ كألوان متقاربة
+   لا كلونٍ واحد — وهو أسوأ من اختلافٍ صريح. */
 {
   const tok = fs.readFileSync(dir + '../css/tokens.css', 'utf8');
-  ok('ولون الشريط معرَّف في الوضعين', (tok.match(/--nav:/g) || []).length === 2);
+  ok('لا عائلات بنفسجية منفصلة بعد اليوم',
+     !/--acc-vivid|--nav:/.test(tok) && !/--acc-vivid|var\(--nav/.test(cssSrc));
+  ok('والسطح البنفسجي معرَّف في الوضعين', (tok.match(/--vio:/g) || []).length === 2);
+  // السطح يحمل نصًّا أبيض فيجب أن يبقى داكنًا في الوضعين، بخلاف --acc الذي ينقلب
+  const vio = [...tok.matchAll(/--vio:\s*(#[0-9A-Fa-f]{6})/g)].map((m) => m[1]);
+  const lum = (x) => parseInt(x.slice(1, 3), 16) * .299 + parseInt(x.slice(3, 5), 16) * .587
+                   + parseInt(x.slice(5, 7), 16) * .114;
+  ok('ويبقى داكنًا في الوضعين (يحمل نصًّا أبيض)', vio.every((v) => lum(v) < 120),
+     vio.map((v) => `${v}=${lum(v).toFixed(0)}`).join(' · '));
+  // لا هكس بنفسجي مكتوب يدويًا في الأنماط — كلّه من التوكنات
+  ok('لا تدرّج بنفسجي مكتوب يدويًا',
+     !/#(5B4B9E|6E5BB8|453876|4C3E92|3D2F73|5B4BC4|7059E8|5B21B6)/i.test(cssSrc));
 }
 // الشريط عائم ⇒ يحتاج مساحة أكبر أسفل الشاشة وإلّا اختفى آخر عنصر تحته
 ok('المساحة المحجوزة تراعي الطفو', /\.view \{ padding-bottom: calc\(76px/.test(cssSrc));
@@ -537,12 +552,12 @@ ok('أيقونة تشير يسارًا (اتجاه التقدّم بالعربي
   ok('السماكة الفعلية تفوق الافتراضي بوضوح',
      !!call && (+call[2] * +call[1] / 24) > 1.75, call ? (+call[2] * +call[1] / 24).toFixed(2) + 'px' : '—');
 }
-ok('السهم ببنفسجي مشبَع لا بالأكسنت المكتوم',
-   /\.tcard__go \{[^}]*color: var\(--acc-vivid\)/.test(cssSrc));
-{  // على أرضية داكنة يختفي البنفسجي الغامق نفسه، فلا يُنسخ بل يُرفع
+// السهم بلون الهوية نفسه بعد التوحيد — لا درجة ثالثة خاصّة به
+ok('السهم بلون الهوية', /\.tcard__go \{[^}]*color: var\(--acc\)/.test(cssSrc));
+{  // --acc لون مقدّمة: يُرفع في الوضع الداكن ولا يُنسخ، وإلّا اختفى على أرضيته
   const tok = fs.readFileSync(require('node:path').join(ROOT, 'css/tokens.css'), 'utf8');
-  const vals = [...tok.matchAll(/--acc-vivid:\s*(#[0-9A-Fa-f]{6})/g)].map((m) => m[1]);
-  ok('للـacc-vivid قيمة في كلا الوضعين', vals.length === 2, vals.join(' · '));
+  const vals = [...tok.matchAll(/--acc:\s*(#[0-9A-Fa-f]{6})/g)].map((m) => m[1]);
+  ok('للأكسنت قيمة في كلا الوضعين', vals.length === 2, vals.join(' · '));
   ok('قيمتا الوضعين مختلفتان', new Set(vals).size === 2);
 }
 

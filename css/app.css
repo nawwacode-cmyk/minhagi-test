@@ -119,7 +119,7 @@ img, svg { max-width: 100%; display: block; }
   position: fixed; z-index: 5;
   inset-inline: 16px; bottom: calc(14px + env(safe-area-inset-bottom));
   display: flex; align-items: center;
-  background: linear-gradient(135deg, var(--nav-hi), var(--nav));
+  background: linear-gradient(135deg, var(--vio-hi), var(--vio));
   border-radius: var(--r-full);
   padding: 8px;
   /* ثلاث طبقات لا واحدة: حافّة داخلية فاتحة تعطي سُمكًا، وظلٌّ قريب يثبّته،
@@ -127,7 +127,7 @@ img, svg { max-width: 100%; display: block; }
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .16),
     0 2px 6px rgba(30, 24, 50, .12),
-    0 18px 34px -12px rgba(74, 58, 158, .62);
+    0 18px 34px -12px rgba(60, 46, 143, .62);
 }
 .tabbar button {
   flex: 1; display: grid; place-items: center;
@@ -509,7 +509,7 @@ img, svg { max-width: 100%; display: block; }
 }
 
 /* ألوان المواد — بالترتيب لا بالعشوائية، فلا يتبدّل لون المادة بين فتحة وأخرى */
-.subj--c0 { background: linear-gradient(150deg, #6E5BB8, #4C3E92); }
+.subj--c0 { background: linear-gradient(150deg, var(--vio-hi), var(--vio-dp)); }
 .subj--c1 { background: linear-gradient(150deg, #E8705F, #C94A3C); }
 .subj--c2 { background: linear-gradient(150deg, #E5A93C, #C98A2E); }
 .subj--c3 { background: linear-gradient(150deg, #3FA97C, #2E7D5B); }
@@ -579,9 +579,9 @@ img, svg { max-width: 100%; display: block; }
   color: #fff; opacity: 0;
 }
 /* التدرّجات تدور كل ثلاث، فلا تبقى شريحة رابعة بلا خلفية */
-.promo__slide:nth-child(3n+1) { background: linear-gradient(135deg, #453876, #5B4B9E); }
+.promo__slide:nth-child(3n+1) { background: linear-gradient(135deg, var(--vio-dp), var(--vio)); }
 .promo__slide:nth-child(3n+2) { background: linear-gradient(135deg, #8A5A1E, #C98A2E); }
-.promo__slide:nth-child(3n+3) { background: linear-gradient(135deg, #3D2F73, #6E5BB8); }
+.promo__slide:nth-child(3n+3) { background: linear-gradient(135deg, var(--vio-dp), var(--vio-hi)); }
 
 /* صورة البانر: طبقة تملأ الشريحة، وفوقها تعتيم متدرّج يضمن قراءة النص
    الأبيض مهما كانت الصورة فاتحة. */
@@ -659,11 +659,11 @@ img, svg { max-width: 100%; display: block; }
   position: absolute; bottom: 14px; inset-inline-end: 14px;
   width: 34px; height: 34px; border-radius: 50%;
   display: grid; place-items: center;
-  background: var(--surf); color: var(--acc-vivid);
+  background: var(--surf); color: var(--acc);
   box-shadow: var(--sh-2);
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
-.tcard:hover .tcard__go { background: var(--acc-vivid); color: #FFF; }
+.tcard:hover .tcard__go { background: var(--acc); color: #FFF; }
 
 /* contain لا cover: الصورة مصمَّمة بنسبة يختارها المصمّم، والقصّ يقطع اسم
    الأستاذ أو وجهه. هامش صغير أهون من اسم مقطوع. */
@@ -881,7 +881,7 @@ img, svg { max-width: 100%; display: block; }
 .cont {
   border-radius: 20px; padding: 16px; color: #FFF;
   background: linear-gradient(140deg, var(--acc-hi), var(--acc-tx));
-  box-shadow: 0 14px 30px -14px rgba(69, 56, 118, .7);
+  box-shadow: 0 14px 30px -14px rgba(60, 46, 143, .7);
 }
 .cont__h { display: flex; align-items: center; gap: 12px; }
 .cont__ico {
