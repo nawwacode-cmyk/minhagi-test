@@ -449,44 +449,74 @@ img, svg { max-width: 100%; display: block; }
 /* --- بطاقات المواد (موادّي) — على نمط المرجع البصري --------------------------
    شبكة مرنة لا صفّ يمرّر أفقيًا: هذه الشاشة **مقصد** الطالب لا واجهة تصفّح،
    ومادةٌ خارج الإطار تعني مادةً لا يجدها. */
+/* الفجوة ١٦ لا ١٢: قصّة الحافّة تبرز ١٣px خارج البطاقة، وبفجوة أضيق تزحف
+   على جارتها. الفجوة هنا مساحة تشغلها القصّة لا هامش تجميلي. */
 .subj-grid {
-  display: grid; gap: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
 }
 .subj {
   position: relative; display: flex; flex-direction: column;
   align-items: flex-start; text-align: start;
-  min-height: 156px; padding: 15px 15px 18px;
-  border: 0; border-radius: 22px; color: #FFF;
-  box-shadow: 0 10px 22px -12px rgba(30, 24, 50, .45);
+  min-height: 178px; padding: 14px 15px 15px;
+  border: 0; border-radius: 24px; color: #FFF;
+  box-shadow: 0 10px 22px -12px rgba(30, 24, 50, .5);
   transition: transform var(--dur) var(--ease);
 }
 .subj:active { transform: scale(.975); }
+/* صفّ الأعلى: الأيقونة ونسبة التقدّم. النسبة تشغل موضع «علامة الحفظ» في
+   المرجع — نفس التوازن البصري، ومعلومةٌ يقصدها الطالب بدل أيقونة زخرفية. */
+.subj__top {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; margin-bottom: auto;
+}
 .subj__ico {
   display: grid; place-items: center;
   width: 42px; height: 42px; border-radius: 13px;
-  background: rgba(255, 255, 255, .22); margin-bottom: auto;
+  background: rgba(255, 255, 255, .22);
+}
+.subj__pct {
+  font-size: 11.5px; font-weight: 600; padding: 4px 9px;
+  border-radius: var(--r-full); background: rgba(255, 255, 255, .2);
 }
 .subj__name { font-size: 17px; font-weight: 600; margin-top: 14px; line-height: 1.4; }
 .subj__meta { font-size: 12px; opacity: .82; margin-top: 3px; line-height: 1.5; }
-.subj__free {
-  font-size: 11px; font-weight: 600; margin-top: 7px;
-  padding: 3px 9px; border-radius: var(--r-full);
-  background: rgba(255, 255, 255, .24);
+
+/* سطر الأستاذ: صورة دائرية صغيرة واسمه بجانبها — كما في المرجع */
+.subj__teacher {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 10px; width: 100%; min-width: 0;
 }
-/* شريط التقدّم على الحافّة السفلى: يقول «كم أنجزت» بلا أن يزاحم الاسم */
-.subj__bar {
-  position: absolute; inset-inline: 15px; bottom: 10px; height: 4px;
-  border-radius: 4px; background: rgba(255, 255, 255, .28); overflow: hidden;
+.subj__teacher img, .subj__init {
+  flex: 0 0 30px; width: 30px; height: 30px; border-radius: 50%;
+  object-fit: cover; border: 2px solid rgba(255, 255, 255, .55);
 }
-.subj__bar i { display: block; height: 100%; background: #FFF; border-radius: 4px; }
+.subj__init {
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, .25); font-size: 13px; font-weight: 600;
+}
+.subj__tn { min-width: 0; line-height: 1.35; }
+.subj__tn i { display: block; font-style: normal; font-size: 10.5px; opacity: .78; }
+/* اسمٌ طويل يُقصّ بالنقاط بدل أن يمطّ البطاقة ويكسر الشبكة كلّها */
+.subj__tn b {
+  display: block; font-size: 12.5px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* قصّة الحافّة بسهم — بديل «طيّة الكتاب» في المرجع: دائرة بلون الخلفية تطفو
+   على الحافّة فتبدو قطعًا في الورقة لا عنصرًا موضوعًا فوقها. */
+.subj__notch {
+  position: absolute; inset-inline-end: -13px; top: 44%;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bg); color: var(--acc);
+  display: grid; place-items: center;
+}
 
 /* ألوان المواد — بالترتيب لا بالعشوائية، فلا يتبدّل لون المادة بين فتحة وأخرى */
 .subj--c0 { background: linear-gradient(150deg, #6E5BB8, #4C3E92); }
 .subj--c1 { background: linear-gradient(150deg, #E8705F, #C94A3C); }
 .subj--c2 { background: linear-gradient(150deg, #E5A93C, #C98A2E); }
 .subj--c3 { background: linear-gradient(150deg, #3FA97C, #2E7D5B); }
-.subj--c4 { background: linear-gradient(150deg, #4E8FD0, #3A6EA5); }
 
 /* --- لوحة الإشعارات ---------------------------------------------------------- */
 .scrim {

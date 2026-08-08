@@ -161,6 +161,8 @@ window.Screens = window.Screens || {};
     // لا نفترض شيئًا هنا. كل بطاقة تحسب تقدّمها بنفسها عبر
     // Store.subjectProgress(id) — لا رقم عام مكرَّر على كل البطاقات.
     const entitledSubjects = (SEED.subjects || []).filter((sub) => sub.entitled);
+    // بطاقة المادة تحمل أستاذها، فالقائمة لازمة هنا كما في «الرئيسية»
+    const teachers = SEED.teachers || [];
 
     // الدرس التالي محصور بمواد الطالب المشترَك بها — لا كل درس بالتطبيق،
     // وإلا اقترح عليه إكمال درس بمادة ما هو مشترك فيها أصلًا.
@@ -216,24 +218,39 @@ window.Screens = window.Screens || {};
             entitledSubjects.length
               ? h('div.subj-grid', ...entitledSubjects.map((subject, i) => {
                   const p = Store.subjectProgress(subject.id);
-                  const free = SEED.units
-                    .filter((u) => u.subject === subject.id)
-                    .flatMap((u) => u.lessons || [])
-                    .filter((id) => SEED.lessons[id]?.free).length;
+                  // أستاذ المادة — من `teachers[].subjects` الذي يبنيه sync
+                  const t = teachers.find((x) => (x.subjects || []).includes(subject.id));
+                  const photo = t && Api.publicUrl(t.photo);
 
                   return h('button.subj', {
-                    class: 'subj--c' + (i % 5),
+                    class: 'subj--c' + (i % 4),
                     onclick: () => App.go('course', { subject: subject.id }),
                     'aria-label': subject.name,
                   },
-                    h('span.subj__ico', icon.book(21)),
+                    h('span.subj__top',
+                      h('span.subj__ico', icon.book(20)),
+                      /* موضع «علامة الحفظ» في المرجع — شغلناه بالتقدّم بدل
+                         أيقونة زخرفية: نفس التوازن البصري، ومعلومةٌ يقصدها
+                         الطالب فعلًا. (وقد سبق أن رُفضت علامة الحفظ.) */
+                      h('span.subj__pct', ar(p.percent) + '٪')),
+
                     h('span.subj__name', subject.name),
-                    h('span.subj__meta',
-                      [gradeOfSubject(subject.id),
-                       `${ar(p.lessonsTotal)} ${p.lessonsTotal === 1 ? 'درس' : 'درسًا'}`]
-                        .filter(Boolean).join(' · ')),
-                    free ? h('span.subj__free', `${ar(free)} مجاني`) : null,
-                    h('span.subj__bar', h('i', { style: `width:${p.percent}%` })));
+
+                    // الأستاذ: صورة دائرية صغيرة واسمه بجانبها — كما في المرجع
+                    t ? h('span.subj__teacher',
+                          photo
+                            ? h('img', { src: photo, alt: '', loading: 'lazy' })
+                            : h('span.subj__init', t.name[0]),
+                          h('span.subj__tn',
+                            h('i', 'الأستاذ'),
+                            h('b', t.name)))
+                      : h('span.subj__meta',
+                          [gradeOfSubject(subject.id),
+                           `${ar(p.lessonsTotal)} ${p.lessonsTotal === 1 ? 'درس' : 'درسًا'}`]
+                            .filter(Boolean).join(' · ')),
+
+                    // قصّة الحافّة بسهم — بديل «طيّة الكتاب» في المرجع
+                    h('span.subj__notch', icon.fwd(13, { width: 2.6 })));
                 }))
               // بلا شاشة اكتشاف/كتالوج حاليًا (أُزيلت مع طبقة الكورسات) — طالب
               // بلا اشتراك فعّال يُوجَّه للدعم مباشرة لا لتصفّح كتالوج غير موجود.

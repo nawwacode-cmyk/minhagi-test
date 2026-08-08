@@ -445,8 +445,19 @@ ok('العنوان محدود بسطرين', /\.lcard__t \{[^}]*-webkit-line-cla
 ok('المواد بطاقات ملوّنة', /h\('div\.subj-grid'/.test(mainSrc) && /\.subj-grid \{/.test(cssSrc));
 ok('بشبكة لا صفّ يمرّر أفقيًا', /\.subj-grid \{[^}]*grid-template-columns/.test(cssSrc));
 // أُسقطت الحلقة لا المعلومة: «كم أنجزت» سبب دخول الطالب هذه الشاشة
-ok('التقدّم باقٍ كشريط على البطاقة', /subj__bar/.test(mainSrc) && /\.subj__bar i \{/.test(cssSrc));
-ok('واللون بترتيب ثابت', /'subj--c' \+ \(i % 5\)/.test(mainSrc));
+ok('التقدّم يشغل موضع علامة الحفظ في المرجع',
+   /subj__pct/.test(mainSrc) && /\.subj__pct \{/.test(cssSrc));
+ok('واللون بترتيب ثابت', /'subj--c' \+ \(i % 4\)/.test(mainSrc));
+// صورة الأستاذ الدائرية واسمه بجانبها — جوهر المرجع في هذه البطاقة
+ok('البطاقة تحمل أستاذ المادة', /subj__teacher/.test(mainSrc)
+   && /teachers\.find\(\(x\) => \(x\.subjects \|\| \[\]\)\.includes\(subject\.id\)\)/.test(mainSrc));
+ok('وبديلٌ حين تغيب صورته', /subj__init/.test(mainSrc) && /\.subj__init \{/.test(cssSrc));
+ok('واسمٌ طويل يُقصّ لا يمطّ البطاقة',
+   /\.subj__tn b \{[^}]*text-overflow: ellipsis/.test(cssSrc));
+// قصّة الحافّة تبرز خارج البطاقة، فالفجوة يجب أن تتّسع لها
+ok('قصّة الحافّة بسهم', /subj__notch/.test(mainSrc)
+   && /\.subj__notch \{[^}]*background: var\(--bg\)/.test(cssSrc));
+ok('والفجوة تتّسع لبروزها', /\.subj-grid \{[^}]*gap: 16px/.test(cssSrc));
 // الحالة تُقرأ من الأيقونة والهدوء لا من نقطة على خطّ: المكتمل صحٌّ أخضر
 ok('المكتمل يحمل علامة صحّ', /state === 'done' \? icon\.check\(19\)/.test(courseSrc)
    && /\.lcard--done \.lcard__ico \{[^}]*color: var\(--ok\)/.test(cssSrc));
