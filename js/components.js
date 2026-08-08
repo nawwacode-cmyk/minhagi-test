@@ -366,7 +366,11 @@ window.C = (function () {
         box.appendChild(h('b', fr(q.answer.join(' '))));
         box.appendChild(document.createTextNode(' — '));
       }
-      box.appendChild(document.createTextNode(q.why));
+      /* كان `createTextNode` — نصًّا خامًا بلا عزل ولا ماركداون. وهو أسوأ
+         موضع في التطبيق لذلك: الشرح هو ما يقرؤه الطالب **بعد أن يخطئ**،
+         وفيه أكثر خلطٍ للغتين (المفردة الفرنسية ومعناها والمصدر). كانت
+         علامات `**` تظهر حرفيًّا والمفردة تقفز لطرفٍ آخر. */
+      box.appendChild(UI.rich(q.why, 'span'));
       return box;
     }
 

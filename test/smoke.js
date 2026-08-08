@@ -107,15 +107,16 @@ const appSrc   = fs.readFileSync(dir + 'app.js', 'utf8');
 const mainSrc  = fs.readFileSync(dir + 'screens/main.js', 'utf8');
 const cssSrc   = fs.readFileSync(require('node:path').join(ROOT, 'css/app.css'), 'utf8');
 const uiSrc = fs.readFileSync(dir + 'ui.js', 'utf8');
-const runRe = uiSrc.match(/const LATIN_RUN = (\/.*\/g);/);
-ok('UI.rich يعرّف نمط عزل المقاطع اللاتينية', !!runRe);
-if (runRe) {
-  const LATIN = eval(runRe[1]);
-  const mixed = "بحسب النص: Les robots menacent-ils l'Homme ? اختر الصحيح.";
-  const runs = [...mixed.matchAll(LATIN)].map((m) => m[0]);
-  ok('علامة الاستفهام تبقى داخل المقطع الفرنسي', runs.some((r) => r.trim().endsWith('?')));
-  ok('لا يبتلع العزلُ النصَّ العربي', runs.every((r) => !/[؀-ۿ]/.test(r)));
-}
+/* عرض النصّ المختلط: السلوك نفسه يُفحص ببناء الناتج فعليًا في
+   `test/suites/bidi-check.js` على نصوصٍ حقيقية من المنهاج. هنا نحرس البنية:
+   اتجاهٌ لكل سطر، و`<bdi>` لا `<span>`، وماركداون يصير عُقدًا. */
+ok('اتجاه يُحسب لكل سطر من أوّل حرف قويّ',
+   /function lineDir\(/.test(uiSrc) && /el = h\('div\.rich__l', d \? \{ dir: d \}/.test(uiSrc));
+ok('العزل بـ<bdi> لا <span>', /h\('bdi\.fr'/.test(uiSrc) && !/h\('span\.fr'/.test(uiSrc));
+ok('والماركداون يصير عُقدًا', /const MD = /.test(uiSrc) && /h\('b'\)/.test(uiSrc));
+// المسافة التي يبتلعها المقطع تُعاد خارجه، وإلّا التصق «1-» بما بعده
+ok('المسافة عند حافّة المقطع لا تُبتلع',
+   /const lead = seg\.match\(\/\^\\s\*\/\)\[0\]/.test(uiSrc));
 
 // نصّ السؤال يُبنى عبر UI.rich لا كعقدة نصّية — وإلّا طُويت أسطر نصّ القراءة
 const compSrc = fs.readFileSync(dir + 'components.js', 'utf8');
@@ -193,12 +194,14 @@ ok('فرع الأسئلة العامة يلتقط بلا-unitCode فقط', byBra
 
 // --- سلامة الترميز: كشف مبكر لتلف UTF-8 في ملفات الواجهة ---------------------
 // هذا الاختبار موجود لأن تحرير هذه الملفات بأدوات ويندوز التي تفترض ترميز
-// ANSI يفسد كل النص العربي فيها بصمت. العلامة الفارقة تسلسل «Ø».
+// ANSI يفسد كل النص العربي فيها بصمت. والتوقيع **زوجٌ** لا حرفٌ واحد: التلف
+// يُنتج «Ø» أو «Ù» متبوعًا ببايتٍ عالٍ آخر. أمّا «Ø» وحده فحرفٌ لاتيني مشروع
+// يرد في نطاقات المحارف — وقد أنذر هذا الفحص كذبًا على ui.js بسببه.
 const SRC = ['ui.js', 'store.js', 'components.js', 'app.js',
              'data/seed.js', 'data/api.js', 'data/device.js', 'data/sync.js', 'data/media.js',
              'screens/onboarding.js', 'screens/evicted.js', 'screens/progress.js',
              'screens/main.js', 'screens/course.js', 'screens/exam.js'];
-const corrupt = SRC.filter((f) => /Ø|Ù|Ã˜/.test(fs.readFileSync(dir + f, 'utf8')));
+const corrupt = SRC.filter((f) => /[\u00D8\u00D9][\u0080-\u00FF]/.test(fs.readFileSync(dir + f, 'utf8')));
 ok('لا تلف في ترميز ملفات الواجهة', corrupt.length === 0);
 corrupt.forEach((f) => console.log('   ← ترميز تالف: ' + f));
 

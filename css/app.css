@@ -23,12 +23,19 @@ button { cursor: pointer; }
 img, svg { max-width: 100%; display: block; }
 
 /* نص لاتيني داخل سياق عربي — العزل يمنع قفز علامات الترقيم للطرف الخطأ */
+/* مقطع لاتيني داخل جملة عربية. صار `<bdi>` لا `<span>`: عنصرٌ صُنع للعزل
+   الاتجاهي بالذات، ويكتشف اتجاهه بنفسه.
+   لا `display:inline-block` — كان يمنع المقطع الطويل من الالتفاف عند حافّة
+   الشاشة فيدفع السطر خارجها. */
 .fr {
   font-family: var(--font-fr);
-  direction: ltr;
   unicode-bidi: isolate;
-  display: inline-block;
 }
+/* سطرٌ داخل نصّ مُصيَّر: عنصر مستقلّ ليحمل اتجاهه هو.
+   لماذا لا `<br>`؟ الاتجاه خاصّية عنصر لا خاصّية سطر — فبـ`<br>` تُجبَر كل
+   الأسطر على اتجاه واحد، فينكسر سطرٌ فرنسي واقعٌ بين سطرين عربيين. */
+.rich__l { min-width: 0; }
+.rich__gap { height: .7em; }
 .mono { font-family: var(--mono); direction: ltr; unicode-bidi: isolate; }
 
 /* =============================================================================
@@ -971,6 +978,18 @@ img, svg { max-width: 100%; display: block; }
 }
 
 /* --- نص الدرس --------------------------------------------------------------- */
+/* نصّ الدرس يأتي HTML جاهزًا من اللوحة، فلا يمرّ بـUI.rich. وكان يُحقن خامًا
+   داخل حاوية RTL: كل فقرة فرنسية تتشظّى — رقمها يقفز لآخرها، وفواصلها
+   وأقواسها تطير. (كان أسوأ ما في اللقطات: صفحة الإجابات مقروءةً بالمقلوب.)
+
+   `unicode-bidi: plaintext` يجعل كل فقرة تأخذ اتجاهها من أوّل حرف قويّ فيها —
+   أي سلوك `dir="auto"` لكن **بلا لمس المحتوى ولا سطر JS**. وهو يسري على كل
+   ما تنتجه اللوحة مستقبلًا بلا إعادة تحرير. */
+.prose p, .prose li, .prose td, .prose th,
+.prose h1, .prose h2, .prose h3, .prose h4, .prose blockquote {
+  unicode-bidi: plaintext;
+}
+
 .prose { padding: 18px 20px; font-size: 16px; line-height: var(--lh-body); }
 .prose h3 { font-size: 18px; margin: 22px 0 10px; }
 .prose h3:first-child { margin-top: 0; }

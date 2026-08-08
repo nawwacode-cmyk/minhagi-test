@@ -2,7 +2,7 @@
 // ليس بديلًا عن الفحص البصري — يكشف أخطاء التشغيل فقط.
 const fs = require('fs');
 const path = require('node:path');
-const dir = path.join(__dirname, '..', '..', 'js') + '/';
+const dir = path.join(require('node:path').join(__dirname,'..','..'), 'js') + '/';
 
 // --- DOM شحيح ---------------------------------------------------------------
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -71,7 +71,7 @@ global.Sync = { applyStored() {}, syncNow: () => Promise.resolve(), clearContent
 global.Device = { label: () => 'جهاز' };
 
 eval(fs.readFileSync(dir + 'ui.js', 'utf8'));
-eval(fs.readFileSync(path.join(__dirname, '..', 'fixtures.js'), 'utf8'));
+eval(fs.readFileSync(path.join(require('node:path').join(__dirname,'..','..'), 'test/fixtures.js'), 'utf8'));
 eval(fs.readFileSync(dir + 'store.js', 'utf8'));
 eval(fs.readFileSync(dir + 'components.js', 'utf8'));
 eval(fs.readFileSync(dir + 'screens/main.js', 'utf8'));
@@ -101,6 +101,25 @@ const cases = [
   ['account', () => Screens.account()],
   ['auth', () => Screens.auth()],
   ['teacher (بصورة)', () => { window.SEED.teachers[0].photo='teachers/x.png'; const n=Screens.teacher({id:'ustaz-sami'}); window.SEED.teachers[0].photo=null; return n; }],
+
+  /* بطاقة سؤال بنصوص **حقيقية** خلطت اللغتين وكسرت العرض سابقًا. لم تكن
+     المعاينة تعرض أي شاشة أسئلة إطلاقًا، ولهذا لم تُرَ هذه الأعطال فيها قطّ. */
+  ['سؤال مختلط اللغتين', () => C.questionCard({
+    id: 'demo-1', type: 'mcq', subject: 'fr',
+    stem: 'ما معنى الكلمة الفرنسية التالية؟\n« inoubliable » (صفة)',
+    why: '**inoubliable** = لا يُنسى — من مفردات الصالون الثقافي، الوحدة 3.',
+    options: [{ k: 'أ', t: 'مشترك متبادل' }, { k: 'ب', t: 'لا يمكن تجنّبه' },
+              { k: 'ج', t: 'لا يُنسى', correct: true }],
+  }, { index: 4, total: 31, onNext() {}, onSkip() {} })],
+
+  ['سؤال قواعد فرنسي', () => C.questionCard({
+    id: 'demo-2', type: 'mcq', subject: 'fr',
+    stem: 'الدورة الأولى ٢٠٢٢ (علمي) — Grammaire :\n'
+        + '9- La municipalité a publié un calendrier ......... annoncer les événements sociaux.',
+    why: 'الصواب **pour** — أداة الغرض قبل الفعل في صيغة المصدر.',
+    options: [{ k: 'أ', t: 'pour', correct: true }, { k: 'ب', t: "de manière à ce qu'" },
+              { k: 'ج', t: 'Pour que' }],
+  }, { index: 0, total: 18, onNext() {}, onSkip() {} })],
 ];
 
 let bad = 0;
