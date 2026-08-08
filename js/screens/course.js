@@ -417,7 +417,7 @@ window.Screens = window.Screens || {};
             h('button.btn.btn--secondary.btn--sm', {
               onclick: () => { Store.toggleDownload(l.id); App.go('lesson', { id: l.id, subject: subjectId }, true); },
             }, saved ? 'محفوظ ✓' : [icon.down(16), 'تنزيل'])),
-          h('div.card', h('div.prose', { html: l.body }))),
+          h('div.card', UI.prose(l.body))),
 
         h('aside.dash__side',
           h('div.card.card--pad',

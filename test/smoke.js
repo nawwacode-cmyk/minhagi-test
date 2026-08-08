@@ -486,6 +486,29 @@ ok('الوحدات مغلقة عند الدخول',
 // عنصرٌ بلا محتوى داخل صفٍّ مرن ينكمش إلى عرض صفر فيختفي الشريط تمامًا
 ok('شريط التقدّم يأخذ عرضًا داخل الصفّ', /\.row > \.bar \{[^}]*flex: 1/.test(cssSrc));
 
+/* --- الفائض الأفقي: أوسع خللٍ أثرًا في التخطيط -------------------------------
+   عنصرُ الشبكة/الفلكس لا ينكمش دون عرض محتواه الأدنى. دروس «الكتابة» (الرابع
+   في كل وحدة) تحمل جدول تقييم، فكان الجدول يفرض عرضه على العمود فتخرج الصفحة
+   كلّها عن الشاشة — ظهر الفيديو مقتطعًا والعنوان مبتورًا. */
+{
+  const chain = ['.view', '.screen', '.dash', '.dash__main', '.dash__side'];
+  const missing = chain.filter((sel) => {
+    const rule = (cssSrc.match(new RegExp('\\' + sel + ' \\{[^}]*\\}')) || [''])[0];
+    return !/min-width: 0/.test(rule);
+  });
+  ok('السلسلة كلّها تقبل الانكماش', missing.length === 0, missing.join(' · '));
+  // والعنصر العريض يحتوي فائضه بنفسه بدل دفع الصفحة
+  ok('حاوية الجدول تمرّر نفسها أفقيًا',
+     /\.prose__scroll \{[^}]*overflow-x: auto/.test(cssSrc));
+  // والجدول يبقى جدولًا: `display:block` كان يُلغي التخطيط فتنكمش الأعمدة
+  ok('والجدول يحتفظ بتخطيطه',
+     /\.prose table \{[^}]*width: 100%/.test(cssSrc)
+     && !/\.prose table \{[^}]*display: block/.test(cssSrc));
+  ok('ونصّ الدرس يمرّ عبر UI.prose لا عبر حقنٍ خام',
+     /UI\.prose\(l\.body\)/.test(courseSrc) && !/div\.prose', \{ html:/.test(courseSrc));
+  ok('وكلمة طويلة بلا مواضع قطع تُكسر', /\.prose \{ overflow-wrap: anywhere; \}/.test(cssSrc));
+}
+
 // --- بطاقات المواد في «موادّي» ----------------------------------------------------
 ok('المواد بطاقات ملوّنة', /h\('div\.subj-grid'/.test(mainSrc) && /\.subj-grid \{/.test(cssSrc));
 ok('بشبكة لا صفّ يمرّر أفقيًا', /\.subj-grid \{[^}]*grid-template-columns/.test(cssSrc));

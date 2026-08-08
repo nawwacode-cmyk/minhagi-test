@@ -48,7 +48,9 @@ img, svg { max-width: 100%; display: block; }
 
 .view { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-.screen { flex: 1; display: flex; flex-direction: column; min-height: 0; animation: fadeIn 220ms var(--ease); }
+/* min-width على السلسلة كلّها: يكفي عنصرٌ واحد بلا صفر ليتمدّد بمحتواه العريض
+   ويجرّ ما فوقه وما تحته معه. */
+.screen { flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; animation: fadeIn 220ms var(--ease); }
 
 /* شريط التمرير مخفي بطلب صريح — التمرير نفسه يعمل بالعجلة واللمس ولوحة
    المفاتيح كالمعتاد، ولا نلمس `overflow` إطلاقًا. */
@@ -186,9 +188,15 @@ img, svg { max-width: 100%; display: block; }
 /* --- تخطيط لوحة: محتوى رئيسي + عمود جانبي لاصق --------------------------------
    هذا ما ينقص شاشات اللابتوب: بدل عمود واحد نحيل وسط فراغ، نضع الفعل الأساسي
    في اليمين ونبقي السياق (التقدّم، بقية دروس الوحدة) مرئيًا دائمًا. */
-.dash { display: grid; gap: 16px; padding: 16px; }
-.dash__main { display: flex; flex-direction: column; gap: 16px; }
-.dash__side { display: flex; flex-direction: column; gap: 16px; }
+/* `min-width: 0` ليس تجميلًا — بدونه ينكسر التخطيط كلّه.
+   عنصرُ الشبكة (وعنصرُ الفلكس) لا ينكمش افتراضيًا دون **عرض محتواه الأدنى**.
+   ودروس «الكتابة» (الرابع في كل وحدة) تحمل جدول تقييم، فيفرض الجدولُ عرضه
+   على العمود، فيتمدّد العمود خارج الشاشة ويُسحب معه كلُّ ما فيه — ظهر الفيديو
+   مقتطعًا من حافّته والعنوان مبتورًا. الصفر يسمح للعمود بأخذ عرض الشاشة،
+   ويترك التعامل مع الفائض للعنصر العريض نفسه (الجدول أدناه). */
+.dash { display: grid; gap: 16px; padding: 16px; min-width: 0; }
+.dash__main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.dash__side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
 @media (min-width: 1000px) {
   .dash { grid-template-columns: 1.6fr 1fr; gap: 22px; padding: 22px 26px; align-items: start; }
@@ -994,7 +1002,20 @@ img, svg { max-width: 100%; display: block; }
 .prose h3 { font-size: 18px; margin: 22px 0 10px; }
 .prose h3:first-child { margin-top: 0; }
 .prose p { margin: 0 0 14px; }
-.prose table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 0 0 18px; }
+/* الجدول يمرّر نفسه أفقيًا بدل أن يدفع الصفحة: `UI.prose` تلفّه بهذه الحاوية،
+   والحاوية وحدها هي التي تُمرَّر. بدونها يفرض الجدول عرضه على عمود الشبكة
+   فتخرج الصفحة كلّها عن الشاشة — وهو ما كان يكسر درس الكتابة في كل وحدة.
+   ولا نضع `display:block` على الجدول نفسه: ذلك يُلغي تخطيط الجدول فتنكمش
+   الأعمدة إلى عرض محتواها ويكفّ عن ملء السطر على الشاشات الواسعة. */
+.prose__scroll {
+  max-width: 100%; overflow-x: auto; margin: 0 0 18px;
+  -webkit-overflow-scrolling: touch;
+}
+.prose table {
+  width: 100%; border-collapse: collapse; font-size: 14px; margin: 0;
+}
+/* وكلمةٌ لاتينية طويلة بلا مواضع قطع (رابط أو مصطلح) تفعل ما يفعله الجدول */
+.prose { overflow-wrap: anywhere; }
 .prose td, .prose th { padding: 9px 6px; border-bottom: 1px solid var(--brd); text-align: start; }
 .prose th { color: var(--txm); font-weight: 600; font-size: 13px; }
 .prose tr:last-child td { border-bottom: 0; }

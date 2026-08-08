@@ -23,6 +23,7 @@ class Node2 {
   addEventListener() {}
   appendChild(c) { this.children.push(c); return c; }
   append(...cs) { cs.forEach((c) => c && this.children.push(c)); }
+  prepend(...cs) { this.children.unshift(...cs.filter(Boolean)); }
   replaceChildren(...cs) { this.children = cs.filter(Boolean); }
   set textContent(v) { this._text = v; this.children = []; }
   get textContent() {
@@ -98,6 +99,9 @@ const cases = [
   ['course', () => Screens.course({ subject: 'fr' })],
   ['course (بتقدّم)', () => { Store.completeLesson('salutations'); Store.startLesson('articles-definis'); return Screens.course({ subject: 'fr' }); }],
   ['progress', () => Screens.progress()],
+  /* درس فيه جدول: الجدول كان يفرض عرضه على عمود الشبكة فتخرج الصفحة كلّها
+     عن الشاشة — ظهر الفيديو مقتطعًا والعنوان مبتورًا. */
+  ['درس بجدول', () => Screens.lesson({ id: 'salutations', subject: 'fr' })],
   ['account', () => Screens.account()],
   ['auth', () => Screens.auth()],
   ['teacher (بصورة)', () => { window.SEED.teachers[0].photo='teachers/x.png'; const n=Screens.teacher({id:'ustaz-sami'}); window.SEED.teachers[0].photo=null; return n; }],
