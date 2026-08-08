@@ -132,7 +132,41 @@ window.App = (function () {
 
     const fn = Screens[c.name] || Screens.auth;
     view.replaceChildren(fn(c.params || {}));
+    wireHeaderHide();
     drawRail();
+  }
+
+  /**
+   * تُخفي ترويسة الرئيسية/موادّي عند التمرير للأسفل وتعيدها عند الصعود.
+   *
+   * ثلاث تفاصيل تمنع سلوكًا مزعجًا:
+   * · **عتبة ٦px للحركة**: بلاها ترتجف الترويسة مع أي اهتزاز إصبع.
+   * · **لا تختفي قرب القمّة (٥٦px)**: إخفاؤها مع أوّل بكسل يجعل مجرّد لمس
+   *   الشاشة يبتلعها، والطالب لم يقرأ شيئًا بعد.
+   * · **ارتفاعها يُقاس لا يُفترض**: يتغيّر باسمٍ يلتفّ سطرين أو بحافّة آمنة
+   *   مختلفة، ورقمٌ ثابت في CSS يترك فجوة أو يقصّ.
+   *
+   * الشاشة تُعاد بناؤها عند كل تنقّل، فالمستمع يموت مع عقدته ولا يتراكم.
+   */
+  function wireHeaderHide() {
+    const hdr = view.querySelector('.appbar--home');
+    const body = view.querySelector('.screen__body');
+    if (!hdr || !body) return;
+
+    const measure = () => hdr.style.setProperty('--h', hdr.offsetHeight + 'px');
+    measure();
+    // القياس قبل الرسم يعطي صفرًا أحيانًا؛ نعيده بعد أوّل إطار
+    requestAnimationFrame(measure);
+
+    let last = 0;
+    body.addEventListener('scroll', () => {
+      const y = body.scrollTop;
+      if (Math.abs(y - last) < 6) return;
+      const away = y > 56 && y > last;
+      if (away) measure();               // قبل الإخفاء لا بعده
+      hdr.classList.toggle('is-away', away);
+      last = y;
+    }, { passive: true });
   }
 
   /**

@@ -73,33 +73,35 @@ window.Screens = window.Screens || {};
               h('span.faint', { style: 'font-size:11px' }, `${ar(up.done)}/${ar(up.total)}`))),
           h('span.unit__chev', icon.chevron(16))));
 
-        // خطّ زمني متواصل: الحاوية تحمل الخطّ، وكل درس نقطة عليه.
-        // الخطّ على الحاوية لا على كل صفّ — الخطّ المجزّأ لكل صفّ يترك فجوات
-        // عند الهوامش فيبدو متقطّعًا لا متواصلًا.
-        const tl = h('div.tl');
+        /* بطاقات دروس كبيرة على نمط المرجع البصري (كروت الكتب): مربّع ملوّن،
+           أيقونة في رقعة شفّافة أعلاه، والعنوان أسفله.
+
+           اللون بترتيب الدرس داخل الوحدة لا بالعشوائية: الدرس نفسه يجب أن
+           يحمل لونه في كل فتحة، وإلّا ضاع تعرّف الطالب على موضعه.
+
+           المكتمل لا يُلوَّن: لوحةٌ كلّها ألوان صاخبة تخفي **أين وصلت**، وهو
+           السؤال الأول لمن يفتح مادة. المكتمل يهدأ ويحمل علامة صحّ. */
+        const grid = h('div.lgrid');
         u.lessons.forEach((id, n) => {
           const l = SEED.lessons[id];
           const st = s.lessons[id];
           const state = st === 'done' ? 'done' : st ? 'now' : 'todo';
 
-          tl.appendChild(h('div.tl-row.tl-row--' + state,
-            { onclick: () => App.go('lesson', { id, subject: subjectId }) },
-
-            // النقطة على الخطّ — أول عنصر ⇒ يقع على اليمين في RTL
-            h('span.tl-dot', state === 'done' ? icon.check(12) : null),
-
-            h('div.tl-body',
-              h('div.tl-title', l.title),
-              h('div.tl-meta',
-                icon.video(13),
-                h('span', `${l.video.length} دقيقة`),
-                l.free && h('span.badge.badge--free', 'مجاني'),
-                s.downloaded.includes(id) && h('span.badge.badge--saved', 'محفوظ'))),
-
-            // زرّ التشغيل/الحالة في نهاية السطر (اليسار في RTL)
-            h('span.tl-act', state === 'todo' ? ar(n + 1) : icon.play(16))));
+          grid.appendChild(h('button.lcard.lcard--' + state, {
+            class: state === 'done' ? '' : 'lcard--c' + (n % 4),
+            onclick: () => App.go('lesson', { id, subject: subjectId }),
+            'aria-label': l.title,
+          },
+            h('span.lcard__top',
+              h('span.lcard__ico', state === 'done' ? icon.check(19) : icon.play(18)),
+              s.downloaded.includes(id) ? h('span.lcard__save', icon.down(15)) : null),
+            h('span.lcard__n', `الدرس ${ar(n + 1)}`),
+            h('span.lcard__t', l.title),
+            h('span.lcard__m',
+              `${l.video.length} دقيقة`,
+              l.free ? h('span.lcard__free', 'مجاني') : null)));
         });
-        det.appendChild(tl);
+        det.appendChild(grid);
 
         // زر تنزيل على مستوى الوحدة — الفجوة التي كانت غائبة في الموكأپ
         det.appendChild(h('div', { style: 'padding:10px 16px 14px;border-top:1px solid var(--brd)' },

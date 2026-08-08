@@ -22,8 +22,12 @@ window.C = (function () {
      دالّة واحدة تخدم «الرئيسية» و«موادّي»: كانتا نسختين متطابقتين بالنصّ،
      فأي تعديل على إحداهما كان يترك الأخرى خلفه بلا أن يلاحظ أحد.
 
-     الأزرار **قبل** التحية في الترتيب: في RTL يذهب أوّل عنصر إلى اليمين،
-     وهذا ما يضعها في الطرف المقابل للتحية كما في المرجع.
+     التحية **قبل** الأزرار في الترتيب: في RTL يذهب أوّل عنصر إلى اليمين،
+     فتقع التحية يمينًا والأزرار يسارًا.
+
+     والاسم بجانب التحية لا تحته: سطران قصيران يأكلان ارتفاعًا في شاشة ضيّقة،
+     وسطرٌ واحد بتباينِ وزنٍ ولون يقرأ أسرع. المحاذاة على خطّ الأساس
+     (baseline) لا على المنتصف — بحجمين مختلفين يجعل التوسيطُ الأصغرَ يطفو.
 
      زرّ الإشعارات لا يقود إلى شاشة فارغة: `notices()` تشتقّ ما يستحقّ الانتباه
      من حالة التطبيق نفسها، والنقطة الحمراء لا تظهر إلّا حين يوجد شيء فعلًا —
@@ -32,15 +36,15 @@ window.C = (function () {
   function homeHeader(kicker, title) {
     const list = notices();
     return h('header.appbar.appbar--home',
+      h('div.hgreet',
+        h('span.hgreet__k', kicker),
+        h('span.hgreet__n', title)),
       h('div.hacts',
+        h('button.hbtn', { onclick: () => App.go('account'), 'aria-label': 'الإعدادات' },
+          icon.settings(19)),
         h('button.hbtn', { onclick: () => showNotices(list), 'aria-label': 'الإشعارات' },
           icon.bell(19),
-          list.length ? h('span.hbtn__dot') : null),
-        h('button.hbtn', { onclick: () => App.go('account'), 'aria-label': 'الإعدادات' },
-          icon.settings(19))),
-      h('div.hgreet',
-        h('div.hgreet__k', kicker),
-        h('div.hgreet__n', title)));
+          list.length ? h('span.hbtn__dot') : null)));
   }
 
   /**

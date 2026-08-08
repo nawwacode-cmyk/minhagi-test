@@ -320,9 +320,17 @@ ok('الترويسة فيها زرّا إشعارات وإعدادات',
 ok('وهما قرصان أبيضان بظلّ',
    /\.hbtn \{[^}]*border-radius: 50%[^}]*background: var\(--surf\)/.test(cssSrc)
    && /\.hbtn \{[^}]*box-shadow/.test(cssSrc));
-// في RTL يذهب أوّل عنصر يمينًا: الأزرار قبل التحية ⇒ الطرف المقابل لها
-ok('الأزرار في الطرف المقابل للتحية',
-   compSrc.indexOf("h('div.hacts'") < compSrc.indexOf("h('div.hgreet'"));
+// في RTL يذهب أوّل عنصر يمينًا: التحية قبل الأزرار ⇒ تحية يمينًا وأزرار يسارًا
+ok('التحية يمينًا والأزرار يسارًا',
+   compSrc.indexOf("h('div.hgreet'") < compSrc.indexOf("h('div.hacts'"));
+// الاسم بجانب التحية لا تحتها، ومحاذاته على خطّ الأساس لا على المنتصف
+ok('الاسم بجانب التحية', /\.hgreet \{[^}]*display: flex[^}]*align-items: baseline/.test(cssSrc));
+// الترويسة في السياق الطبيعي، فإخفاؤها بـtransform يترك مكانها فراغًا
+ok('تختفي بهامش سالب لا بإزاحة',
+   /\.appbar--home\.is-away \{[^}]*margin-top: calc\(-1 \* var\(--h/.test(cssSrc));
+ok('وارتفاعها يُقاس لا يُفترض', /setProperty\('--h', hdr\.offsetHeight/.test(appSrc));
+ok('عتبة تمنع الارتجاف', /Math\.abs\(y - last\) < 6/.test(appSrc));
+ok('ولا تختفي قرب القمّة', /y > 56 && y > last/.test(appSrc));
 // النقطة الحمراء تتبع إشعارًا حقيقيًا؛ شارة دائمة تفقد معناها بعد يومين
 ok('نقطة الإشعار مشروطة لا دائمة', /list\.length \? h\('span\.hbtn__dot'\) : null/.test(compSrc));
 ok('والإشعارات مشتقّة من حالة التطبيق لا مُختلَقة',
@@ -421,19 +429,29 @@ ok('التلاشي لا يبتلع النقرات', /\.teacher-hero-img::after \
 // الصورة تمرّ، فلو مرّ زرّ الرجوع معها لضاع مسار الرجوع الوحيد
 ok('زرّ الرجوع يبقى ثابتًا', /\.teacher-back \{[^}]*position: fixed/.test(cssSrc)
    && /teacher-back/.test(mainSrc));
-// --- قائمة الدروس كخطّ زمني ---------------------------------------------------
-ok('الدروس تُعرض كخطّ زمني', /h\('div\.tl'\)/.test(courseSrc) && /tl-row--/.test(courseSrc));
-// الخطّ على الحاوية لا على كل صفّ: خطٌّ لكل صفّ يترك فجوات عند الهوامش
-// فيبدو متقطّعًا بدل متواصل.
-ok('الخطّ على الحاوية لا على الصفوف', /\.tl::before \{/.test(cssSrc)
-   && !/\.tl-row::before \{[^}]*background: var\(--acc/.test(cssSrc));
-// طرفا الخطّ ينتهيان عند أول وآخر نقطة لا عند حافة الحاوية
-ok('الخطّ لا يتدلّى خارج النقاط', /\.tl::before \{[^}]*top: 28px; bottom: 28px/.test(cssSrc));
-ok('ثلاث حالات للدرس', ['done', 'now', 'todo'].every((x) => courseSrc.includes(`'${x}'`))
-   && /\.tl-row--done \.tl-dot/.test(cssSrc) && /\.tl-row--now  \.tl-dot/.test(cssSrc));
-ok('الخطّ بلون الهوية البنفسجي', /\.tl::before \{[^}]*background: var\(--acc-soft\)/.test(cssSrc));
-ok('النقطة المكتملة ممتلئة بالبنفسجي',
-   /\.tl-row--done \.tl-dot \{[^}]*background: var\(--acc\)/.test(cssSrc));
+// --- بطاقات الدروس (المرجع البصري) حلّت محلّ الخطّ الزمني -------------------------
+ok('الدروس بطاقات لا خطًّا زمنيًا',
+   /h\('div\.lgrid'\)/.test(courseSrc) && !/h\('div\.tl'\)/.test(courseSrc));
+ok('ولا بقايا للخطّ في الأنماط', !/\.tl-row|\.tl-dot|\.tl-act/.test(cssSrc));
+ok('ثلاث حالات للدرس', ['done', 'now', 'todo'].every((x) => courseSrc.includes(`'${x}'`)));
+// المكتمل يهدأ عمدًا: بعشرين درسًا تخفي لوحةٌ كلّها ألوان «أين وصلت»
+ok('المكتمل لا يُلوَّن', /state === 'done' \? '' : 'lcard--c'/.test(courseSrc)
+   && /\.lcard--done \{[^}]*background: var\(--surf2\)/.test(cssSrc));
+ok('واللون بترتيب ثابت لا عشوائي', /'lcard--c' \+ \(n % 4\)/.test(courseSrc));
+// عنوانٌ طويل يمطّ البطاقة فتختلّ الشبكة كلّها
+ok('العنوان محدود بسطرين', /\.lcard__t \{[^}]*-webkit-line-clamp: 2/.test(cssSrc));
+
+// --- بطاقات المواد في «موادّي» ----------------------------------------------------
+ok('المواد بطاقات ملوّنة', /h\('div\.subj-grid'/.test(mainSrc) && /\.subj-grid \{/.test(cssSrc));
+ok('بشبكة لا صفّ يمرّر أفقيًا', /\.subj-grid \{[^}]*grid-template-columns/.test(cssSrc));
+// أُسقطت الحلقة لا المعلومة: «كم أنجزت» سبب دخول الطالب هذه الشاشة
+ok('التقدّم باقٍ كشريط على البطاقة', /subj__bar/.test(mainSrc) && /\.subj__bar i \{/.test(cssSrc));
+ok('واللون بترتيب ثابت', /'subj--c' \+ \(i % 5\)/.test(mainSrc));
+// الحالة تُقرأ من الأيقونة والهدوء لا من نقطة على خطّ: المكتمل صحٌّ أخضر
+ok('المكتمل يحمل علامة صحّ', /state === 'done' \? icon\.check\(19\)/.test(courseSrc)
+   && /\.lcard--done \.lcard__ico \{[^}]*color: var\(--ok\)/.test(cssSrc));
+ok('والجاري يُميَّز بحلقة لا بلون آخر',
+   /\.lcard--now \{[^}]*box-shadow: 0 0 0 3px var\(--acc-soft\)/.test(cssSrc));
 
 // --- ترويسة الرئيسية/موادّي ------------------------------------------------------
 // العلامة نصًّا لا شعارًا في الترويسة — أسلوب أغلب التطبيقات الحديثة.
@@ -454,9 +472,9 @@ ok('لا عبارة تعريفية في الترويسة', !/hbrand__tag/.test(m
 ok('العبارة باقية في شاشة الدخول', /auth-brand__tag/.test(onbSrc));
 // الوزن ٤٠٠ هو الأخفّ المحمَّل؛ طلب ٣٠٠ يُصطنع أو يسقط لخطّ احتياطي مشوّه
 ok('لا وزن خطّ غير محمَّل', !/font-weight:\s*[123]00/.test(cssSrc));
-// التحية داخل الترويسة الآن، سطرًا باهتًا فوق الاسم — كما في المرجع
-ok('التحية سطرٌ فوق الاسم في الترويسة',
-   /h\('div\.hgreet__k', kicker\)/.test(compSrc) && /h\('div\.hgreet__n', title\)/.test(compSrc));
+// التحية والاسم على سطر واحد داخل الترويسة
+ok('التحية والاسم بجانب بعضهما',
+   /h\('span\.hgreet__k', kicker\)/.test(compSrc) && /h\('span\.hgreet__n', title\)/.test(compSrc));
 ok('وتتبع ساعة الجهاز', /function greeting\(\)[\s\S]{0,200}صباح الخير/.test(compSrc));
 // وجودها داخل منطقة التمرير فعليًا يتحقّق ببناء الشاشة لا بقراءة المصدر —
 // انظر render-check.js في مجلد الفحص.

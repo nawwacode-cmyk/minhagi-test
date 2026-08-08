@@ -391,20 +391,36 @@ img, svg { max-width: 100%; display: block; }
   justify-content: space-between; align-items: flex-start;
   background: transparent; border: 0; box-shadow: none; border-radius: 0;
   padding: calc(14px + env(safe-area-inset-top)) 20px 10px;
+  transition: margin-top var(--dur) var(--ease), opacity var(--dur) var(--ease);
 }
+
+/* الاختفاء مع التمرير: هامش علوي سالب بمقدار ارتفاعها هي — يقيسه JS ويضعه
+   في --h. لماذا الهامش لا `transform`؟ الترويسة في السياق الطبيعي، فإزاحتها
+   بـtransform تتركها مكانها محجوزًا: فراغٌ أبيض بأعلى الشاشة بدل محتوى.
+   الهامش السالب يسحب المحتوى ليأخذ مكانها فعلًا. */
+.appbar--home.is-away {
+  margin-top: calc(-1 * var(--h, 74px));
+  opacity: 0; pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { .appbar--home { transition: none; } }
 
 /* العلامة اسمًا مجرّدًا — لا شعار ولا عبارة تحته. الترويسة تُعرّف بالمكان
    وحسب؛ العبارة التعريفية مكانها شاشة الدخول حيث يراها الطالب أول مرة. */
 /* التحية في الترويسة — على نمط المرجع: سطر باهت صغير فوق الاسم كبيرًا.
    لا قصّ ولا تتبّع سالب: العربية خطّ متّصل، والنقطتان تحت الياء تنزلان دون
    خطّ الأساس، فسطرٌ ضيّق مع overflow:hidden كان يبترهما. */
-/* الأزرار انتقلت إلى الطرف الآخر، فكتلة التحية صارت على الطرف المقابل —
-   ونصّها يُحاذي حافتها هي لا مركز الشاشة، وإلّا عامت في الفراغ. */
-.hgreet { min-width: 0; text-align: start; }
-.hgreet__k { font-size: 13px; color: var(--txm); line-height: 1.5; }
+/* الاسم بجانب التحية لا تحتها: سطران قصيران يأكلان ارتفاعًا في شاشة ضيّقة.
+   والمحاذاة على خطّ الأساس لا على المنتصف — بحجمين مختلفين (14 و23) يجعل
+   التوسيطُ الأصغرَ يطفو فوق خطّ الكبير فيبدو معلّقًا.
+   flex-wrap: باسمٍ طويل ينزل سطرًا بدل أن يزاحم الأزرار. */
+.hgreet {
+  min-width: 0; display: flex; align-items: baseline;
+  gap: 7px; flex-wrap: wrap; row-gap: 0;
+}
+.hgreet__k { font-size: 14px; color: var(--txm); line-height: 1.6; }
 .hgreet__n {
-  font-size: 23px; font-weight: 600; line-height: 1.45;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 23px; font-weight: 600; line-height: 1.5;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 /* زرّا الترويسة: قرصان **أبيضان** بظلّ ناعم على خلفية الصفحة — كما في المرجع.
@@ -429,6 +445,48 @@ img, svg { max-width: 100%; display: block; }
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--err); border: 2px solid var(--surf);
 }
+
+/* --- بطاقات المواد (موادّي) — على نمط المرجع البصري --------------------------
+   شبكة مرنة لا صفّ يمرّر أفقيًا: هذه الشاشة **مقصد** الطالب لا واجهة تصفّح،
+   ومادةٌ خارج الإطار تعني مادةً لا يجدها. */
+.subj-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.subj {
+  position: relative; display: flex; flex-direction: column;
+  align-items: flex-start; text-align: start;
+  min-height: 156px; padding: 15px 15px 18px;
+  border: 0; border-radius: 22px; color: #FFF;
+  box-shadow: 0 10px 22px -12px rgba(30, 24, 50, .45);
+  transition: transform var(--dur) var(--ease);
+}
+.subj:active { transform: scale(.975); }
+.subj__ico {
+  display: grid; place-items: center;
+  width: 42px; height: 42px; border-radius: 13px;
+  background: rgba(255, 255, 255, .22); margin-bottom: auto;
+}
+.subj__name { font-size: 17px; font-weight: 600; margin-top: 14px; line-height: 1.4; }
+.subj__meta { font-size: 12px; opacity: .82; margin-top: 3px; line-height: 1.5; }
+.subj__free {
+  font-size: 11px; font-weight: 600; margin-top: 7px;
+  padding: 3px 9px; border-radius: var(--r-full);
+  background: rgba(255, 255, 255, .24);
+}
+/* شريط التقدّم على الحافّة السفلى: يقول «كم أنجزت» بلا أن يزاحم الاسم */
+.subj__bar {
+  position: absolute; inset-inline: 15px; bottom: 10px; height: 4px;
+  border-radius: 4px; background: rgba(255, 255, 255, .28); overflow: hidden;
+}
+.subj__bar i { display: block; height: 100%; background: #FFF; border-radius: 4px; }
+
+/* ألوان المواد — بالترتيب لا بالعشوائية، فلا يتبدّل لون المادة بين فتحة وأخرى */
+.subj--c0 { background: linear-gradient(150deg, #6E5BB8, #4C3E92); }
+.subj--c1 { background: linear-gradient(150deg, #E8705F, #C94A3C); }
+.subj--c2 { background: linear-gradient(150deg, #E5A93C, #C98A2E); }
+.subj--c3 { background: linear-gradient(150deg, #3FA97C, #2E7D5B); }
+.subj--c4 { background: linear-gradient(150deg, #4E8FD0, #3A6EA5); }
 
 /* --- لوحة الإشعارات ---------------------------------------------------------- */
 .scrim {
@@ -749,57 +807,68 @@ img, svg { max-width: 100%; display: block; }
 .unit[open] .unit__chev { transform: rotate(180deg); }
 
 /* =============================================================================
-   قائمة الدروس كخطّ زمني متواصل
-   الخطّ على الحاوية لا على كل صفّ: خطٌّ مجزّأ لكل صفّ يترك فجوات عند الهوامش
-   فيبدو متقطّعًا. وهو يبدأ من أول نقطة وينتهي عند آخرها لا عند حافة الحاوية،
-   وإلّا تدلّى طرفٌ سائب فوق أول درس وتحت آخره.
+   بطاقات الدروس — على نمط المرجع البصري (كروت الكتب الكبيرة)
+
+   حلّت محلّ الخطّ الزمني: مربّعات ملوّنة بأيقونة في رقعة شفّافة وعنوان أسفلها.
+
+   قرارٌ يخالف المرجع عمدًا: **المكتمل لا يُلوَّن.** لوحةٌ كلّها ألوان صاخبة
+   جميلة في لقطة تصميم فيها أربع بطاقات، لكنها بعشرين درسًا تخفي ما جاء
+   الطالب من أجله: أين وصلت. فالمكتمل يهدأ ويحمل صحًّا، والباقي ملوّن.
    ============================================================================= */
-.tl { position: relative; padding: 6px 0 10px; }
-.tl::before {
-  content: ''; position: absolute; z-index: 0;
-  inset-inline-start: 27px;          /* منتصف النقطة: 14 حشوة + 13 نصف قطر */
-  top: 28px; bottom: 28px; width: 2px;
-  background: var(--acc-soft);
+.lgrid {
+  display: grid; gap: 11px; padding: 12px 14px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
 }
-
-.tl-row {
-  position: relative; z-index: 1;
-  display: flex; align-items: center; gap: 12px;
-  padding: 11px 14px; cursor: pointer;
-  transition: background var(--dur) var(--ease);
+.lcard {
+  display: flex; flex-direction: column; align-items: flex-start;
+  text-align: start; min-height: 150px;
+  padding: 13px 14px 15px; border: 0; border-radius: 20px;
+  color: #FFF; box-shadow: 0 8px 18px -10px rgba(30, 24, 50, .4);
+  transition: transform var(--dur) var(--ease);
 }
-.tl-row:hover { background: var(--surf2); }
-
-/* النقطة على الخطّ */
-.tl-dot {
-  flex: none; width: 26px; height: 26px; border-radius: 50%;
+.lcard:active { transform: scale(.975); }
+.lcard__top {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; margin-bottom: auto;
+}
+.lcard__ico {
   display: grid; place-items: center;
-  border: 2px solid var(--acc-soft); background: var(--surf);
-  color: var(--on-acc);
+  width: 40px; height: 40px; border-radius: 13px;
+  background: rgba(255, 255, 255, .22);
 }
-.tl-row--done .tl-dot { background: var(--acc); border-color: var(--acc); }
-.tl-row--now  .tl-dot { border-color: var(--acc); box-shadow: 0 0 0 4px var(--acc-soft); }
+.lcard__save { opacity: .8; }
+.lcard__n { font-size: 11px; opacity: .8; margin-top: 12px; }
+/* سطران كحدّ أقصى: عنوانٌ طويل يمطّ البطاقة فتختلّ الشبكة كلّها */
+.lcard__t {
+  font-size: 15px; font-weight: 600; line-height: 1.45; margin-top: 2px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.lcard__m {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  font-size: 11.5px; opacity: .82; margin-top: 7px;
+}
+.lcard__free {
+  font-weight: 600; padding: 2px 7px; border-radius: var(--r-full);
+  background: rgba(255, 255, 255, .25); opacity: 1;
+}
 
-.tl-body { flex: 1; min-width: 0; }
-.tl-title { font-size: 14px; font-weight: 600; line-height: 1.5; }
-.tl-row--done .tl-title { color: var(--txm); }
-.tl-meta {
-  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  font-size: 11.5px; color: var(--txf); margin-top: 4px;
-}
-.tl-meta svg { flex: none; }
+.lcard--c0 { background: linear-gradient(150deg, #6E5BB8, #4C3E92); }
+.lcard--c1 { background: linear-gradient(150deg, #E8705F, #C94A3C); }
+.lcard--c2 { background: linear-gradient(150deg, #E5A93C, #C98A2E); }
+.lcard--c3 { background: linear-gradient(150deg, #3FA97C, #2E7D5B); }
 
-/* زرّ الحالة في نهاية السطر */
-.tl-act {
-  flex: none; width: 40px; height: 40px; border-radius: 50%;
-  display: grid; place-items: center;
-  background: var(--acc-soft); color: var(--acc-tx);
-  font-weight: 600; font-size: 14px;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+/* المكتمل: هادئ لا ملوّن — ليُقرأ «أين وصلت» من لمحة */
+.lcard--done {
+  background: var(--surf2); color: var(--txm);
+  box-shadow: none; border: 1px solid var(--brd);
 }
-.tl-row--now .tl-act  { background: var(--acc); color: var(--on-acc); }
-.tl-row--done .tl-act { background: var(--acc-soft); color: var(--acc); }
-.tl-row:hover .tl-act { background: var(--acc); color: var(--on-acc); }
+.lcard--done .lcard__ico { background: var(--ok-soft); color: var(--ok); }
+.lcard--done .lcard__t { color: var(--txm); }
+.lcard--done .lcard__free { background: var(--acc-soft); color: var(--acc-tx); }
+
+/* الجاري: حلقة تميّزه عن غير المبدوء بلا تغيير لونه */
+.lcard--now { box-shadow: 0 0 0 3px var(--acc-soft), 0 8px 18px -10px rgba(30, 24, 50, .4); }
 
 .lesson { display: flex; align-items: center; gap: 10px; padding: 11px 14px;
           border-top: 1px solid var(--brd); cursor: pointer; }

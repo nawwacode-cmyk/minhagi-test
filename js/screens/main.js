@@ -203,30 +203,37 @@ window.Screens = window.Screens || {};
           // بلا عنوان «موادّي» هنا: الترويسة تحمله أصلًا، وتكراره على الهاتف
           // يأكل سطرًا كاملًا من شاشة ضيّقة بلا أي معلومة جديدة.
           h('div.dash__main',
+            /* بطاقات المواد على نمط المرجع البصري: مربّع ملوّن، أيقونة في
+               رقعة شفّافة أعلاه، والاسم أسفله.
+
+               اللون بالترتيب لا بالعشوائية: `color_hex` يُجلب من الخادم لكنه
+               لا يُخزَّن في شكل SEED، ولونٌ عشوائي يجعل المادة نفسها تتبدّل
+               بين فتحة وأخرى فيضيع تعرّف الطالب عليها بلونها.
+
+               وشريط التقدّم يبقى — أُسقطت الحلقة لا المعلومة: «كم أنجزتُ» هو
+               سبب دخول الطالب هذه الشاشة، وشريطٌ رفيع أسفل البطاقة يقولها
+               بلغة المرجع بلا أن يزاحم الاسم. */
             entitledSubjects.length
-              ? h('div.stack.gap-14', ...entitledSubjects.map((subject) => {
+              ? h('div.subj-grid', ...entitledSubjects.map((subject, i) => {
                   const p = Store.subjectProgress(subject.id);
-                  // عدد الدروس المجانية بهاي المادة — هو ما يستحق سطرًا ذهبيًا
-                  // على البطاقة. مدّة الاشتراك مذكورة بالترويسة فوق، وتكرارها
-                  // هنا كان يجعل البطاقة تعيد ما قرأه الطالب قبل سطرين.
-                  const freeCount = SEED.units
+                  const free = SEED.units
                     .filter((u) => u.subject === subject.id)
                     .flatMap((u) => u.lessons || [])
                     .filter((id) => SEED.lessons[id]?.free).length;
 
-                  return h('div.card.card--tap', { onclick: () => App.go('course', { subject: subject.id }) },
-                    h('div.subject',
-                      ring(p.percent, 56, 6),
-                      h('div.subject__body',
-                        h('div.subject__title', subject.name),
-                        h('div.subject__meta',
-                          // بلا فاصل يتيم حين يكون الصف مجهولًا
-                          [gradeOfSubject(subject.id), `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا`]
-                            .filter(Boolean).join(' · ')),
-                        freeCount
-                          ? h('div.subject__sub',
-                              `${ar(freeCount)} ${freeCount === 1 ? 'درس مجاني متاح' : 'دروس مجانية متاحة'}`)
-                          : null)));
+                  return h('button.subj', {
+                    class: 'subj--c' + (i % 5),
+                    onclick: () => App.go('course', { subject: subject.id }),
+                    'aria-label': subject.name,
+                  },
+                    h('span.subj__ico', icon.book(21)),
+                    h('span.subj__name', subject.name),
+                    h('span.subj__meta',
+                      [gradeOfSubject(subject.id),
+                       `${ar(p.lessonsTotal)} ${p.lessonsTotal === 1 ? 'درس' : 'درسًا'}`]
+                        .filter(Boolean).join(' · ')),
+                    free ? h('span.subj__free', `${ar(free)} مجاني`) : null,
+                    h('span.subj__bar', h('i', { style: `width:${p.percent}%` })));
                 }))
               // بلا شاشة اكتشاف/كتالوج حاليًا (أُزيلت مع طبقة الكورسات) — طالب
               // بلا اشتراك فعّال يُوجَّه للدعم مباشرة لا لتصفّح كتالوج غير موجود.
