@@ -72,13 +72,11 @@ window.Screens = window.Screens || {};
         h('b', title), h('span', sub));
 
     return h('div.screen',
-      // الترويسة على نمط المرجع: تحية صغيرة فوق الاسم، وزرّان دائريان.
-      C.homeHeader(C.greeting(), s.username || 'زائر'),
-
-      h('div.screen__body', { style: 'padding:10px 16px 8px' },
-        // التحية صعدت إلى الترويسة (المرجع البصري المعتمد)، فما بقي هنا
-        // إلّا الهامش الذي يفصلها عمّا بعدها.
-        h('div', { style: `height:${slides.length ? 4 : 0}px` }),
+      /* لا ترويسة: التحية والزرّان أوّلُ **محتوى الصفحة** داخل منطقة التمرير،
+         فيمضيان معه كأي عنصر. هذا يلغي منطق الإخفاء كلّه — لا قياس ارتفاع
+         ولا هامش سالب ولا مستمع تمرير. */
+      h('div.screen__body', { style: 'padding:14px 16px 8px' },
+        C.homeHeader(C.greeting(), s.username || 'زائر'),
 
         // أكثر من ستّ شرائح لا يراها الطالب أصلًا (دورة تتجاوز الدقيقتين)،
         // ولا إطارات مفتاحية لها — نكتفي بالستّ الأولى بحسب الترتيب.
@@ -186,17 +184,13 @@ window.Screens = window.Screens || {};
     // تبقى في شاشة المادة و«حسابي» حيث تكون ذات صلة فعلًا.
 
     return h('div.screen',
-      C.homeHeader(C.greeting(), s.username || 'زائر'),
-
       h('div.screen__body',
         // (اللافتة أُزيلت من هذه الشاشة — انظر التعليق أعلاه)
 
-        /* عنوان القسم داخل الصفحة — بصنفه الخاص لا بصنف الترويسة. صار
-           `.hgreet` يخصّ تحيةَ الترويسة، واستعماله هنا يجعل أي ضبط لحجمها
-           يغيّر عنوان الصفحة معه بلا قصد. */
+        /* «موادّي» عنوانُ الصفحة نفسه، فلا تحيةَ هنا: تحيةٌ فوق عنوان تعني
+           عنوانين متراكمين في أعلى شاشة ضيّقة. نفس المكوّن، بلا سطر التحية. */
         h('div', { style: 'padding:14px 16px 0' },
-          h('div.ptitle', 'موادّي'),
-          h('div.ptitle__sub' + (s.activated ? '.ptitle__sub--gold' : ''), s.activated
+          C.homeHeader(null, 'موادّي', s.activated
             ? `اشتراكك فعّال — متبقٍ ${ar(s.daysLeft)} يومًا`
             : 'وضع التجربة')),
 
@@ -264,14 +258,18 @@ window.Screens = window.Screens || {};
           h('aside.dash__side',
             // «تابع من حيث توقفت» بلا درس تالٍ لا معنى له — تُحذف البطاقة كلها
             // بدل عرض بطاقة فارغة بزرّ يقود إلى لا شيء.
-            next && h('div.card.card--pad',
-              h('div.next-eyebrow', 'تابع من حيث توقفت'),
-              h('div.next-title', next.title),
-              h('div.next-meta',
-                `فيديو ${next.video.length} · ${ar(next.exercises.length)} تمارين`),
-              h('button.btn.btn--primary.btn--block', {
-                onclick: () => App.go('lesson', { id: nextId, subject: nextSubjectId }),
-              }, 'أكمل الدرس')),
+            /* الشريط يعرض تقدّم **المادة** لا الدرس، والنصّ يقول ذلك صراحةً:
+               المتجر يخزّن حالة الدرس (`doing`/`done`) ولا يخزّن نسبةً داخله،
+               فشريطٌ يوحي بموضعك في الدرس رقمٌ مُختلَق. */
+            next && C.continueCard({
+              eyebrow: 'تابع من حيث توقفت',
+              title: next.title,
+              meta: `فيديو ${next.video.length} · ${ar(next.exercises.length)} تمارين`
+                  + (nextSubjectId ? ` · أنجزت ${ar(Store.subjectProgress(nextSubjectId).percent)}٪ من المادة` : ''),
+              pct: nextSubjectId ? Store.subjectProgress(nextSubjectId).percent : 0,
+              label: 'أكمل الدرس',
+              onclick: () => App.go('lesson', { id: nextId, subject: nextSubjectId }),
+            }),
 
             // «تفاصيل تقدّمك» لم يعد زرًّا هنا: «تقدّمي» صار وجهة ثابتة بشريط
             // التنقّل السفلي، فالزر تكرار لطريق موجود أصلًا على بُعد نقرة.

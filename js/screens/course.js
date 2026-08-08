@@ -73,35 +73,31 @@ window.Screens = window.Screens || {};
               h('span.faint', { style: 'font-size:11px' }, `${ar(up.done)}/${ar(up.total)}`))),
           h('span.unit__chev', icon.chevron(16))));
 
-        /* بطاقات دروس كبيرة على نمط المرجع البصري (كروت الكتب): مربّع ملوّن،
-           أيقونة في رقعة شفّافة أعلاه، والعنوان أسفله.
+        /* الدروس قائمةٌ لا بطاقاتٍ كبيرة: البطاقات الملوّنة جميلة بأربعٍ منها،
+           وبعشرين درسًا تصير لوحةً صاخبة تُخفي «أين وصلت». والصفّ يقول الحالة
+           في قرص البداية (صحّ · تشغيل · رقم) ويقرأ أسرع بكثير.
 
-           اللون بترتيب الدرس داخل الوحدة لا بالعشوائية: الدرس نفسه يجب أن
-           يحمل لونه في كل فتحة، وإلّا ضاع تعرّف الطالب على موضعه.
-
-           المكتمل لا يُلوَّن: لوحةٌ كلّها ألوان صاخبة تخفي **أين وصلت**، وهو
-           السؤال الأول لمن يفتح مادة. المكتمل يهدأ ويحمل علامة صحّ. */
-        const grid = h('div.lgrid');
+           الفاصل **بين** الدروس لا حولها: إطارٌ داخل إطار يضاعف الخطوط بلا
+           معنى، وقد كان هذا أوضح خلل في الشكل السابق. */
         u.lessons.forEach((id, n) => {
           const l = SEED.lessons[id];
           const st = s.lessons[id];
           const state = st === 'done' ? 'done' : st ? 'now' : 'todo';
 
-          grid.appendChild(h('button.lcard.lcard--' + state, {
-            class: state === 'done' ? '' : 'lcard--c' + (n % 4),
-            onclick: () => App.go('lesson', { id, subject: subjectId }),
-            'aria-label': l.title,
-          },
-            h('span.lcard__top',
-              h('span.lcard__ico', state === 'done' ? icon.check(19) : icon.play(18)),
-              s.downloaded.includes(id) ? h('span.lcard__save', icon.down(15)) : null),
-            h('span.lcard__n', `الدرس ${ar(n + 1)}`),
-            h('span.lcard__t', l.title),
-            h('span.lcard__m',
-              `${l.video.length} دقيقة`,
-              l.free ? h('span.lcard__free', 'مجاني') : null)));
+          det.appendChild(h('div.les.les--' + state,
+            { onclick: () => App.go('lesson', { id, subject: subjectId }) },
+            h('span.les__s',
+              state === 'done' ? icon.check(15)
+              : state === 'now' ? icon.play(14)
+              : ar(n + 1)),
+            h('div.les__b',
+              h('div.les__t', l.title),
+              h('div.les__m',
+                h('span', `${l.video.length} دقيقة`),
+                l.free ? h('span.tag.tag--free', 'مجاني') : null,
+                s.downloaded.includes(id) ? h('span.tag.tag--off', 'محفوظ') : null)),
+            h('span.les__go', icon.fwd(17))));
         });
-        det.appendChild(grid);
 
         // زر تنزيل على مستوى الوحدة — الفجوة التي كانت غائبة في الموكأپ
         det.appendChild(h('div', { style: 'padding:10px 16px 14px;border-top:1px solid var(--brd)' },
@@ -128,15 +124,16 @@ window.Screens = window.Screens || {};
       return h('div.dash',
         h('div.dash__main', list),
         h('aside.dash__side',
+          // نفس بطاقة «موادّي»: فكرةٌ واحدة بلغةٍ واحدة، لا شكلان لمعنًى واحد
           next
-            ? h('div.card.card--pad',
-                h('div.muted.small', { style: 'margin-bottom:4px' }, 'الدرس التالي'),
-                h('div', { style: 'font-weight:600;font-size:17px;margin-bottom:2px' }, next.title),
-                h('div.faint.small', { style: 'margin-bottom:14px' },
-                  `فيديو ${next.video.length} · ${ar(next.exercises.length)} تمارين`),
-                h('button.btn.btn--primary.btn--block', {
-                  onclick: () => App.go('lesson', { id: nextId, subject: subjectId }),
-                }, 'ابدأ الدرس'))
+            ? C.continueCard({
+                eyebrow: 'الدرس التالي',
+                title: next.title,
+                meta: `فيديو ${next.video.length} · ${ar(next.exercises.length)} تمارين`,
+                pct: Store.subjectProgress(subjectId).percent,
+                label: 'ابدأ الدرس',
+                onclick: () => App.go('lesson', { id: nextId, subject: subjectId }),
+              })
             : h('div.card.card--pad',
                 h('div', { style: 'font-weight:600;margin-bottom:6px' }, 'أنهيت كل الدروس'),
                 h('div.muted.small', { style: 'margin-bottom:12px' },

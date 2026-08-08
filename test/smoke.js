@@ -232,9 +232,12 @@ ok('الشريط السفلي يُبنى من نفس RAIL_ITEMS', /tabbar\.repla
 // الشريط السفلي بلا نصّ ⇒ الزرّ يفقد اسمه لقارئ الشاشة بلا aria-label
 ok('أزرار الشريط السفلي بلا نصّ ظاهر', /\}, h\('span\.tabbar__ico', it\.fico\(\d+\)\)\)/.test(appSrc));
 ok('لها اسم لقارئ الشاشة', /'aria-label': it\.label/.test(appSrc));
-// النشط على أرضية بنفسجية: الخلفية بيضاء شفّافة لا --acc-soft الفاتحة
-ok('النشط له خلفية لا لون فقط',
-   /\.tabbar button\.is-on \.tabbar__ico \{[^}]*background: rgba\(255, 255, 255/.test(cssSrc));
+// النشط يُميَّز **بشكل** لا بشفافية وحدها — وهي ما كانت تجعل الشريط مسطّحًا
+ok('النشط له نقطة لا لون فقط',
+   /\.tabbar button\.is-on \.tabbar__ico::after \{[^}]*border-radius: 50%/.test(cssSrc));
+// ثلاث طبقات ظلّ: حافّة داخلية تعطي سُمكًا، وظلّ قريب يثبّت، وبعيد يرفع
+ok('الشريط يطفو بثلاث طبقات لا بواحدة',
+   /\.tabbar \{[^}]*inset 0 1px 0 rgba\(255, 255, 255/.test(cssSrc));
 ok('الشريط الجانبي يبقي نصّه', /it\.ico\(20\), it\.label/.test(appSrc));
 ok('«موادّي» وجهة تنقّل مستقلّة الآن', /id:\s*'subjects'/.test(appSrc));
 ok('«حسابي» صارت وجهة تنقّل رابعة', /id:\s*'account'/.test(appSrc)
@@ -246,7 +249,7 @@ ok('أيقونات الشريط ممتلئة', /fill: 'currentColor', stroke: 'n
    && /fHome:|fGrid:|fChart:|fUser:/.test(uiSrc));
 ok('والشريط الجانبي يبقى بالخطّية (أرضيته فاتحة)', /ico: icon\.home/.test(appSrc));
 ok('الشريط يطفو لا يلتصق بالحافة',
-   /\.tabbar \{[^}]*inset-inline: 14px[^}]*bottom: calc\(12px/.test(cssSrc));
+   /\.tabbar \{[^}]*inset-inline: 16px[^}]*bottom: calc\(14px/.test(cssSrc));
 ok('بحبّة كاملة الاستدارة', /\.tabbar \{[^}]*border-radius: var\(--r-full\)/.test(cssSrc));
 ok('على أرضية بنفسجية من التوكنات لا هكس مكتوب',
    /\.tabbar \{[^}]*var\(--nav-hi\), var\(--nav\)/.test(cssSrc));
@@ -325,12 +328,19 @@ ok('التحية يمينًا والأزرار يسارًا',
    compSrc.indexOf("h('div.hgreet'") < compSrc.indexOf("h('div.hacts'"));
 // الاسم بجانب التحية لا تحتها، ومحاذاته على خطّ الأساس لا على المنتصف
 ok('الاسم بجانب التحية', /\.hgreet \{[^}]*display: flex[^}]*align-items: baseline/.test(cssSrc));
-// الترويسة في السياق الطبيعي، فإخفاؤها بـtransform يترك مكانها فراغًا
-ok('تختفي بهامش سالب لا بإزاحة',
-   /\.appbar--home\.is-away \{[^}]*margin-top: calc\(-1 \* var\(--h/.test(cssSrc));
-ok('وارتفاعها يُقاس لا يُفترض', /setProperty\('--h', hdr\.offsetHeight/.test(appSrc));
-ok('عتبة تمنع الارتجاف', /Math\.abs\(y - last\) < 6/.test(appSrc));
-ok('ولا تختفي قرب القمّة', /y > 56 && y > last/.test(appSrc));
+/* لم تعد ترويسة: التحية والزرّان أوّل محتوى داخل منطقة التمرير، فيمضيان معه
+   كأي عنصر. هذا ألغى منطق الإخفاء كلّه — والحارس يمنع عودته. */
+ok('التحية عنصرٌ في الصفحة لا شريط',
+   /h\('div\.pgreet'/.test(compSrc) && !/appbar--home/.test(compSrc));
+ok('ولا بقايا لمنطق الإخفاء',
+   !/wireHeaderHide/.test(appSrc) && !/is-away/.test(cssSrc)
+   && !/offsetHeight/.test(appSrc));
+// وجودها داخل منطقة التمرير يُتحقَّق ببناء الشاشة لا بقراءة المصدر
+{
+  const inBody = /screen__body[\s\S]{0,200}C\.homeHeader\(/;
+  ok('وهي داخل منطقة التمرير في الشاشتين',
+     (mainSrc.match(/C\.homeHeader\(/g) || []).length === 2 && inBody.test(mainSrc));
+}
 // النقطة الحمراء تتبع إشعارًا حقيقيًا؛ شارة دائمة تفقد معناها بعد يومين
 ok('نقطة الإشعار مشروطة لا دائمة', /list\.length \? h\('span\.hbtn__dot'\) : null/.test(compSrc));
 ok('والإشعارات مشتقّة من حالة التطبيق لا مُختلَقة',
@@ -339,8 +349,23 @@ ok('والإشعارات مشتقّة من حالة التطبيق لا مُخت
 // ترويسة واحدة تخدم الشاشتين: نسختان متطابقتان كانتا تفترقان بأول تعديل
 ok('ترويسة مشتركة لا منسوخة', (mainSrc.match(/C\.homeHeader\(/g) || []).length === 2
    && !/hbrand__name/.test(mainSrc));
-// عنوان الصفحة بصنفه الخاص: مشاركته صنفَ الترويسة تجعل ضبط أحدهما يحرّك الآخر
-ok('عنوان القسم منفصل عن تحية الترويسة', /\.ptitle \{/.test(cssSrc) && /ptitle/.test(mainSrc));
+// «موادّي» عنوانُ الصفحة نفسه، فلا تحيةَ فوقه — عنوانان متراكمان في أعلى شاشة
+ok('«موادّي» بلا سطر تحية فوقه', /C\.homeHeader\(null, 'موادّي'/.test(mainSrc));
+
+// --- الدروس عادت قائمةً + بطاقة متابعة موحّدة -----------------------------------
+ok('الدروس قائمة لا بطاقات', /h\('div\.les\.les--'/.test(courseSrc) && !/lgrid|lcard/.test(courseSrc));
+ok('والفاصل بين الدروس لا حولها', /\.les \{[^}]*border-top: 1px solid var\(--brd\)/.test(cssSrc));
+ok('حالة الدرس في قرص البداية',
+   /\.les--done \.les__s/.test(cssSrc) && /\.les--now  \.les__s/.test(cssSrc));
+// بطاقة واحدة للمعنى الواحد: شكلان لنفس الفكرة يجعل الطالب يقرؤها بلغتين
+ok('بطاقة المتابعة مكوّن مشترك',
+   /function continueCard\(/.test(compSrc)
+   && /C\.continueCard\(/.test(mainSrc) && /C\.continueCard\(/.test(courseSrc));
+// المتجر لا يخزّن نسبةً داخل الدرس، فشريطٌ يوحي بها رقمٌ مُختلَق
+ok('شريط البطاقة يعرض تقدّم المادة والنصّ يقوله',
+   /Store\.subjectProgress\(nextSubjectId\)\.percent/.test(mainSrc)
+   && /من المادة/.test(mainSrc));
+ok('ولا يُرسم شريطٌ بلا تقدّم', /pct > 0 \? h\('div\.cont__bar'/.test(compSrc));
 // الخروج وإعادة الضبط لازم يوديا لشاشة موجودة فعلًا لا لاسم محذوف
 ok('الخروج/إعادة الضبط يودّيان إلى auth',
    !/App\.go\('welcome'\)/.test(mainSrc) && (mainSrc.match(/App\.go\('auth'\)/g) || []).length >= 2);
@@ -429,17 +454,12 @@ ok('التلاشي لا يبتلع النقرات', /\.teacher-hero-img::after \
 // الصورة تمرّ، فلو مرّ زرّ الرجوع معها لضاع مسار الرجوع الوحيد
 ok('زرّ الرجوع يبقى ثابتًا', /\.teacher-back \{[^}]*position: fixed/.test(cssSrc)
    && /teacher-back/.test(mainSrc));
-// --- بطاقات الدروس (المرجع البصري) حلّت محلّ الخطّ الزمني -------------------------
-ok('الدروس بطاقات لا خطًّا زمنيًا',
-   /h\('div\.lgrid'\)/.test(courseSrc) && !/h\('div\.tl'\)/.test(courseSrc));
-ok('ولا بقايا للخطّ في الأنماط', !/\.tl-row|\.tl-dot|\.tl-act/.test(cssSrc));
+/* الدروس: جُرِّبت بطاقاتٍ كبيرة ثم عادت قائمةً — البطاقات الملوّنة جميلة بأربعٍ
+   منها، وبعشرين درسًا تُخفي «أين وصلت». الحارس يمنع رجوعها والخطَّ الزمني معًا. */
+ok('لا بقايا للخطّ الزمني ولا للبطاقات',
+   !/\.tl-row|\.tl-dot|\.tl-act|\.lcard|\.lgrid/.test(cssSrc)
+   && !/lgrid|lcard|h\('div\.tl'\)/.test(courseSrc));
 ok('ثلاث حالات للدرس', ['done', 'now', 'todo'].every((x) => courseSrc.includes(`'${x}'`)));
-// المكتمل يهدأ عمدًا: بعشرين درسًا تخفي لوحةٌ كلّها ألوان «أين وصلت»
-ok('المكتمل لا يُلوَّن', /state === 'done' \? '' : 'lcard--c'/.test(courseSrc)
-   && /\.lcard--done \{[^}]*background: var\(--surf2\)/.test(cssSrc));
-ok('واللون بترتيب ثابت لا عشوائي', /'lcard--c' \+ \(n % 4\)/.test(courseSrc));
-// عنوانٌ طويل يمطّ البطاقة فتختلّ الشبكة كلّها
-ok('العنوان محدود بسطرين', /\.lcard__t \{[^}]*-webkit-line-clamp: 2/.test(cssSrc));
 
 // --- بطاقات المواد في «موادّي» ----------------------------------------------------
 ok('المواد بطاقات ملوّنة', /h\('div\.subj-grid'/.test(mainSrc) && /\.subj-grid \{/.test(cssSrc));
@@ -458,11 +478,11 @@ ok('واسمٌ طويل يُقصّ لا يمطّ البطاقة',
 ok('قصّة الحافّة بسهم', /subj__notch/.test(mainSrc)
    && /\.subj__notch \{[^}]*background: var\(--bg\)/.test(cssSrc));
 ok('والفجوة تتّسع لبروزها', /\.subj-grid \{[^}]*gap: 16px/.test(cssSrc));
-// الحالة تُقرأ من الأيقونة والهدوء لا من نقطة على خطّ: المكتمل صحٌّ أخضر
-ok('المكتمل يحمل علامة صحّ', /state === 'done' \? icon\.check\(19\)/.test(courseSrc)
-   && /\.lcard--done \.lcard__ico \{[^}]*color: var\(--ok\)/.test(cssSrc));
-ok('والجاري يُميَّز بحلقة لا بلون آخر',
-   /\.lcard--now \{[^}]*box-shadow: 0 0 0 3px var\(--acc-soft\)/.test(cssSrc));
+// الحالة في قرص البداية: صحٌّ أخضر للمكتمل، تشغيلٌ للجاري، رقمٌ لما لم يُبدأ
+ok('المكتمل يحمل علامة صحّ', /state === 'done' \? icon\.check\(15\)/.test(courseSrc)
+   && /\.les--done \.les__s \{[^}]*color: var\(--ok\)/.test(cssSrc));
+ok('والجاري يحمل تشغيلًا بلون الهوية',
+   /\.les--now  \.les__s \{[^}]*background: var\(--acc\)/.test(cssSrc));
 
 // --- ترويسة الرئيسية/موادّي ------------------------------------------------------
 // العلامة نصًّا لا شعارًا في الترويسة — أسلوب أغلب التطبيقات الحديثة.
@@ -489,16 +509,13 @@ ok('التحية والاسم بجانب بعضهما',
 ok('وتتبع ساعة الجهاز', /function greeting\(\)[\s\S]{0,200}صباح الخير/.test(compSrc));
 // وجودها داخل منطقة التمرير فعليًا يتحقّق ببناء الشاشة لا بقراءة المصدر —
 // انظر render-check.js في مجلد الفحص.
-/* الترويسة بلا حاوية إطلاقًا (المرجع البصري): كانت بطاقة بيضاء بظلّ بنفسجي
-   وزوايا سفلية مدوّرة فتُقرأ كصندوق ملصوق فوق الصفحة. */
+/* لم تعد ترويسةً ولا حاوية: `.pgreet` عنصرٌ عادي في تدفّق الصفحة.
+   الأزرار تُحاذي أعلى كتلة التحية لا منتصفها — سطران مقابل سطر. */
 {
-  const hdr = (cssSrc.match(/\.appbar--home \{[^}]*\}/) || [''])[0];
-  ok('الترويسة بلا حاوية', /background: transparent/.test(hdr)
-     && /box-shadow: none/.test(hdr) && /border-radius: 0;/.test(hdr));
-  ok('ولا ظلّ مستقلّ للوضع الليلي بعدها',
-     !/:root\[data-theme="dark"\] \.appbar--home/.test(cssSrc));
-  // الأزرار تُحاذي أعلى كتلة التحية لا منتصفها — سطران مقابل سطر
-  ok('محاذاة علوية', /align-items: flex-start/.test(hdr));
+  const g = (cssSrc.match(/\.pgreet \{[^}]*\}/) || [''])[0];
+  ok('التحية بلا حاوية ولا سطح', !/background|box-shadow|border/.test(g));
+  ok('ومحاذاة علوية للأزرار', /align-items: flex-start/.test(g));
+  ok('ولا أثر لصنف الشريط القديم', !/appbar--home/.test(cssSrc));
 }
 
 // سهم الدخول: عنصر زخرفي لا زرّ ثانٍ — زرٌّ داخل زرّ HTML غير صالح

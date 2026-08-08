@@ -33,18 +33,40 @@ window.C = (function () {
      من حالة التطبيق نفسها، والنقطة الحمراء لا تظهر إلّا حين يوجد شيء فعلًا —
      شارةٌ دائمة لا يزيلها شيء تفقد معناها بعد يومين.
   --------------------------------------------------------------------------- */
-  function homeHeader(kicker, title) {
+  function homeHeader(kicker, title, sub) {
     const list = notices();
-    return h('header.appbar.appbar--home',
+    return h('div.pgreet',
       h('div.hgreet',
-        h('span.hgreet__k', kicker),
-        h('span.hgreet__n', title)),
+        kicker ? h('span.hgreet__k', kicker) : null,
+        h('span.hgreet__n', title),
+        sub ? h('span.hgreet__s', sub) : null),
       h('div.hacts',
         h('button.hbtn', { onclick: () => App.go('account'), 'aria-label': 'الإعدادات' },
           icon.settings(19)),
         h('button.hbtn', { onclick: () => showNotices(list), 'aria-label': 'الإشعارات' },
           icon.bell(19),
           list.length ? h('span.hbtn__dot') : null)));
+  }
+
+  /* ---------------------------------------------------------------------------
+     بطاقة «أكمل من حيث توقفت» — أهمّ بطاقة في الشاشة: تختصر قرار «شو أعمل
+     الآن» إلى نقرة. لذلك لوحٌ مصمت لا بطاقة سطحية، ومعها **نسبة ما قطعه
+     الطالب في الدرس نفسه** لا عنوانه وحده.
+
+     دالّة واحدة تخدم «موادّي» وشاشة المادة: كانتا بطاقتين مختلفتي الشكل لنفس
+     المعنى، فيقرأ الطالب فكرةً واحدة بلغتين.
+  --------------------------------------------------------------------------- */
+  function continueCard({ eyebrow, title, meta, pct, label, onclick }) {
+    return h('div.cont',
+      h('div.cont__h',
+        h('span.cont__ico', icon.play(20)),
+        h('div', { style: 'min-width:0' },
+          h('div.cont__k', eyebrow),
+          h('div.cont__t', title))),
+      meta ? h('div.cont__m', meta) : null,
+      // الشريط يظهر فقط إن كان هناك تقدّمٌ فعلي — شريطٌ فارغ يقول «صفر» بصريًا
+      pct > 0 ? h('div.cont__bar', h('i', { style: `width:${pct}%` })) : null,
+      h('button.cont__btn', { onclick }, icon.play(16), label));
   }
 
   /**
@@ -352,5 +374,5 @@ window.C = (function () {
     return card;
   }
 
-  return { appbar, homeHeader, greeting, syncBanner, empty, questionCard };
+  return { appbar, homeHeader, greeting, continueCard, syncBanner, empty, questionCard };
 })();

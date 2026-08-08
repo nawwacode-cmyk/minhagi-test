@@ -42,9 +42,9 @@ ok('بلا بانرات لا يُبنى عنصر البانر أصلًا',
 ok('ولا نقاط مؤشِّرة', !/promo-dots/.test(html));
 ok('بقيّة الشاشة تُبنى كالمعتاد', /hgreet/.test(html) && /sec-label/.test(html));
 // التحية صعدت إلى الترويسة؛ ما بقي فاصلٌ يظهر مع البانر ويختفي بدونه
-ok('لا فاصل زائد بلا بانر', /height:0px/.test(html));
+ok('الترويسة أوّل محتوى الصفحة', /pgreet/.test(html));
 window.SEED.banners = mkB(2);
-ok('ويظهر الفاصل مع بانر', /height:4px/.test(Screens.home().outerHTML));
+ok('والبانر يليها', /pgreet/.test(Screens.home().outerHTML));
 
 // صورة + وجهة
 window.SEED.banners = [{ id: 'b', title: 'ت', sub: '', image: 'banners/x.png',
