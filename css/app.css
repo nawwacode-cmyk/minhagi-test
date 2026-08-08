@@ -380,24 +380,17 @@ img, svg { max-width: 100%; display: block; }
    شاشة الاكتشاف «الرئيسية» — منقولة عن التصميم المعتمَد
    ============================================================================= */
 
-/* ترويسة الرئيسية/موادّي: بلا حدّ سفلي ولا سطح منفصل — تذوب في الخلفية
-   لتصدّر البانرَ والمحتوى، بخلاف ترويسة الشاشات الداخلية. */
-/* ترويسة الرئيسية/موادّي: الشعار والإعدادات فقط، بزوايا سفلية كبيرة بأسلوب
-   iOS وظلّ بنفسجي خفيف يفصلها عن المحتوى بلا خطّ حادّ.
-   التحية ليست هنا — هي محتوى الصفحة ومكانها داخل منطقة التمرير. */
+/* ترويسة الرئيسية/موادّي — **بلا حاوية إطلاقًا**، كما في المرجع البصري.
+   كانت بطاقةً بيضاء بظلّ بنفسجي وزوايا سفلية مدوّرة، فتُقرأ كصندوقٍ ملصوق
+   فوق الصفحة. المرجع يضع التحية والأزرار على خلفية الصفحة مباشرةً، فيصير
+   أعلى الشاشة امتدادًا لها لا شريطًا فوقها.
+
+   align-items: flex-start لأن كتلة التحية سطران والأزرار سطر واحد؛ التوسيط
+   يدفع الأزرار إلى منتصف ارتفاع الكتلة فتبدو هابطة. */
 .appbar--home {
-  justify-content: space-between;
-  background: var(--surf); border-bottom: 0;
-  border-radius: 0 0 24px 24px;
-  padding: calc(10px + env(safe-area-inset-top)) 20px 12px;
-  margin-bottom: 2px;
-  box-shadow: 0 10px 30px -12px rgba(91, 75, 158, .30),
-              0 2px 6px rgba(91, 75, 158, .06);
-}
-/* الظلّ الملوَّن يختفي على خلفية داكنة (لون على لون قريب منه)، فيحتاج بديلًا
-   أعمق وإلّا ذابت الترويسة بالخلفية وضاعت حدودها. */
-:root[data-theme="dark"] .appbar--home {
-  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, .55);
+  justify-content: space-between; align-items: flex-start;
+  background: transparent; border: 0; box-shadow: none; border-radius: 0;
+  padding: calc(14px + env(safe-area-inset-top)) 20px 10px;
 }
 
 /* العلامة اسمًا مجرّدًا — لا شعار ولا عبارة تحته. الترويسة تُعرّف بالمكان
@@ -405,23 +398,74 @@ img, svg { max-width: 100%; display: block; }
 /* التحية في الترويسة — على نمط المرجع: سطر باهت صغير فوق الاسم كبيرًا.
    لا قصّ ولا تتبّع سالب: العربية خطّ متّصل، والنقطتان تحت الياء تنزلان دون
    خطّ الأساس، فسطرٌ ضيّق مع overflow:hidden كان يبترهما. */
-.hgreet { min-width: 0; }
+/* الأزرار انتقلت إلى الطرف الآخر، فكتلة التحية صارت على الطرف المقابل —
+   ونصّها يُحاذي حافتها هي لا مركز الشاشة، وإلّا عامت في الفراغ. */
+.hgreet { min-width: 0; text-align: start; }
 .hgreet__k { font-size: 13px; color: var(--txm); line-height: 1.5; }
 .hgreet__n {
   font-size: 23px; font-weight: 600; line-height: 1.45;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* زرّا الترويسة: دائرتان على أرضية فاتحة كما في المرجع */
-.hacts { display: flex; gap: 9px; flex: 0 0 auto; }
+/* زرّا الترويسة: قرصان **أبيضان** بظلّ ناعم على خلفية الصفحة — كما في المرجع.
+   الأبيض هنا ليس زينة: بلا حاوية للترويسة، الأرضية الفاتحة (--surf2) تكاد
+   تساوي خلفية الصفحة فيختفي الزرّ ولا يُقرأ كهدفٍ للمس. */
+.hacts { display: flex; gap: 10px; flex: 0 0 auto; margin-top: 2px; }
 .hbtn {
-  width: 40px; height: 40px; flex: 0 0 40px;
+  position: relative;
+  width: 42px; height: 42px; flex: 0 0 42px;
   display: grid; place-items: center;
   border: 0; border-radius: 50%;
-  background: var(--surf2); color: var(--acc-tx);
+  background: var(--surf); color: var(--tx);
+  box-shadow: 0 4px 12px -4px rgba(30, 24, 50, .16), 0 1px 2px rgba(30, 24, 50, .05);
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .hbtn:hover { background: var(--acc-soft); color: var(--acc); }
+
+/* نقطة الإشعار — تظهر فقط حين يوجد إشعار فعلي، لا كزينة دائمة.
+   شارةٌ حمراء لا يزيلها شيء تفقد معناها بعد يومين. */
+.hbtn__dot {
+  position: absolute; top: 9px; inset-inline-end: 10px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--err); border: 2px solid var(--surf);
+}
+
+/* --- لوحة الإشعارات ---------------------------------------------------------- */
+.scrim {
+  position: fixed; inset: 0; z-index: 20;
+  display: flex; align-items: flex-end;
+  background: var(--scrim);
+  animation: fadeIn var(--dur) var(--ease);
+}
+.sheet {
+  width: 100%; max-height: 72vh; overflow-y: auto;
+  background: var(--surf); color: var(--tx);
+  border-radius: 22px 22px 0 0;
+  padding: 10px 18px calc(22px + env(safe-area-inset-bottom));
+  animation: sheetUp .26s var(--ease);
+}
+@media (min-width: 700px) {
+  .scrim { align-items: center; justify-content: center; }
+  .sheet { max-width: 460px; border-radius: 22px; }
+}
+@keyframes sheetUp { from { transform: translateY(18px); opacity: .6 } to { transform: none; opacity: 1 } }
+.sheet__grab {
+  width: 42px; height: 4px; border-radius: 4px;
+  background: var(--brd2); margin: 0 auto 12px;
+}
+.sheet__t { font-size: 17px; font-weight: 600; margin-bottom: 12px; }
+.notice {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 12px 0; border-top: 1px solid var(--brd);
+}
+.notice__i {
+  flex: 0 0 34px; width: 34px; height: 34px;
+  display: grid; place-items: center; border-radius: 11px;
+  background: var(--acc-soft); color: var(--acc);
+}
+.notice b { display: block; font-size: 14px; font-weight: 600; }
+.notice span { display: block; font-size: 13px; color: var(--txm); margin-top: 2px; line-height: 1.6; }
+.notice--calm .notice__i { background: var(--ok-soft); color: var(--ok); }
 
 /* عنوان قسم داخل الصفحة — منفصل عن تحية الترويسة عمدًا، فضبطُ أحدهما
    لا يحرّك الآخر. */

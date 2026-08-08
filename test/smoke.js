@@ -314,9 +314,20 @@ const nameCss = (cssSrc.match(/\.hgreet__n \{[^}]*\}/) || [''])[0];
 ok('سطر الاسم يتّسع لنزول الحروف', /line-height: 1\.4[0-9]?|line-height: 1\.5/.test(nameCss));
 ok('واسمٌ طويل يُقصّ بالنقاط لا يكسر الترويسة', /text-overflow: ellipsis/.test(nameCss));
 ok('لا تتبّع سالب على نصّ عربي', !/letter-spacing: *-/.test(cssSrc));
-// زرّان دائريان كما في المرجع — إعدادات وحساب بدل إشعارات وبحث
-ok('الترويسة فيها زرّان', /icon\.settings\(19\)/.test(compSrc) && /icon\.user\(19\)/.test(compSrc));
-ok('وهما دائريان على أرضية فاتحة', /\.hbtn \{[^}]*border-radius: 50%/.test(cssSrc));
+// زرّان دائريان كما في المرجع: إشعارات وإعدادات
+ok('الترويسة فيها زرّا إشعارات وإعدادات',
+   /icon\.bell\(19\)/.test(compSrc) && /icon\.settings\(19\)/.test(compSrc));
+ok('وهما قرصان أبيضان بظلّ',
+   /\.hbtn \{[^}]*border-radius: 50%[^}]*background: var\(--surf\)/.test(cssSrc)
+   && /\.hbtn \{[^}]*box-shadow/.test(cssSrc));
+// في RTL يذهب أوّل عنصر يمينًا: الأزرار قبل التحية ⇒ الطرف المقابل لها
+ok('الأزرار في الطرف المقابل للتحية',
+   compSrc.indexOf("h('div.hacts'") < compSrc.indexOf("h('div.hgreet'"));
+// النقطة الحمراء تتبع إشعارًا حقيقيًا؛ شارة دائمة تفقد معناها بعد يومين
+ok('نقطة الإشعار مشروطة لا دائمة', /list\.length \? h\('span\.hbtn__dot'\) : null/.test(compSrc));
+ok('والإشعارات مشتقّة من حالة التطبيق لا مُختلَقة',
+   /function notices\(\)/.test(compSrc) && /s\.storageFull/.test(compSrc)
+   && /s\.daysLeft <= 14/.test(compSrc));
 // ترويسة واحدة تخدم الشاشتين: نسختان متطابقتان كانتا تفترقان بأول تعديل
 ok('ترويسة مشتركة لا منسوخة', (mainSrc.match(/C\.homeHeader\(/g) || []).length === 2
    && !/hbrand__name/.test(mainSrc));
@@ -449,11 +460,17 @@ ok('التحية سطرٌ فوق الاسم في الترويسة',
 ok('وتتبع ساعة الجهاز', /function greeting\(\)[\s\S]{0,200}صباح الخير/.test(compSrc));
 // وجودها داخل منطقة التمرير فعليًا يتحقّق ببناء الشاشة لا بقراءة المصدر —
 // انظر render-check.js في مجلد الفحص.
-ok('زوايا سفلية بأسلوب iOS', /\.appbar--home \{[^}]*border-radius: 0 0 24px 24px/.test(cssSrc));
-ok('ظلّ بنفسجي خفيف', /rgba\(91, 75, 158, \.30\)/.test(cssSrc));
-// الظلّ الملوَّن يختفي على خلفية داكنة — يحتاج بديلًا أعمق لا نفس القيمة
-ok('ظلّ مستقلّ للوضع الليلي',
-   /:root\[data-theme="dark"\] \.appbar--home \{[^}]*box-shadow/.test(cssSrc));
+/* الترويسة بلا حاوية إطلاقًا (المرجع البصري): كانت بطاقة بيضاء بظلّ بنفسجي
+   وزوايا سفلية مدوّرة فتُقرأ كصندوق ملصوق فوق الصفحة. */
+{
+  const hdr = (cssSrc.match(/\.appbar--home \{[^}]*\}/) || [''])[0];
+  ok('الترويسة بلا حاوية', /background: transparent/.test(hdr)
+     && /box-shadow: none/.test(hdr) && /border-radius: 0;/.test(hdr));
+  ok('ولا ظلّ مستقلّ للوضع الليلي بعدها',
+     !/:root\[data-theme="dark"\] \.appbar--home/.test(cssSrc));
+  // الأزرار تُحاذي أعلى كتلة التحية لا منتصفها — سطران مقابل سطر
+  ok('محاذاة علوية', /align-items: flex-start/.test(hdr));
+}
 
 // سهم الدخول: عنصر زخرفي لا زرّ ثانٍ — زرٌّ داخل زرّ HTML غير صالح
 // ويكسر التنقّل بلوحة المفاتيح.

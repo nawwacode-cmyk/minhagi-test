@@ -22,19 +22,71 @@ window.C = (function () {
      دالّة واحدة تخدم «الرئيسية» و«موادّي»: كانتا نسختين متطابقتين بالنصّ،
      فأي تعديل على إحداهما كان يترك الأخرى خلفه بلا أن يلاحظ أحد.
 
-     زرّا المرجع (إشعارات وبحث) صارا **إعدادات وحساب**: لا إشعارات في التطبيق
-     أصلًا، وزرٌّ يقود إلى لا شيء أسوأ من غيابه.
+     الأزرار **قبل** التحية في الترتيب: في RTL يذهب أوّل عنصر إلى اليمين،
+     وهذا ما يضعها في الطرف المقابل للتحية كما في المرجع.
+
+     زرّ الإشعارات لا يقود إلى شاشة فارغة: `notices()` تشتقّ ما يستحقّ الانتباه
+     من حالة التطبيق نفسها، والنقطة الحمراء لا تظهر إلّا حين يوجد شيء فعلًا —
+     شارةٌ دائمة لا يزيلها شيء تفقد معناها بعد يومين.
   --------------------------------------------------------------------------- */
   function homeHeader(kicker, title) {
+    const list = notices();
     return h('header.appbar.appbar--home',
+      h('div.hacts',
+        h('button.hbtn', { onclick: () => showNotices(list), 'aria-label': 'الإشعارات' },
+          icon.bell(19),
+          list.length ? h('span.hbtn__dot') : null),
+        h('button.hbtn', { onclick: () => App.go('account'), 'aria-label': 'الإعدادات' },
+          icon.settings(19))),
       h('div.hgreet',
         h('div.hgreet__k', kicker),
-        h('div.hgreet__n', title)),
-      h('div.hacts',
-        h('button.hbtn', { onclick: () => App.go('account'), 'aria-label': 'الإعدادات' },
-          icon.settings(19)),
-        h('button.hbtn', { onclick: () => App.go('account'), 'aria-label': 'حسابي' },
-          icon.user(19))));
+        h('div.hgreet__n', title)));
+  }
+
+  /**
+   * ما يستحقّ انتباه الطالب — مشتقٌّ من الحالة القائمة لا من جدول إشعارات.
+   * لا نُنشئ منظومة إشعارات لأجل زرّ؛ ونُبقيه صادقًا: إن لم يكن ثمّة شيء
+   * فلا نقطة حمراء ولا قائمة مُختلَقة.
+   */
+  function notices() {
+    const s = Store.get();
+    const out = [];
+    if (s.storageFull) {
+      out.push({ ico: icon.warn, t: 'مساحة التخزين ممتلئة',
+                 d: 'المحتوى الجديد لا يُحفظ. أفرِغ مساحة ثم أعد فتح التطبيق.' });
+    }
+    if (s.activated && s.daysLeft > 0 && s.daysLeft <= 14) {
+      out.push({ ico: icon.exam, t: `اشتراكك ينتهي بعد ${ar(s.daysLeft)} يومًا`,
+                 d: 'جدّده بكود جديد كي لا ينقطع وصولك للدروس.' });
+    }
+    if (!s.online) {
+      out.push({ ico: icon.wifiOff, t: 'تعمل دون إنترنت',
+                 d: 'دروسك المحفوظة تعمل، والجديد يصل عند عودة الاتصال.' });
+    }
+    const queued = Store.pending();
+    if (queued > 0 && s.online) {
+      out.push({ ico: icon.sync, t: `${ar(queued)} نشاطًا قيد المزامنة`,
+                 d: 'تقدّمك محفوظ على جهازك ويُرسل تلقائيًا.' });
+    }
+    return out;
+  }
+
+  /** لوحة الإشعارات — تنزلق من الأسفل وتُغلق بالنقر خارجها. */
+  function showNotices(list) {
+    const sheet = h('div.sheet',
+      h('div.sheet__grab'),
+      h('div.sheet__t', 'الإشعارات'),
+      list.length
+        ? h('div', ...list.map((n) => h('div.notice',
+            h('span.notice__i', n.ico(18)),
+            h('div', h('b', n.t), h('span', n.d)))))
+        : h('div.notice.notice--calm',
+            h('span.notice__i', icon.check(18)),
+            h('div', h('b', 'لا جديد'), h('span', 'كل شيء على ما يُرام.'))));
+
+    const back = h('div.scrim', { onclick: () => back.remove() }, sheet);
+    sheet.addEventListener('click', (e) => e.stopPropagation());
+    document.body.appendChild(back);
   }
 
   /** تحية بحسب ساعة الجهاز — كما في المرجع («Good morning»). */
