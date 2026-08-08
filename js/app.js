@@ -32,13 +32,17 @@ window.App = (function () {
    */
   // ico تأخذ مقاسًا: الشريط الجانبي يعرض أيقونة صغيرة بجانب نصّها، والشريط
   // السفلي يعرض الأيقونة وحدها فيحتاجها أكبر لتبقى هدفًا واضحًا للمس.
+  // ico خطّية للشريط الجانبي (أرضية فاتحة) · fico ممتلئة للشريط السفلي
+  // (أرضية بنفسجية مصمتة يذوب فيها الخطّ الأبيض الرفيع).
   const RAIL_ITEMS = [
-    { id: 'home',     label: 'الرئيسية', ico: (s) => icon.home(s),
+    { id: 'home',     label: 'الرئيسية', ico: icon.home,  fico: icon.fHome,
       go: () => go('home') },
-    { id: 'subjects', label: 'موادّي',   ico: (s) => icon.grid(s),
+    { id: 'subjects', label: 'موادّي',   ico: icon.grid,  fico: icon.fGrid,
       go: () => go('subjects') },
-    { id: 'progress', label: 'تقدّمي',   ico: (s) => icon.chart(s),
+    { id: 'progress', label: 'تقدّمي',   ico: icon.chart, fico: icon.fChart,
       go: () => go('progress') },
+    { id: 'account',  label: 'حسابي',    ico: icon.user,  fico: icon.fUser,
+      go: () => go('account') },
   ];
 
   function activeRailId() {
@@ -86,7 +90,7 @@ window.App = (function () {
       title: it.label,
       // الأيقونة داخل span: الخلفية الدائرية للنشط تحتاج صندوقًا حقيقيًا،
       // والحشوة على <svg> مباشرةً غير موثوقة بين المتصفحات.
-    }, h('span.tabbar__ico', it.ico(24)));
+    }, h('span.tabbar__ico', it.fico(23)));
 
     rail.replaceChildren(
       h('div.rail__brand',

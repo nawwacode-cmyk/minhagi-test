@@ -15,6 +15,36 @@ window.C = (function () {
     );
   }
 
+  /* ---------------------------------------------------------------------------
+     ترويسة الشاشات الرئيسية — على نمط المرجع البصري المعتمد:
+     سطر تحية صغير باهت، تحته الاسم كبيرًا، ويقابله زرّان دائريان.
+
+     دالّة واحدة تخدم «الرئيسية» و«موادّي»: كانتا نسختين متطابقتين بالنصّ،
+     فأي تعديل على إحداهما كان يترك الأخرى خلفه بلا أن يلاحظ أحد.
+
+     زرّا المرجع (إشعارات وبحث) صارا **إعدادات وحساب**: لا إشعارات في التطبيق
+     أصلًا، وزرٌّ يقود إلى لا شيء أسوأ من غيابه.
+  --------------------------------------------------------------------------- */
+  function homeHeader(kicker, title) {
+    return h('header.appbar.appbar--home',
+      h('div.hgreet',
+        h('div.hgreet__k', kicker),
+        h('div.hgreet__n', title)),
+      h('div.hacts',
+        h('button.hbtn', { onclick: () => App.go('account'), 'aria-label': 'الإعدادات' },
+          icon.settings(19)),
+        h('button.hbtn', { onclick: () => App.go('account'), 'aria-label': 'حسابي' },
+          icon.user(19))));
+  }
+
+  /** تحية بحسب ساعة الجهاز — كما في المرجع («Good morning»). */
+  function greeting() {
+    const hr = new Date().getHours();
+    if (hr < 12) return 'صباح الخير،';
+    if (hr < 18) return 'مساء الخير،';
+    return 'مساء الخير،';
+  }
+
   // --- لافتة حالة الاتصال ------------------------------------------------------
   // وضع الأوفلاين هو الحالة الطبيعية المتوقّعة هنا لا الاستثناء، فاللافتة
   // معلوماتية تطمئن ولا تحذّر.
@@ -266,5 +296,5 @@ window.C = (function () {
     return card;
   }
 
-  return { appbar, syncBanner, empty, questionCard };
+  return { appbar, homeHeader, greeting, syncBanner, empty, questionCard };
 })();

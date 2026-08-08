@@ -41,10 +41,10 @@ ok('بلا بانرات لا يُبنى عنصر البانر أصلًا',
    !/class="promo[^"]*"/.test(html) && !/promo__slide/.test(html));
 ok('ولا نقاط مؤشِّرة', !/promo-dots/.test(html));
 ok('بقيّة الشاشة تُبنى كالمعتاد', /hgreet/.test(html) && /sec-label/.test(html));
-// الفجوة تحت التحية تُضبط حسب وجود البانر لا تُترك مضاعفة
-ok('هامش التحية يُقلَّص بلا بانر', /margin-bottom:2px/.test(html));
+// التحية صعدت إلى الترويسة؛ ما بقي فاصلٌ يظهر مع البانر ويختفي بدونه
+ok('لا فاصل زائد بلا بانر', /height:0px/.test(html));
 window.SEED.banners = mkB(2);
-ok('ويعود كاملًا مع بانر', /margin-bottom:14px/.test(Screens.home().outerHTML));
+ok('ويظهر الفاصل مع بانر', /height:4px/.test(Screens.home().outerHTML));
 
 // صورة + وجهة
 window.SEED.banners = [{ id: 'b', title: 'ت', sub: '', image: 'banners/x.png',

@@ -230,13 +230,32 @@ ok('app.js يعرّف مصفوفة وجهات واحدة (RAIL_ITEMS)', /const R
 ok('الشريط الجانبي يُبنى من RAIL_ITEMS', /rail\.replaceChildren\([\s\S]*?RAIL_ITEMS\.map\(railBtn\)/.test(appSrc));
 ok('الشريط السفلي يُبنى من نفس RAIL_ITEMS', /tabbar\.replaceChildren\(\.\.\.RAIL_ITEMS\.map\(tabBtn\)\)/.test(appSrc));
 // الشريط السفلي بلا نصّ ⇒ الزرّ يفقد اسمه لقارئ الشاشة بلا aria-label
-ok('أزرار الشريط السفلي بلا نصّ ظاهر', /\}, h\('span\.tabbar__ico', it\.ico\(\d+\)\)\)/.test(appSrc));
+ok('أزرار الشريط السفلي بلا نصّ ظاهر', /\}, h\('span\.tabbar__ico', it\.fico\(\d+\)\)\)/.test(appSrc));
 ok('لها اسم لقارئ الشاشة', /'aria-label': it\.label/.test(appSrc));
+// النشط على أرضية بنفسجية: الخلفية بيضاء شفّافة لا --acc-soft الفاتحة
 ok('النشط له خلفية لا لون فقط',
-   /\.tabbar button\.is-on \.tabbar__ico \{[^}]*background: var\(--acc-soft\)/.test(cssSrc));
+   /\.tabbar button\.is-on \.tabbar__ico \{[^}]*background: rgba\(255, 255, 255/.test(cssSrc));
 ok('الشريط الجانبي يبقي نصّه', /it\.ico\(20\), it\.label/.test(appSrc));
 ok('«موادّي» وجهة تنقّل مستقلّة الآن', /id:\s*'subjects'/.test(appSrc));
-ok('«حسابي» لم تعد وجهة تنقّل', !/id:\s*'account'/.test(appSrc));
+ok('«حسابي» صارت وجهة تنقّل رابعة', /id:\s*'account'/.test(appSrc)
+   && (appSrc.match(/\{ id: '/g) || []).length === 4);
+
+// --- الشريط السفلي على نمط المرجع البصري -----------------------------------------
+// أيقونات ممتلئة لا خطّية: خطٌّ أبيض رفيع على أرضية بنفسجية عند ٢٣px يذوب
+ok('أيقونات الشريط ممتلئة', /fill: 'currentColor', stroke: 'none'/.test(uiSrc)
+   && /fHome:|fGrid:|fChart:|fUser:/.test(uiSrc));
+ok('والشريط الجانبي يبقى بالخطّية (أرضيته فاتحة)', /ico: icon\.home/.test(appSrc));
+ok('الشريط يطفو لا يلتصق بالحافة',
+   /\.tabbar \{[^}]*inset-inline: 14px[^}]*bottom: calc\(12px/.test(cssSrc));
+ok('بحبّة كاملة الاستدارة', /\.tabbar \{[^}]*border-radius: var\(--r-full\)/.test(cssSrc));
+ok('على أرضية بنفسجية من التوكنات لا هكس مكتوب',
+   /\.tabbar \{[^}]*var\(--nav-hi\), var\(--nav\)/.test(cssSrc));
+{
+  const tok = fs.readFileSync(dir + '../css/tokens.css', 'utf8');
+  ok('ولون الشريط معرَّف في الوضعين', (tok.match(/--nav:/g) || []).length === 2);
+}
+// الشريط عائم ⇒ يحتاج مساحة أكبر أسفل الشاشة وإلّا اختفى آخر عنصر تحته
+ok('المساحة المحجوزة تراعي الطفو', /\.view \{ padding-bottom: calc\(76px/.test(cssSrc));
 ok('الشاشات الدراسية تُفعِّل «موادّي» لا «الرئيسية» بالتنقّل',
    /course', 'lesson', 'practice', 'exam', 'result'\][\s\S]{0,40}return 'subjects'/.test(appSrc));
 
@@ -288,11 +307,21 @@ ok('لا وزن 700 في الأنماط المضمّنة',
 // --- العلامة في الترويسة: تُقرأ «منهاجي» كاملة ------------------------------------
 // نقطتا الياء وذيل الجيم ينزلان دون خطّ الأساس. سطرٌ ضيّق مع overflow:hidden
 // كان يبترهما فيقرأ الاسم «منهاجى»، والتتبّع السالب يخنق وصلات الحرف العربي.
-const brandCss = (cssSrc.match(/\.hbrand__name \{[^}]*\}/) || [''])[0];
-ok('العلامة لا تُقصّ', !/overflow: *hidden/.test(brandCss)
-   && !/text-overflow/.test(brandCss));
-ok('سطر يتّسع لنزول الحروف', /line-height: 1\.5[0-9]?/.test(brandCss));
+/* الترويسة صارت تحيةً واسمًا (المرجع البصري) بدل علامة «منهاجي». والاسم يُقصّ
+   بالنقاط عمدًا لأنه مدخَل من الطالب وقد يطول — لكن سطره يتّسع لنزول الحروف
+   العربية، وهو ما كان يبتر نقطتَي الياء سابقًا. */
+const nameCss = (cssSrc.match(/\.hgreet__n \{[^}]*\}/) || [''])[0];
+ok('سطر الاسم يتّسع لنزول الحروف', /line-height: 1\.4[0-9]?|line-height: 1\.5/.test(nameCss));
+ok('واسمٌ طويل يُقصّ بالنقاط لا يكسر الترويسة', /text-overflow: ellipsis/.test(nameCss));
 ok('لا تتبّع سالب على نصّ عربي', !/letter-spacing: *-/.test(cssSrc));
+// زرّان دائريان كما في المرجع — إعدادات وحساب بدل إشعارات وبحث
+ok('الترويسة فيها زرّان', /icon\.settings\(19\)/.test(compSrc) && /icon\.user\(19\)/.test(compSrc));
+ok('وهما دائريان على أرضية فاتحة', /\.hbtn \{[^}]*border-radius: 50%/.test(cssSrc));
+// ترويسة واحدة تخدم الشاشتين: نسختان متطابقتان كانتا تفترقان بأول تعديل
+ok('ترويسة مشتركة لا منسوخة', (mainSrc.match(/C\.homeHeader\(/g) || []).length === 2
+   && !/hbrand__name/.test(mainSrc));
+// عنوان الصفحة بصنفه الخاص: مشاركته صنفَ الترويسة تجعل ضبط أحدهما يحرّك الآخر
+ok('عنوان القسم منفصل عن تحية الترويسة', /\.ptitle \{/.test(cssSrc) && /ptitle/.test(mainSrc));
 // الخروج وإعادة الضبط لازم يوديا لشاشة موجودة فعلًا لا لاسم محذوف
 ok('الخروج/إعادة الضبط يودّيان إلى auth',
    !/App\.go\('welcome'\)/.test(mainSrc) && (mainSrc.match(/App\.go\('auth'\)/g) || []).length >= 2);
@@ -400,7 +429,11 @@ ok('النقطة المكتملة ممتلئة بالبنفسجي',
 // الشعار يبقى في شاشة الدخول والشريط الجانبي وأيقونة التطبيق.
 ok('لا شعار في الترويسة', !/hbrand__logo/.test(mainSrc)
    && !/h\('div\.avatar', \(s\.username/.test(mainSrc));
-ok('اسم التطبيق هو العلامة', /hbrand__name/.test(mainSrc) && /منهاجي/.test(mainSrc));
+/* الترويسة صارت تحيةً واسمَ الطالب بدل علامة «منهاجي» — قرارٌ عكسَ سابقه
+   باعتماد المرجع البصري. العلامة باقية حيث تُعرِّف فعلًا: شاشة الدخول
+   والشريط الجانبي وأيقونة التطبيق. */
+ok('الترويسة تخاطب الطالب باسمه', /C\.homeHeader\(C\.greeting\(\), s\.username/.test(mainSrc));
+ok('ولا أثر للعلامة النصّية فيها', !/hbrand__name/.test(mainSrc));
 ok('الشعار باقٍ في الشريط الجانبي وشاشة الدخول',
    /assets\/img\/icon-192\.png/.test(appSrc)
    && /assets\/img\/icon-192\.png/.test(fs.readFileSync(dir + 'screens/onboarding.js', 'utf8')));
@@ -410,18 +443,10 @@ ok('لا عبارة تعريفية في الترويسة', !/hbrand__tag/.test(m
 ok('العبارة باقية في شاشة الدخول', /auth-brand__tag/.test(onbSrc));
 // الوزن ٤٠٠ هو الأخفّ المحمَّل؛ طلب ٣٠٠ يُصطنع أو يسقط لخطّ احتياطي مشوّه
 ok('لا وزن خطّ غير محمَّل', !/font-weight:\s*[123]00/.test(cssSrc));
-ok('التحية عنوان للصفحة لا سطر في شريط', /h\('div\.hgreet'/.test(mainSrc)
-   && /\.hgreet \{[^}]*font-size: 22px/.test(cssSrc));
-// الاتفاق: الهيدر شعار وإعدادات فقط، والتحية محتوى صفحة داخل منطقة التمرير.
-// الحارس يمسك عودتها إلى الهيدر: نتأكّد أن hgreet تقع بعد فتح .screen__body
-// في كلتا الشاشتين لا داخل <header>.
-const headerBlocks = mainSrc.match(/h\('header\.appbar\.appbar--home',[\s\S]*?\n      \),/g) || [];
-ok('الهيدر بلا تحية', headerBlocks.length === 2
-   && headerBlocks.every((b) => !/hgreet/.test(b)));
-ok('الهيدر يحوي العلامة والإعدادات فقط',
-   headerBlocks.every((b) => /hbrand__name/.test(b) && /iconbtn/.test(b)));
-// شاشتان تحملان تحية (الرئيسية وموادّي)
-ok('التحية موجودة بالشاشتين', (mainSrc.match(/h\('div\.hgreet'/g) || []).length === 2);
+// التحية داخل الترويسة الآن، سطرًا باهتًا فوق الاسم — كما في المرجع
+ok('التحية سطرٌ فوق الاسم في الترويسة',
+   /h\('div\.hgreet__k', kicker\)/.test(compSrc) && /h\('div\.hgreet__n', title\)/.test(compSrc));
+ok('وتتبع ساعة الجهاز', /function greeting\(\)[\s\S]{0,200}صباح الخير/.test(compSrc));
 // وجودها داخل منطقة التمرير فعليًا يتحقّق ببناء الشاشة لا بقراءة المصدر —
 // انظر render-check.js في مجلد الفحص.
 ok('زوايا سفلية بأسلوب iOS', /\.appbar--home \{[^}]*border-radius: 0 0 24px 24px/.test(cssSrc));

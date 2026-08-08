@@ -110,31 +110,41 @@ img, svg { max-width: 100%; display: block; }
 }
 
 /* --- الشريط السفلي: يظهر على الهاتف واللوحي، يختفي حيث يظهر .rail ------------- */
+/* شريط سفلي عائم على نمط المرجع البصري: حبّة بنفسجية مصمتة تطفو عن الحافة،
+   أيقونات بيضاء، والنشط داخل دائرة فاتحة.
+
+   الأيقونات هنا **ممتلئة** لا خطّية بخلاف بقيّة أيقونات التطبيق: خطٌّ أبيض
+   رفيع على أرضية ملوّنة عند ٢٤px يذوب، والشكل المصمت يُقرأ فورًا. */
 .tabbar {
-  position: fixed; inset-inline: 0; bottom: 0; z-index: 5;
-  display: flex; background: var(--surf); border-top: 1px solid var(--brd);
-  padding: 4px 10px calc(4px + env(safe-area-inset-bottom));
+  position: fixed; z-index: 5;
+  inset-inline: 14px; bottom: calc(12px + env(safe-area-inset-bottom));
+  display: flex; align-items: center;
+  background: linear-gradient(135deg, var(--nav-hi), var(--nav));
+  border-radius: var(--r-full);
+  padding: 7px 8px;
+  box-shadow: 0 12px 28px -8px rgba(74, 58, 158, .55),
+              0 2px 6px rgba(30, 24, 50, .12);
 }
-/* أيقونة وحدها بلا نصّ. بلا النصّ يصير اللون هو الفارق الوحيد بين النشط
-   وغيره — وهو فارق ضعيف على شاشة صغيرة — فنضيف خلفية دائرية للنشط. */
 .tabbar button {
   flex: 1; display: grid; place-items: center;
-  padding: 4px 0; border: 0; background: none; color: var(--txf);
+  padding: 0; border: 0; background: none;
+  color: rgba(255, 255, 255, .62);
   transition: color var(--dur) var(--ease);
 }
 .tabbar__ico {
   display: grid; place-items: center;
-  padding: 5px 18px; border-radius: var(--r-full);
+  width: 44px; height: 38px; border-radius: var(--r-full);
   transition: background var(--dur) var(--ease);
 }
-.tabbar button.is-on { color: var(--acc); }
-.tabbar button.is-on .tabbar__ico { background: var(--acc-soft); }
+.tabbar button.is-on { color: #FFF; }
+.tabbar button.is-on .tabbar__ico { background: rgba(255, 255, 255, .22); }
 
 /* مساحة محجوزة أسفل كل شاشة كي لا يغطّي الشريط الثابت آخر عنصر فيها —
    على .view لا .screen__body، فتنكمش منطقة التمرير الداخلية معها تلقائيًا
    ويبقى .screen__foot ظاهرًا فوق الشريط لا خلفه. */
-/* ارتفاع الشريط: 4 حشوة + 4 زرّ + 5 أيقونة + 24 رسم + 5 + 4 + 4 + حدّ = ~52 */
-.view { padding-bottom: calc(53px + env(safe-area-inset-bottom)); }
+/* الشريط صار عائمًا فاحتاج مساحةً أكبر: ارتفاعه (7 حشوة + 38 زرّ + 7) = 52،
+   زائد 12 مسافة الطفو أسفله، زائد فسحة تنفّس فوقه كي لا يلتصق آخر عنصر به. */
+.view { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
 
 @media (min-width: 1100px) {
   .tabbar { display: none; }
@@ -392,18 +402,32 @@ img, svg { max-width: 100%; display: block; }
 
 /* العلامة اسمًا مجرّدًا — لا شعار ولا عبارة تحته. الترويسة تُعرّف بالمكان
    وحسب؛ العبارة التعريفية مكانها شاشة الدخول حيث يراها الطالب أول مرة. */
-/* لا قصّ ولا تتبّع سالب: العربية خطّ متّصل، فالنقطتان تحت الياء والذيل تحت
-   الجيم تنزلان دون خطّ الأساس — و«overflow:hidden» مع سطر ١٫٢ كان يبترهما
-   فتُقرأ «منهاجى». والتتبّع السالب عادةٌ لاتينية تخنق وصلات الحروف. */
-.hbrand__name {
-  font-size: 20px; font-weight: 600; line-height: 1.55;
-  white-space: nowrap;
+/* التحية في الترويسة — على نمط المرجع: سطر باهت صغير فوق الاسم كبيرًا.
+   لا قصّ ولا تتبّع سالب: العربية خطّ متّصل، والنقطتان تحت الياء تنزلان دون
+   خطّ الأساس، فسطرٌ ضيّق مع overflow:hidden كان يبترهما. */
+.hgreet { min-width: 0; }
+.hgreet__k { font-size: 13px; color: var(--txm); line-height: 1.5; }
+.hgreet__n {
+  font-size: 23px; font-weight: 600; line-height: 1.45;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* عنوان الصفحة — داخل منطقة التمرير لا في الترويسة */
-.hgreet { font-size: 22px; font-weight: 600; line-height: 1.35; }
-.hgreet__sub { font-size: 13px; color: var(--txm); margin-top: 3px; }
-.hgreet__sub--gold { color: var(--gold); font-weight: 600; }
+/* زرّا الترويسة: دائرتان على أرضية فاتحة كما في المرجع */
+.hacts { display: flex; gap: 9px; flex: 0 0 auto; }
+.hbtn {
+  width: 40px; height: 40px; flex: 0 0 40px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%;
+  background: var(--surf2); color: var(--acc-tx);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.hbtn:hover { background: var(--acc-soft); color: var(--acc); }
+
+/* عنوان قسم داخل الصفحة — منفصل عن تحية الترويسة عمدًا، فضبطُ أحدهما
+   لا يحرّك الآخر. */
+.ptitle { font-size: 22px; font-weight: 600; line-height: 1.35; }
+.ptitle__sub { font-size: 13px; color: var(--txm); margin-top: 3px; }
+.ptitle__sub--gold { color: var(--gold); font-weight: 600; }
 
 @media (min-width: 700px) {
   .appbar--home { padding: calc(14px + env(safe-area-inset-top)) 26px 15px; }
