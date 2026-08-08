@@ -64,7 +64,11 @@ window.Screens = window.Screens || {};
         const up = Store.unitProgress(u);
         const allDown = u.lessons.every((id) => s.downloaded.includes(id));
 
-        const det = h('details.unit', i === 0 || up.done < up.total ? { open: true } : {});
+        /* كل الوحدات **مغلقة** عند الدخول. كان الشرط يفتح الأولى وكلَّ وحدة غير
+           مكتملة — أي كلَّها فعليًا في بداية المنهاج، فتصير الشاشة جدارَ دروسٍ
+           لا فهرسًا. والمغلقة تُظهر المنهاج كلّه في شاشة واحدة، ومن أراد موضعه
+           فبطاقة «أكمل من حيث توقفت» تأخذه إليه مباشرةً. */
+        const det = h('details.unit');
         det.appendChild(h('summary.unit__head',
           h('div.grow',
             h('div.unit__title', u.title),

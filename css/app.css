@@ -321,6 +321,9 @@ img, svg { max-width: 100%; display: block; }
 
 /* --- شريط التقدّم ----------------------------------------------------------- */
 .bar { height: 6px; background: var(--surf3); border-radius: var(--r-full); overflow: hidden; }
+/* داخل صفٍّ مرن: عنصرٌ بلا محتوى ولا أساس ينكمش إلى **عرض صفر** فيختفي —
+   وهذا ما كان يحدث في ترويسة الوحدة: يظهر «٠/٥» بلا شريط بجانبه. */
+.row > .bar { flex: 1; min-width: 0; }
 .bar > i { display: block; height: 100%; background: var(--acc); border-radius: var(--r-full);
            transition: width 500ms var(--ease); }
 .bar--thin { height: 4px; }
