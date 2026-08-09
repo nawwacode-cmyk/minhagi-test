@@ -296,6 +296,44 @@ ok('الاحتياطي عند شاشة مجهولة هو auth', /Screens\[c\.nam
 ok('الإقلاع بلا جلسة يفتح auth', /name: signedIn \? 'home' : 'auth'/.test(appSrc));
 ok('لا تنقّل بشاشة الدخول', /cur\(\)\.name === 'auth'/.test(appSrc));
 ok('شاشة الدخول بلا زر رجوع (هي الجذر)', !/onBack/.test(onbSrc));
+
+/* --- طول كود التفعيل ----------------------------------------------------------
+   `issue-code` تولّد ثلاث مجموعات بعد البادئة (١٥ محرفًا)، والتوليد الجماعي
+   المسحوب كان مجموعتين (١١). كان الحقل مثبَّتًا على ١١، فيقصّ `clean` الكود
+   الجديد عند المحرف الحادي عشر — أي أن الطالب **لا يستطيع إدخال كوده أصلًا**
+   ولا رسالة تشرح له لماذا. أخطر ما في الأمر أنه يبدو عطلًا في الحقل لا في
+   المنطق، فيُبحث عن العلّة في العرض.
+
+   ويجب أن يبقى الطولان مقبولين: الأكواد القديمة الأربعة ما زالت صالحة،
+   وقصرُ القبول على ١٥ يُبطلها بأثر رجعي. */
+{
+  // نستخرج الدالّتين من المصدر ونشغّلهما فعلًا: فحصُ النصّ يثبت وجود الرقم
+  // لا صحّة السلوك.
+  const MAX = Number((onbSrc.match(/MAX_LEN = (\d+)/) || [])[1]);
+  const VALID = JSON.parse(((onbSrc.match(/VALID_LENS = (\[[^\]]+\])/) || [])[1] || '[]')
+    .replace(/'/g, '"'));
+
+  ok('الحقل يقبل ١٥ محرفًا (الكود الجديد)', MAX === 15, String(MAX));
+  ok('والطولان القديم والجديد مقبولان',
+     VALID.includes(11) && VALID.includes(15), JSON.stringify(VALID));
+
+  const clean = (s) => (s || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, MAX);
+  const format = (r) => [r.slice(0, 3), r.slice(3, 7), r.slice(7, 11), r.slice(11, 15)]
+    .filter(Boolean).join('-');
+
+  // الكود الذي أبلغ عنه المستخدم فعلًا
+  const NEW = 'FRG-VTRN-A9HG-VDFF';
+  ok('كود جديد لا يُقصّ', clean(NEW).length === 15, `${clean(NEW).length} محرفًا`);
+  ok('ويُنسَّق بأربع مجموعات', format(clean(NEW)) === NEW, format(clean(NEW)));
+
+  const OLD = 'FR9-ABCD-EFGH';
+  ok('وكود قديم ما زال يعمل',
+     clean(OLD).length === 11 && VALID.includes(11) && format(clean(OLD)) === OLD,
+     format(clean(OLD)));
+
+  ok('والنصّ الإرشادي يعرض الصيغة الجديدة',
+     /FRG-XXXX-XXXX-XXXX/.test(onbSrc));
+}
 ok('وضع التجربة ما زال له مدخل', /signedIn: true, username: 'زائر'/.test(onbSrc));
 
 // --- شاشة الدخول: ثلاثة عناصر لا أكثر --------------------------------------------

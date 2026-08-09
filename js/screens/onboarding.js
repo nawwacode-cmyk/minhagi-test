@@ -19,7 +19,16 @@ window.Screens = window.Screens || {};
   // ===========================================================================
   Screens.auth = () => {
     /** ١١ محرفًا: FR9 + ثمانية. نفس الطول في tools/gen-codes وفي دالة activate. */
-    const LEN = 11;
+    /* طولا الكود المقبولان.
+       الأكواد الجديدة (issue-code) ثلاث مجموعات بعد البادئة = ١٥ محرفًا،
+       والقديمة (التوليد الجماعي المسحوب) مجموعتان = ١١. الأربعة القديمة ما
+       زالت قائمة وصالحة، فقصرُ القبول على ١٥ يُبطلها بأثر رجعي.
+
+       ⚠️ كان `LEN = 11` مثبَّتًا، فكان `clean` يقصّ الكود الجديد عند المحرف
+       الحادي عشر — أي أن الطالب **لا يستطيع إدخال كوده أصلًا** مهما حاول،
+       ولا رسالة تشرح له لماذا. */
+    const MAX_LEN = 15;
+    const VALID_LENS = [11, 15];
     const errBox = h('div');
 
     const userInput = h('input.input', {
@@ -37,20 +46,22 @@ window.Screens = window.Screens || {};
     const codeInput = h('input.codeline', {
       type: 'text', dir: 'ltr', inputmode: 'latin', autocapitalize: 'characters',
       autocomplete: 'off', spellcheck: 'false',
-      placeholder: 'FR9-XXXX-XXXX',
+      placeholder: 'FRG-XXXX-XXXX-XXXX',
       'aria-label': 'كود التفعيل',
       oninput: (e) => {
         const raw = clean(e.target.value);
         e.target.value = format(raw);
-        e.target.classList.toggle('is-full', raw.length === LEN);
+        e.target.classList.toggle('is-full', VALID_LENS.includes(raw.length));
         clearError();
       },
       onkeydown: (e) => { if (e.key === 'Enter') submit(); },
     });
 
-    const clean = (s) => (s || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, LEN);
+    const clean = (s) => (s || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, MAX_LEN);
+    // بادئة من ٣ ثم مجموعات من ٤ — يخدم الطولين معًا بلا فرع
     const format = (r) =>
-      [r.slice(0, 3), r.slice(3, 7), r.slice(7, 11)].filter(Boolean).join('-');
+      [r.slice(0, 3), r.slice(3, 7), r.slice(7, 11), r.slice(11, 15)]
+        .filter(Boolean).join('-');
 
     const field = h('div', codeInput);
 
@@ -76,7 +87,9 @@ window.Screens = window.Screens || {};
       const code = clean(codeInput.value);
 
       if (username.length < 3) return fail('اسم المستخدم قصير — ٣ أحرف على الأقل.', 'user');
-      if (code.length !== LEN) return fail('كود التفعيل غير مكتمل — ١١ حرفًا ورقمًا.', 'code');
+      if (!VALID_LENS.includes(code.length)) {
+        return fail('كود التفعيل غير مكتمل — انسخه كاملًا كما وصلك.', 'code');
+      }
 
       btn.disabled = true;
       btn.textContent = 'جارٍ التحقق…';
