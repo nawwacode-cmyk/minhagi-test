@@ -123,6 +123,20 @@ window.App = (function () {
       rail.style.display = 'none';
       return;
     }
+
+    /* الإيقاف المعلَن من الخادم يسبق كل شيء عدا الطرد.
+       غرضه لحظة واحدة: عطلٌ فادح وصل الطلاب. بدونه يبقون أمام تطبيق مكسور
+       بلا تفسير — وService Worker يخدم النسخة المخزَّنة، فحتى النشر المصحَّح
+       لا يصلهم إلّا عند الفتحة التالية. رسالةٌ صريحة أرحم من صمتٍ مكسور. */
+    if (s.appConfig?.halted) {
+      view.replaceChildren(Screens.halted());
+      tabbar.replaceChildren();
+      tabbar.style.display = 'none';
+      rail.replaceChildren();
+      rail.style.display = 'none';
+      return;
+    }
+
     const c = cur();
 
     // تُحفَظ الشاشة الحالية لتُستأنف بعد تحديث الصفحة بدل العودة إلى

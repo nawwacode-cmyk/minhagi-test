@@ -568,6 +568,27 @@ window.Sync = (function () {
     pendingVersion = null;
   }
 
+  /* ---------------------------------------------------------------------------
+     إعدادات التشغيل — مفتاح الإيقاف والإعلان العامّ.
+
+     صفٌّ واحد يُقرأ مع كل مزامنة. الغرض منه لحظة واحدة: عطلٌ فادح وصل
+     الطلاب. بدونه يبقون أمام تطبيق مكسور بلا تفسير — وService Worker يخدم
+     النسخة المخزَّنة، فحتى النشر المصحَّح لا يصلهم إلّا عند الفتحة التالية.
+
+     الفشل هنا **لا يوقف شيئًا**: تعذّر القراءة يعني «لا إيقاف» لا «أوقف».
+     الاتجاه مقصود — عطلٌ في جدول الإعدادات يجب ألّا يحجب تطبيقًا سليمًا.
+  --------------------------------------------------------------------------- */
+  async function pullConfig() {
+    try {
+      const rows = await Api.from('app_config',
+        { select: 'min_version,notice,halted', limit: 1 });
+      const c = rows && rows[0];
+      if (!c) return;
+      Store.set({ appConfig: { halted: !!c.halted, notice: c.notice || null,
+                               minVersion: c.min_version || null } });
+    } catch { /* لا إيقاف عند الشكّ */ }
+  }
+
   /**
    * دورة مزامنة كاملة. الترتيب مقصود:
    *   ١. فحص الجلسة  — لا فائدة من أي شيء بعده إن كنّا مطرودين
@@ -586,6 +607,9 @@ window.Sync = (function () {
 
       const push = await pushProgress();
       let contentChanged = false, progress = 0, entitle = 0;
+
+      // قبل أي سحب: لو كنّا موقوفين فلا معنى لجلب محتوى لن يُعرض
+      if (navigator.onLine) await pullConfig();
 
       if (navigator.onLine) {
         if (content && !DEMO) {

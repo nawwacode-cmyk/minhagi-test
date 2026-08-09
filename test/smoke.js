@@ -437,6 +437,32 @@ ok('welcome.jpg خرج من التخزين المسبق', !/welcome\.jpg/.test(s
   ok('وreport.js مخزَّن مسبقًا (يعمل من أول فتحة)', /data\/report\.js/.test(swSrc));
 }
 
+/* --- مفتاح الإيقاف ------------------------------------------------------------
+   غرضه لحظة واحدة: عطلٌ فادح وصل الطلاب. بدونه يبقون أمام تطبيق مكسور بلا
+   تفسير — وservice worker يخدم النسخة المخزَّنة فحتى النشر المصحَّح لا يصلهم
+   إلّا عند الفتحة التالية. */
+{
+  const haltedSrc = fs.readFileSync(dir + 'screens/halted.js', 'utf8');
+  const storeSrc = fs.readFileSync(dir + 'store.js', 'utf8');
+
+  ok('شاشة الإيقاف موجودة ومخزَّنة مسبقًا',
+     /Screens\.halted/.test(haltedSrc) && /screens\/halted\.js/.test(swSrc));
+  ok('والتطبيق يعرضها عند الإيقاف',
+     /s\.appConfig\?\.halted/.test(appSrc) && /Screens\.halted\(\)/.test(appSrc));
+  // الطرد يسبقه: طالبٌ مطرود لا يرى محتوى أصلًا، فرسالة الصيانة تضلّله
+  ok('والطرد يسبق الإيقاف في الترتيب',
+     appSrc.indexOf('Screens.evicted()') < appSrc.indexOf('Screens.halted()'));
+  ok('ولا شريط تنقّل تحت الإيقاف',
+     /Screens\.halted\(\)[\s\S]{0,200}tabbar\.style\.display = 'none'/.test(appSrc));
+
+  /* الاتجاه الآمن: الافتراضي «لا إيقاف»، وفشل القراءة لا يوقف شيئًا. عطلٌ في
+     جدول الإعدادات يجب ألّا يحجب تطبيقًا سليمًا عن طالب دفع ثمنه. */
+  ok('الافتراضي لا إيقاف', /appConfig:\s*\{\s*halted:\s*false/.test(storeSrc));
+  ok('وفشل قراءة الإعدادات لا يوقف شيئًا',
+     /catch \{ \/\* لا إيقاف عند الشكّ \*\/ \}/.test(syncSrc));
+  ok('وتُقرأ مع كل مزامنة', /await pullConfig\(\)/.test(syncSrc));
+}
+
 // --- الرفة الدورية: لا إعادة رسم بلا تغيير حقيقي -------------------------------
 // كانت pullProgress تُرجع عدد الصفوف المجلوبة لا المتغيّرة، فأي طالب له تقدّم
 // يجعل الناتج موجبًا في كل مزامنة، و app.js يعيد رسم الشاشة عند أي ناتج موجب.
