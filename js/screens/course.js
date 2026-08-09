@@ -469,9 +469,18 @@ window.Screens = window.Screens || {};
           video,
           h('div.row',
             h('div.grow.small.muted', `فيديو ${l.video.length} · قراءة ${ar(l.minutes)} دقيقة`),
-            h('button.btn.btn--secondary.btn--sm', {
-              onclick: () => { Store.toggleDownload(l.id); App.go('lesson', { id: l.id, subject: subjectId }, true); },
-            }, saved ? 'محفوظ ✓' : [icon.down(16), 'تنزيل'])),
+            /* تبديل الحفظ يحدّث الزرّ في مكانه لا يعيد بناء الشاشة.
+               إعادةُ البناء كانت تُتلف مشاهدةً جارية: الفيديو يُهدم ويُبنى
+               من الصفر فيعود إلى أوّله — والطالب لم يطلب إلّا حفظ الدرس. */
+            (() => {
+              const label = (on) => (on ? ['محفوظ ✓'] : [icon.down(16), 'تنزيل']);
+              const btn = h('button.btn.btn--secondary.btn--sm', {}, ...label(saved));
+              btn.addEventListener('click', () => {
+                Store.toggleDownload(l.id);
+                btn.replaceChildren(...label(Store.get().downloaded.includes(l.id)));
+              });
+              return btn;
+            })()),
           h('div.card', UI.prose(l.body))),
 
         h('aside.dash__side',

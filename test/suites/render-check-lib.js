@@ -23,6 +23,7 @@ class Node2 {
   addEventListener() {}
   appendChild(c) { this.children.push(c); return c; }
   append(...cs) { cs.forEach((c) => c && this.children.push(c)); }
+  prepend(...cs) { this.children.unshift(...cs.filter(Boolean)); }
   replaceChildren(...cs) { this.children = cs.filter(Boolean); }
   set textContent(v) { this._text = v; this.children = []; }
   get textContent() {
@@ -78,6 +79,14 @@ eval(fs.readFileSync(dir + 'screens/main.js', 'utf8'));
 eval(fs.readFileSync(dir + 'screens/course.js', 'utf8'));
 eval(fs.readFileSync(dir + 'screens/progress.js', 'utf8'));
 eval(fs.readFileSync(dir + 'screens/onboarding.js', 'utf8'));
+/* هذه الثلاثة كانت ناقصة، فلم يرسمها أي فحص قط. وأسوأ من نقص التغطية أنها
+   كانت تُفسد فحوصًا أخرى بصمت: `boot` تستأنف الشاشة المحفوظة بشرط
+   `Screens[r.name]`، فغياب `exam.js` جعل استئناف «النتيجة» يسقط إلى
+   الرئيسية داخل الفحص وحده — سلوكٌ لا وجود له في التطبيق، إذ يحمّلها
+   `index.html` و`sw.js` كلاهما. القائمة هنا يجب أن تطابقهما. */
+eval(fs.readFileSync(dir + 'screens/exam.js', 'utf8'));
+eval(fs.readFileSync(dir + 'screens/evicted.js', 'utf8'));
+eval(fs.readFileSync(dir + 'screens/halted.js', 'utf8'));
 
 Store.set({ signedIn: true, activated: true, username: 'أحمد', grade: 'g9', daysLeft: 283 });
 

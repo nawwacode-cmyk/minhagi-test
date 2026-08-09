@@ -120,8 +120,11 @@ window.Screens = window.Screens || {};
     const pass = params.pct >= (exam ? exam.pass : 50);
 
     return h('div.screen',
-      C.appbar({ title: 'نتيجة الامتحان',
-                 onBack: () => App.go('course', { tab: 'exams', subject: params.subject }, true) }),
+      /* `back()` لا `go(course, replace)`: الأخيرة تستبدل النتيجة بـ«المادة»
+         بينما «المادة» تحتها في السجل أصلًا، فيراها الطالب مرّتين ويحتاج
+         ضغطتين للخروج. و`back()` تعرف الأب حين يخلو السجل (بعد تحديث
+         الصفحة على شاشة النتيجة مثلًا). */
+      C.appbar({ title: 'نتيجة الامتحان', onBack: () => App.back() }),
       h('div.screen__body', { style: 'padding:16px' },
         params.auto && h('div.banner.banner--warn', { style: 'margin-bottom:14px' },
           icon.warn(20), h('div', h('b', 'انتهى الوقت'), h('span', 'سُلّم الامتحان تلقائيًا.'))),

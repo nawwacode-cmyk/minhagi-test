@@ -148,7 +148,62 @@ window.App = (function () {
     const fn = Screens[c.name] || Screens.auth;
     view.replaceChildren(fn(c.params || {}));
     drawRail();
+    syncHistory();
   }
+
+  /**
+   * علامةٌ واحدة في سجلّ المتصفّح كلّما كان في التطبيق ما نرجع إليه.
+   *
+   * تُبذر هنا لا عند الإقلاع وحده: لو بُذرت مرّة ثم استُهلكت عند الرجوع إلى
+   * الجذر، لبقي التطبيق بلا علامة — فيخرج زرُّ رجوع الهاتف من التطبيق حتى
+   * لو دخل الطالب بعدها إلى درس. والشرط `!history.state?.app` يمنع تكديس
+   * علامات تجعل الخروج يحتاج ضغطاتٍ عديدة.
+   */
+  function syncHistory() {
+    try {
+      if (canGoBack() && !history.state?.app) history.pushState({ app: true }, '');
+    } catch { /* بيئة بلا history (الاختبارات) */ }
+  }
+
+  /**
+   * الأب المنطقي لكل شاشة — مصدر واحد يخدم أمرين لا يجوز أن يفترقا:
+   * استئنافَ شاشة عميقة بعد تحديث الصفحة، والرجوعَ حين يخلو السجل.
+   *
+   * بدونه كان زرّ الرجوع **لا يفعل شيئًا** في أكثر حالة شيوعًا: الطالب يحدّث
+   * الصفحة وهو في درس، فيُستأنف الدرس وحده في السجل (طوله ١)، وشرطُ
+   * `stack.length > 1` يمنع أي حركة فيُعاد رسم الشاشة نفسها. وزرّ رجوع
+   * الهاتف أسوأ: لا يتنقّل ولا يُعيد الدفع، فالضغطة التالية تُخرج من التطبيق.
+   *
+   * `null` = جذر: لا شيء فوقه، والرجوع منه يغادر التطبيق (وهو المتوقَّع).
+   */
+  function parentOf(name, params = {}) {
+    const subject = params.subject;
+    switch (name) {
+      // ما يجري داخل مادة يعود إليها، لا إلى «موادّي»: الطالب جاء منها
+      case 'lesson':
+      case 'practice':  return { name: 'course', params: { subject } };
+      case 'exam':
+      case 'result':    return { name: 'course', params: { subject, tab: 'exams' } };
+      case 'course':    return { name: 'subjects', params: {} };
+      /* تبويبات الشريط السفلي ترجع إلى الرئيسية، والرئيسية وحدها تُغادر
+         التطبيق. ليست هذه مجاراةً لعُرف أندرويد فحسب: «تقدّمي» و«آخر الأخبار»
+         تعرضان سهم رجوع في شريط العنوان، وكان يموت بعد تحديث الصفحة — سهمٌ
+         ظاهرٌ لا يفعل شيئًا أسوأ من غيابه. */
+      case 'subjects':
+      case 'progress':
+      case 'news':
+      case 'teacher':
+      case 'account':   return { name: 'home', params: {} };
+      default:          return null;
+    }
+  }
+
+  /* المقارنة **مستقلّة عن ترتيب المفاتيح**: نفس الوجهة تُكتب
+     `{ subject, tab }` في موضع و`{ tab, subject }` في آخر، و`JSON.stringify`
+     وحده يراهما مختلفتين — فيمرّ التكرار الذي نطارده. */
+  const keyed = (p) => JSON.stringify(Object.fromEntries(
+    Object.entries(p || {}).filter(([, v]) => v !== undefined).sort(([x], [y]) => (x < y ? -1 : 1))));
+  const sameEntry = (a, b) => !!a && !!b && a.name === b.name && keyed(a.params) === keyed(b.params);
 
   /**
    * go('lesson', { id })         يدفع شاشة فوق السجل
@@ -157,11 +212,35 @@ window.App = (function () {
   function go(name, params = {}, replace = false) {
     if (replace && stack.length) stack[stack.length - 1] = { name, params };
     else stack.push({ name, params });
+
+    /* مدخلتان متطابقتان متجاورتان تجعلان الرجوع يُعيد رسم الشاشة نفسها —
+       وهذا بعينه ما يشتكي منه الطالب: «زرّ ما بيعمل شي».
+       يقع كثيرًا مع `replace`: «إلى كل الامتحانات» في ورقة النتيجة يستبدلها
+       بـ«المادة/الامتحانات»، وهي المدخلة التي تحتها أصلًا. العلاج هنا لا عند
+       كل زرّ: أزرارٌ كهذه تُكتب باستمرار، ومَن يكتبها لا يعرف ما تحتها في
+       السجل — والسجل وحده يعرف. */
+    if (stack.length > 1 && sameEntry(stack[stack.length - 1], stack[stack.length - 2])) {
+      stack.pop();
+    }
     render();
   }
 
+  /** هل يوجد ما نرجع إليه داخل التطبيق؟ يحتاجه زرّ رجوع الهاتف. */
+  function canGoBack() {
+    if (stack.length > 1) return true;
+    const c = cur();
+    return !!(c && parentOf(c.name, c.params || {}));
+  }
+
   function back() {
-    if (stack.length > 1) stack.pop();
+    if (stack.length > 1) { stack.pop(); render(); return; }
+
+    // السجل خاوٍ: نصعد إلى الأب بدل إعادة رسم الشاشة نفسها — وهو ما كان
+    // يبدو للطالب زرًّا معطَّلًا.
+    const c = cur();
+    const up = c && parentOf(c.name, c.params || {});
+    if (!up) return;                       // جذر: لا شيء نفعله
+    stack[stack.length - 1] = up;
     render();
   }
 
@@ -286,10 +365,17 @@ window.App = (function () {
     document.documentElement.setAttribute('data-theme', s.theme);
     buildShell();
 
-    // زر رجوع الهاتف يتنقّل داخل التطبيق بدل مغادرته
-    history.pushState({ app: true }, '');
+    /* زرّ رجوع الهاتف يتنقّل داخل التطبيق بدل مغادرته.
+
+       الشرط `canGoBack()` لا `stack.length > 1`: الأخير يعتبر شاشةً عميقة
+       مستأنَفة جذرًا، فلا يتنقّل ولا يُعيد الدفع — والضغطة التالية تُخرج
+       الطالب من درسه بلا سابق إنذار.
+
+       وإعادة الدفع مشروطة بوجود ما نرجع إليه **بعد** الحركة: دفعٌ دائم يحبس
+       الطالب في التطبيق فلا يستطيع مغادرته بزرّ الرجوع أبدًا. */
     addEventListener('popstate', () => {
-      if (stack.length > 1) { back(); history.pushState({ app: true }, ''); }
+      if (!canGoBack()) return;            // جذر: نترك المتصفّح يغادر
+      back();                              // `render` يعيد بذر العلامة إن لزم
     });
 
     // حالة الشبكة الحقيقية تتجاوز المحاكاة اليدوية في الإعدادات
@@ -309,8 +395,18 @@ window.App = (function () {
     const r = s.route;
     const resumable = signedIn && r && Screens[r.name] && r.name !== 'auth';
 
-    stack.push(resumable ? { name: r.name, params: r.params || {} }
-                         : { name: signedIn ? 'home' : 'auth', params: {} });
+    if (resumable) {
+      /* نضع الأب تحت الشاشة المستأنَفة لا الشاشة وحدها.
+         الطالب الذي حدّث الصفحة وهو في درس يتوقّع أن يرجع إلى مادته، لا أن
+         يجد زرًّا لا يفعل شيئًا. `back()` تُصلح الحالة الفارغة أيضًا، لكن
+         بذر الأب هنا يجعل السجل صادقًا من البداية. */
+      const self = { name: r.name, params: r.params || {} };
+      const up = parentOf(self.name, self.params);
+      if (up) stack.push(up);
+      stack.push(self);
+    } else {
+      stack.push({ name: signedIn ? 'home' : 'auth', params: {} });
+    }
 
     /**
      * السبلاش لمن سيرى محتوى فقط. شاشة الدخول جاهزة فورًا ولا تنتظر مزامنة،
