@@ -397,6 +397,46 @@ ok('الخروج/إعادة الضبط يودّيان إلى auth',
 const swSrc = fs.readFileSync(require('node:path').join(ROOT, 'sw.js'), 'utf8');
 ok('welcome.jpg خرج من التخزين المسبق', !/welcome\.jpg/.test(swSrc));
 
+/* --- تبليغ الأعطال ------------------------------------------------------------
+   قبله كانت ثلاث `catch` في app.js تبتلع أخطر الأعطال إلى console لا يقرؤه
+   أحد، فيُعرف العطل من شكوى طالب إن اشتكى. */
+{
+  const repSrc = fs.readFileSync(dir + 'data/report.js', 'utf8');
+
+  // نسخة التطبيق مكرّرة في مكانين بالضرورة (الصفحة لا تصل إلى ثابت داخل
+  // الـservice worker). هذا الحارس هو ما يمنعهما من الانحراف — وبلا تطابقهما
+  // يقول كل تقرير عطل رقم نسخةٍ خاطئًا، وهو أوّل ما يُسأل عنه.
+  const appV = (repSrc.match(/APP_VERSION\s*=\s*'([^']+)'/) || [])[1];
+  const swV = (swSrc.match(/manhaji-shell-(v\d+)/) || [])[1];
+  ok('نسخة المُبلِّغ تطابق نسخة sw.js', !!appV && appV === swV, `${appV} مقابل ${swV}`);
+
+  ok('يلتقط الأخطاء غير الملتقطة',
+     /addEventListener\('error'/.test(repSrc) && /unhandledrejection/.test(repSrc));
+  // الشروط الثلاثة التي تجعله لا يؤذي أكثر ممّا ينفع
+  ok('لا يُبلّغ عن نفسه (حارس الحلقة)', /if \(sending\) return;/.test(repSrc));
+  ok('ويسقط صامتًا بلا إنترنت', /if \(!navigator\.onLine\) return;/.test(repSrc));
+  ok('ولا يكرّر نفس الرسالة في الجلسة', /seen\.has\(text\)/.test(repSrc));
+
+  ok('و catch الإقلاع الثلاث تُبلّغ لا تبتلع',
+     (appSrc.match(/window\.Report\?\.capture\(/g) || []).length === 3);
+  ok('والمُبلِّغ يُركَّب أوّل الإقلاع',
+     /function boot\(\)\s*\{[\s\S]{0,900}?window\.Report\?\.install\(\)/.test(appSrc));
+
+  /* الأهمّ: البحث عبر `window`. المعامل `?.` يحمي من قيمة فارغة لا من معرّف
+     غير مصرَّح — فـ`Report?.install()` ترمي ReferenceError إن لم يُحمَّل
+     report.js، فيموت الإقلاع على سطره الأوّل وتصير أداةُ المراقبة هي العطل.
+     كشفته مجموعتا splash/stuck حين سقطتا بـ«Report is not defined». */
+  // التعليقات تُنزَع أوّلًا: التعليق أعلاه يقتبس الشكل الخطر ليشرحه، فيلتقطه
+  // الفحص ويسقط على شيفرة سليمة — حارسٌ يعاقب على توثيق نفسه.
+  const codeOnly = appSrc
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+  ok('والمُبلِّغ اختياري حقًّا (window.Report لا Report)',
+     !/(?<!window\.)\bReport\?\./.test(codeOnly), 'يوجد Report?. بلا window');
+  ok('واسم الشاشة متاح للتقرير', /currentName/.test(appSrc) && /currentName/.test(repSrc));
+  ok('وreport.js مخزَّن مسبقًا (يعمل من أول فتحة)', /data\/report\.js/.test(swSrc));
+}
+
 // --- الرفة الدورية: لا إعادة رسم بلا تغيير حقيقي -------------------------------
 // كانت pullProgress تُرجع عدد الصفوف المجلوبة لا المتغيّرة، فأي طالب له تقدّم
 // يجعل الناتج موجبًا في كل مزامنة، و app.js يعيد رسم الشاشة عند أي ناتج موجب.
@@ -749,9 +789,13 @@ ok('بصفّين مختلفين لا يُعرض أيّهما', (mixed.length ===
 ok('السقف الزمني يُسجَّل قبل أي شيء قد ينكسر',
    appSrc.indexOf('setTimeout(finish, 6000)') < appSrc.indexOf('const first = startSync')
    || /if \(hide\) setTimeout\(finish, 6000\);[\s\S]{0,120}try \{ render\(\)/.test(appSrc));
+// التأكيدان أدناه يفحصان **الترتيب** لا شكل السطر: كانا مربوطين بصيغة
+// `catch` من سطر واحد، فكسرهما إضافةُ سطر تبليغ داخل الـcatch رغم أن السلوك
+// لم يتغيّر. فحصٌ ينهار من إعادة تنسيق يُدرَّب المرء على تجاهله.
 ok('رفع الغطاء مضمون ولو انكسر الرسم',
-   /try \{ render\(\); \} catch[^\n]*\n\s*if \(hide\) hide\(\);/.test(appSrc));
-ok('الرسم الأول محاط بحارس', /try \{ render\(\); \} catch \(e\) \{[^\n]*الرسم الأول/.test(appSrc));
+   /try \{ render\(\); \} catch[\s\S]{0,240}?\n\s*\}\s*\n\s*if \(hide\) hide\(\);/.test(appSrc));
+ok('الرسم الأول محاط بحارس',
+   /try \{ render\(\); \} catch \(e\) \{[\s\S]{0,240}?الرسم الأول/.test(appSrc));
 ok('بدء المزامنة محاط بحارس', /try \{ first = startSync\(\); \} catch/.test(appSrc));
 // عقد الشكل: كتلة محفوظة ناقصة كانت تستبدل SEED السليم بآخر يكسر الشاشة
 {

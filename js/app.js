@@ -258,6 +258,16 @@ window.App = (function () {
   }
 
   function boot() {
+    /* أوّل سطر عمدًا: عطلٌ في الإقلاع نفسه هو أخطر ما يقع، وتركيبُ المُبلِّغ
+       بعده يعني أن العطل الوحيد الذي لا يُبلَّغ عنه هو أسوأها.
+
+       ⚠️ `window.Report?.` لا `Report?.`: المعامل `?.` يحمي من قيمة فارغة لا
+       من **معرّف غير مصرَّح**، فـ`Report?.install()` ترمي ReferenceError إن
+       لم يُحمَّل report.js أصلًا — فيموت الإقلاع كلّه على سطره الأوّل. أي أن
+       أداة المراقبة تصير هي العطل. البحث عبر `window` يعطي undefined بأمان
+       فيبقى المُبلِّغ اختياريًّا حقًّا. كشفته مجموعتا splash/stuck. */
+    window.Report?.install();
+
     const s = Store.get();
     document.documentElement.setAttribute('data-theme', s.theme);
     buildShell();
@@ -314,15 +324,28 @@ window.App = (function () {
     const finish = () => {
       if (settled) return;
       settled = true;
-      try { render(); } catch (e) { console.error('تعذّر رسم الشاشة بعد المزامنة', e); }
+      /* هذه الـ`catch` الثلاث تبتلع أخطر ثلاثة أعطال في التطبيق: فشل الرسم
+         الأول (الطالب يرى شاشة فارغة)، وفشل بدء المزامنة (يرى محتوًى قديمًا
+         أو لا شيء)، وفشل الرسم بعدها. كانت تذهب إلى console.error لا يقرؤه
+         أحد — فالعطل يُعرف من شكوى طالب إن اشتكى. تُبلَّغ الآن. */
+      try { render(); } catch (e) {
+        console.error('تعذّر رسم الشاشة بعد المزامنة', e);
+        window.Report?.capture('رسم بعد المزامنة', e);
+      }
       if (hide) hide();
     };
     if (hide) setTimeout(finish, 6000);
 
-    try { render(); } catch (e) { console.error('تعذّر الرسم الأول', e); }
+    try { render(); } catch (e) {
+      console.error('تعذّر الرسم الأول', e);
+      window.Report?.capture('الرسم الأول', e);
+    }
 
     let first;
-    try { first = startSync(); } catch (e) { console.error('تعذّر بدء المزامنة', e); }
+    try { first = startSync(); } catch (e) {
+      console.error('تعذّر بدء المزامنة', e);
+      window.Report?.capture('بدء المزامنة', e);
+    }
 
     if (hide) { if (first) first.then(finish, finish); else finish(); }
 
@@ -332,7 +355,11 @@ window.App = (function () {
     }
   }
 
-  return { go, back, boot, render, drawRail };
+  // اسم الشاشة الحالية — يرافق تقارير الأعطال. عطلٌ في «الدرس» غير عطلٍ في
+  // «الرئيسية»، وبلا هذا السياق يصير التقرير رسالةً بلا مكان.
+  const currentName = () => cur()?.name || null;
+
+  return { go, back, boot, render, drawRail, currentName };
 })();
 
 document.addEventListener('DOMContentLoaded', App.boot);
