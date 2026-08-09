@@ -393,22 +393,29 @@ window.Screens = window.Screens || {};
     // `div.video` أخرى يضاعف صندوق النسبة ١٦:٩ فيخرج المشغّل عن مقاسه.
     const video = h('div');
 
-    /* سطح الملصق: إطارٌ حقيقي من الدرس إن أمكن، وإلّا الرسم النائب.
-       يُطلب بعد الرسم لا قبله — انتظارُ الشبكة قبل إظهار الشاشة يجعل الدرس
-       يبدو معلَّقًا، والرسم النائب ثم استبداله أهدأ من فراغ ثم قفزة. */
-    let surface = null;
-    if (l.video.id && s.online) {
+    /* سطح الملصق — ثلاث حالات لا حالتان:
+         null  = ما زال يُجلب   ⇒ خلفية داكنة وحدها
+         false = تعذّر          ⇒ الرسم النائب
+         عنصر  = إطار حقيقي     ⇒ يظهر بتلاشٍ
+
+       الرسم النائب **لا يُعرض أثناء الجلب**: عرضُه ثم استبداله بعد لحظة
+       وميضٌ يلفت النظر إلى التبديل نفسه — وهذا ما اشتكى منه الاستعمال.
+       الخلفية الداكنة وحدها لا تُقرأ انتظارًا ولا خطأً، والزرّ فوقها ظاهر
+       من اللحظة الأولى فلا يبدو الدرس معطَّلًا. */
+    let surface = (l.video.id && s.online) ? null : false;
+    if (surface === null) {
       Media.posterFor(l.video.id).then((el) => {
-        if (!el) return;
-        surface = el;
-        // لا نستبدل شيئًا إن كان الطالب قد بدأ المشاهدة بالفعل
+        surface = el || false;
+        // لا نلمس شيئًا إن كان الطالب قد بدأ المشاهدة بالفعل
         if (!video.querySelector('.vc')) poster();
-      }).catch(() => {});
+      }).catch(() => { surface = false; if (!video.querySelector('.vc')) poster(); });
     }
 
     const poster = (...extra) => video.replaceChildren(
       h('div.video', ...[
-        surface || h('img', { src: l.video.thumb, alt: '' }),
+        // null أثناء الجلب ⇒ لا شيء (الخلفية الداكنة)، false ⇒ الرسم النائب
+        surface === null ? null
+          : surface || h('img', { src: l.video.thumb, alt: '' }),
         l.video.id && h('button.video__play',
           { 'aria-label': 'تشغيل الفيديو', onclick: playNow }, h('span', icon.play(26))),
         h('div.video__len.mono', l.video.length),

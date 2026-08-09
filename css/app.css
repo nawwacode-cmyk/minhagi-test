@@ -917,8 +917,19 @@ img, svg { max-width: 100%; display: block; }
 .video img { width: 100%; height: 100%; object-fit: cover; opacity: .75; }
 /* سطح الملصق حين يكون الفيديو نفسه (لا صورة مخزَّنة): نفس التعتيم الخفيف
    ليبقى زرّ التشغيل الأبيض مقروءًا فوق إطارٍ فاتح. ولا مؤشّر يد عليه —
-   الزرّ فوقه هو ما يُنقر. */
-.video > video[aria-hidden="true"] { opacity: .75; pointer-events: none; }
+   الزرّ فوقه هو ما يُنقر.
+
+   ويظهر بتلاشٍ لا فجأةً: الإطار يصل بعد جولة شبكة، وظهورُه المفاجئ فوق
+   خلفية داكنة يلفت النظر إلى التبديل بدل المحتوى. */
+.video > video[aria-hidden="true"] {
+  opacity: .75; pointer-events: none;
+  animation: posterIn .45s var(--ease) both;
+}
+.video > img { animation: posterIn .3s var(--ease) both; }
+@keyframes posterIn { from { opacity: 0; } to { opacity: .75; } }
+@media (prefers-reduced-motion: reduce) {
+  .video > video[aria-hidden="true"], .video > img { animation: none; }
+}
 .video__play {
   position: absolute; inset: 0; display: grid; place-items: center;
   border: 0; background: transparent;
