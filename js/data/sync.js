@@ -237,6 +237,10 @@ window.Sync = (function () {
       lessons: Object.fromEntries(lessons.map((l) => [l.code, {
         id: l.code, title: l.title_ar, minutes: l.est_minutes, free: l.is_free,
         body: l.body_html || '',
+        /* `thumb` يبقى الرسم النائب دائمًا: صورة الفيديو الحقيقية تعيش في
+           bucket خاص ولا رابط عامّ لها، فتُطلب موقّعة مع رابط التشغيل عند
+           فتح الدرس (media-url). تخزينُ رابطٍ موقّع هنا بلا معنى — يموت بعد
+           عشر دقائق بينما المحتوى يُخزَّن لأسابيع. */
         video: l.video_id && V[l.video_id]
           ? { id: l.video_id, title: V[l.video_id].title,
               length: fmtDuration(V[l.video_id].duration_s), thumb: 'assets/img/video-thumb.svg' }
