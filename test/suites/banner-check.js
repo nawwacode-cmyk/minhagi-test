@@ -1,10 +1,10 @@
-// عدد شرائح البانر صار متغيّرًا (تُدار من اللوحة). الحالات الحدّية — صفر
-// وواحد وأكثر من ستّ — هي ما يكسر حركة CSS المضبوطة أصلًا على ثلاث.
+// البانر أُزيل من «الرئيسية» نهائيًا وصار حصرًا ضمن «آخر الأخبار»: لا حدّ
+// ستّة ولا دورة تلاشٍ CSS — قائمة ثابتة تُقرأ بالتمرير، فالحالات الحدّية
+// هنا هي صفر (حالة فارغة صريحة) وواحد وعدد كبير (لا سقف يقصّه).
 //
-// العدّ بـ`class="promo__slide` لا `promo__slide` وحدها: كل بانر صار قابلًا
-// للنقر افتراضيًا (يقود لـ«آخر الأخبار» بلا هدف مخصَّص)، فيحمل صنف
-// `promo__slide--tap` الذي يحتوي السلسلة `promo__slide` داخله فيضاعف العدّ
-// الساذج. مرساة `class="` تلتقط جذر العنصر مرّة واحدة لا مرّتين.
+// العدّ بـ`class="newsfeed__card` لا `newsfeed__card` وحدها: بطاقة بهدف
+// مخصَّص تحمل صنف `newsfeed__card--tap` الذي يحتوي السلسلة الأولى داخله
+// فيضاعف العدّ الساذج. مرساة `class="` تلتقط جذر العنصر مرّة واحدة لا مرّتين.
 require('./render-check-lib.js');
 
 let bad = 0;
@@ -14,56 +14,46 @@ const mkB = (n, extra = {}) => Array.from({ length: n }, (_, i) => ({
   id: 'b' + i, title: 'بانر ' + i, sub: 'وصف', image: null, target: null, ...extra,
 }));
 
-for (const [n, expect] of [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [7, 6]]) {
+for (const n of [0, 1, 2, 7]) {
   window.SEED.banners = mkB(n);
   try {
-    const html = Screens.home().outerHTML;
-    const slides = (html.match(/class="promo__slide/g) || []).length;
-    const cls = (html.match(/class="promo[^"]*"/) || [''])[0];
-    ok(`بانرات=${n} ⇒ ${expect} شريحة`, slides === expect, `${slides} · ${cls}`);
+    const html = Screens.news().outerHTML;
+    const cards = (html.match(/class="newsfeed__card/g) || []).length;
+    ok(`بانرات=${n} ⇒ ${n} بطاقة (بلا سقف)`, cards === n, `${cards}`);
   } catch (e) { ok(`بانرات=${n}`, false, e.message); }
 }
 
-// شريحة واحدة: ثابتة، بلا نقاط ولا حركة
-window.SEED.banners = mkB(1);
-let html = Screens.home().outerHTML;
-ok('شريحة واحدة تأخذ promo--single', /promo--single/.test(html));
-ok('شريحة واحدة بلا نقاط مؤشِّرة', !/promo-dots/.test(html));
+// بلا بانرات: حالة فارغة صريحة — لا نخترع محتوًى لملء الفراغ
+window.SEED.banners = [];
+let html = Screens.news().outerHTML;
+ok('بلا بانرات: لا بطاقات', !/class="newsfeed__card/.test(html));
+ok('بلا بانرات: حالة فارغة صريحة', /لا أخبار منشورة بعد/.test(html));
+ok('العنوان يبقى «آخر الأخبار»', /appbar__title/.test(html) && /آخر الأخبار/.test(html));
 
-// ثلاث: تأخذ صنف العدد وإزاحة لكل شريحة
+// «الرئيسية» لم يعد فيها أي أثر للبانر مهما كان عدده
 window.SEED.banners = mkB(3);
 html = Screens.home().outerHTML;
-ok('ثلاث شرائح تأخذ promo--n3', /promo--n3/.test(html));
-ok('لكل شريحة إزاحة زمنية مختلفة',
-   /animation-delay:0s/.test(html) && /animation-delay:-4s/.test(html) && /animation-delay:-8s/.test(html));
-ok('ثلاث نقاط مؤشِّرة', (html.match(/<i><\/i>/g) || []).length === 3);
-
-// بلا بانرات: لا شيء إطلاقًا — ولا شرائح بديلة، ولا حاوية فارغة تحجز ارتفاعها
-window.SEED.banners = [];
-html = Screens.home().outerHTML;
-ok('بلا بانرات لا تظهر شرائح بديلة', !/منهاجك السوري كاملًا/.test(html));
-ok('بلا بانرات لا يُبنى عنصر البانر أصلًا',
-   !/class="promo[^"]*"/.test(html) && !/promo__slide/.test(html));
-ok('ولا نقاط مؤشِّرة', !/promo-dots/.test(html));
-ok('بقيّة الشاشة تُبنى كالمعتاد', /hgreet/.test(html) && /sec-label/.test(html));
-// التحية صعدت إلى الترويسة؛ ما بقي فاصلٌ يظهر مع البانر ويختفي بدونه
-ok('الترويسة أوّل محتوى الصفحة', /pgreet/.test(html));
-window.SEED.banners = mkB(2);
-ok('والبانر يليها', /pgreet/.test(Screens.home().outerHTML));
+ok('«الرئيسية» بلا أثر بانر رغم وجود بانرات', !/class="promo/.test(html) && !/newsfeed/.test(html));
+ok('بقيّة «الرئيسية» تُبنى كالمعتاد', /hgreet/.test(html) && /sec-label/.test(html));
 
 // صورة + وجهة
 window.SEED.banners = [{ id: 'b', title: 'ت', sub: '', image: 'banners/x.png',
                          target: { type: 'subject', value: 'fr' } }];
-html = Screens.home().outerHTML;
-ok('بانر بوجهة قابل للنقر', /promo__slide--tap/.test(html));
+html = Screens.news().outerHTML;
+ok('بانر بوجهة قابل للنقر', /newsfeed__card--tap/.test(html));
 ok('بانر بصورة يضيف الصورة وطبقة التعتيم',
-   /promo__img/.test(html) && /promo__scrim/.test(html));
+   /newsfeed__img/.test(html) && /newsfeed__scrim/.test(html));
 ok('الصورة تُبنى من المسار لا من رابط مخزَّن', /public-media\/banners\/x\.png/.test(html));
+
+// بلا وجهة: إعلامي محض — لا معنى للنقر لتصل إلى الشاشة التي أنت بداخلها
+window.SEED.banners = [{ id: 'b', title: 'ت', sub: '', image: null, target: null }];
+ok('بانر بلا هدف داخل «آخر الأخبار» غير قابل للنقر',
+   !/newsfeed__card--tap/.test(Screens.news().outerHTML));
 
 // وجهة خارجية
 window.SEED.banners = [{ id: 'b', title: 'ت', sub: '', image: null,
                          target: { type: 'url', value: 'https://x.test' } }];
-ok('وجهة خارجية لا تكسر البناء', /promo__slide--tap/.test(Screens.home().outerHTML));
+ok('وجهة خارجية لا تكسر البناء', /newsfeed__card--tap/.test(Screens.news().outerHTML));
 
 window.SEED.banners = [];
 console.log('\n' + (bad ? `${bad} فشل` : 'كل فحوصات البانر نجحت'));

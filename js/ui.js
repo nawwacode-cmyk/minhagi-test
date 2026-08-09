@@ -304,14 +304,14 @@ window.UI = (function () {
                        + '<rect x="16.4" y="9.6" width="4.4" height="11.2" rx="2.2"/>',
                        s, { fill: 'currentColor', stroke: 'none' }),
 
-    /* بوق إعلانات — بديل «حسابي» بالشريط السفلي بعد أن صار الحساب زرّ إعدادات
-       بالترويسة (icon.settings). نفس هندسة البوق (رباعي مغلق + مقبض) تُستعمل
-       خطًّا هنا وامتلاءً بـfNews أدناه، كبقية أزواج الأيقونات بالمشروع. */
-    news:     (s) => svg('<path d="M19 5 L19 19 L5.5 14.6 L5.5 9.4 Z"/>'
-                       + '<rect x="2.6" y="10.3" width="2.4" height="3.4" rx="1"/>'
-                       + '<path d="M21.3 8.4a5 5 0 0 1 0 8.2"/>', s),
-    fNews:    (s) => svg('<path d="M19 5 L19 19 L5.5 14.6 L5.5 9.4 Z"/>'
-                       + '<rect x="2.6" y="10.3" width="2.4" height="3.4" rx="1"/>',
+    /* بوصلة — بديل «حسابي» بالشريط السفلي بعد أن صار الحساب زرّ إعدادات
+       بالترويسة (icon.settings). دائرة + إبرة رباعية، بنفس هندسة home/grid/
+       chart (بدائيان هندسيّان بسيطان لا رسمًا تفصيليًا)، خطًّا هنا وامتلاءً
+       بحلقة غليظة + إبرة مصمتة بـfNews أدناه — كبقية أزواج الأيقونات. */
+    news:     (s) => svg('<circle cx="12" cy="12" r="9"/>'
+                       + '<path d="M15.5 8.5 13.7 13.7 8.5 15.5 10.3 10.3 Z"/>', s),
+    fNews:    (s) => svg('<circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="2.6"/>'
+                       + '<path d="M15.3 8.7 13.6 13.6 8.7 15.3 10.4 10.4 Z" fill="currentColor" stroke="none"/>',
                        s, { fill: 'currentColor', stroke: 'none' }),
 
     grid:     (s) => svg('<rect x="3.2" y="3.2" width="7.6" height="7.6" rx="2.2"/>'

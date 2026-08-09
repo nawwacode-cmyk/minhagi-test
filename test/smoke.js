@@ -435,12 +435,17 @@ ok('مزامنة بتغيير ترسم', decide({ changed: true }, 'home') === t
 ok('تغيير أثناء الامتحان لا يقطع الطالب', decide({ changed: true }, 'exam') === false);
 ok('الطرد يرسم حتى أثناء الامتحان', decide({ evicted: true }, 'exam') === true);
 
-// --- قياسات البانر وبطاقة الأستاذ ------------------------------------------------
-// بلا بانر مضاف لا يُعرض شيء: لا شرائح بديلة، ولا حاوية فارغة تحجز 178px
+// --- البانر أُزيل من «الرئيسية» نهائيًا، وصار حصرًا ضمن «آخر الأخبار» --------------
 ok('لا شرائح بديلة في الشيفرة', !/EVERGREEN/.test(mainSrc));
-ok('عنصر البانر لا يُبنى بلا شرائح', /!slides\.length \? null :/.test(mainSrc));
-ok('البانر أكبر من السابق', /\.promo \{[^}]*height: 178px/.test(cssSrc));
-ok('البانر يكبر أكثر على الشاشات الواسعة', /\.promo \{ height: 230px; \}/.test(cssSrc));
+// شاشة الرئيسية لم يعد فيها أي بناء لعنصر البانر — لا شرط عليه ولا مصفوفة شرائح
+ok('لا بناء لعنصر البانر بـ«الرئيسية»',
+   !/SEED\.banners/.test(mainSrc.slice(mainSrc.indexOf('Screens.home ='), mainSrc.indexOf('Screens.subjects ='))));
+// وقاعدة .promo القديمة حُذفت من CSS لا تركت معلَّقة بلا مستعمل
+ok('قاعدة .promo القديمة حُذفت من CSS', !/\.promo\s*\{/.test(cssSrc) && !/promoFade/.test(cssSrc));
+// «آخر الأخبار» هي الآن الشاشة الوحيدة التي تبني من SEED.banners
+ok('«آخر الأخبار» تبني من SEED.banners', /Screens\.news = \(\) => \{[\s\S]{0,200}SEED\.banners/.test(mainSrc));
+ok('بطاقاتها newsfeed__card بلغة .card نفسها (صورة+تعتيم+نصّ)',
+   /\.newsfeed__card \{/.test(cssSrc) && /\.newsfeed__scrim \{/.test(cssSrc));
 // بطاقة الأستاذ صارت صورة مصمَّمة كاملةً — لا حقول نصّية من التطبيق فوقها،
 // وأي نصّ نضيفه سيصطدم بنصّ الصورة نفسها ويتكرّر.
 ok('لا أثر لبطاقة الحقول القديمة', !/subj-showcase/.test(cssSrc) && !/subj-showcase/.test(mainSrc));

@@ -24,21 +24,16 @@ window.Screens = window.Screens || {};
   };
 
   /**
-   * وجهة البانر/الخبر عند النقر. تخدم «الرئيسية» و«آخر الأخبار» معًا — كانتا
-   * ستحملان نسختين متطابقتين من نفس المنطق، وهذا بالضبط ما تركنا فيه صفحة
-   * التقدّم وصفحة الرئيسية تفترقان بالغلط سابقًا (تعليق homeHeader).
-   *
-   * بلا هدف مخصَّص، البانر يقود لـ«آخر الأخبار» لا يبقى بلا فائدة — الشاشة
-   * موجودة أصلًا فلماذا يُغلَق الباب إليها. أمّا داخل «آخر الأخبار» نفسها
-   * فبطاقة بلا هدف تبقى إعلامية محضة: لا معنى للنقر لتصل إلى الشاشة التي
-   * أنت بداخلها أصلًا.
+   * وجهة خبر «آخر الأخبار» عند النقر — بلا هدف مخصَّص يبقى إعلاميًا محضًا لا
+   * يُنقر (لا معنى لوجهة افتراضية هنا؛ البانر عاد صفحته الوحيدة الآن بعد أن
+   * أُزيل من «الرئيسية»، فلا شاشة أخرى يقود إليها افتراضيًا).
    */
-  function bannerGo(b, { insideNews = false } = {}) {
+  function bannerGo(b) {
     const t = b.target;
     if (t?.type === 'subject') return () => App.go('course', { subject: t.value });
     if (t?.type === 'teacher') return () => App.go('teacher', { id: t.value });
     if (t?.type === 'url') return () => window.open(t.value, '_blank', 'noopener');
-    return insideNews ? null : () => App.go('news');
+    return null;
   }
 
   // --- ٥. الرئيسية (اكتشاف) -----------------------------------------------------
@@ -51,14 +46,6 @@ window.Screens = window.Screens || {};
     const teachers = SEED.teachers || [];
     const firstEntitled = (SEED.subjects || []).find((sub) => sub.entitled);
     const subjectName = (code) => (SEED.subjects || []).find((x) => x.id === code)?.name || code;
-
-    // البانرات المُدارة من اللوحة وحدها. ما يصل هنا مفعَّل وضمن نافذته
-    // الزمنية أصلًا (تفرضها RLS)، فلا تصفية تواريخ هنا.
-    //
-    // بلا بانر مضاف لا يُعرض شيء — ولا شرائح بديلة. الشريحة الافتراضية تشغل
-    // أبرز موضع في الشاشة بمحتوى لم يختره أحد، فيراها الطالب إعلانًا قائمًا
-    // ويراها المدير مكانًا مشغولًا فلا ينتبه أن لوحته فارغة.
-    const slides = SEED.banners || [];
 
     const goPractice = () => firstEntitled
       ? App.go('course', { subject: firstEntitled.id, tab: 'practice' })
@@ -78,35 +65,6 @@ window.Screens = window.Screens || {};
          ولا هامش سالب ولا مستمع تمرير. */
       h('div.screen__body', { style: 'padding:14px 16px 8px' },
         C.homeHeader(C.greeting(), s.username || 'زائر'),
-
-        // أكثر من ستّ شرائح لا يراها الطالب أصلًا (دورة تتجاوز الدقيقتين)،
-        // ولا إطارات مفتاحية لها — نكتفي بالستّ الأولى بحسب الترتيب.
-        // بلا شرائح لا يُبنى العنصر إطلاقًا: div.promo فارغ يحجز ارتفاعه
-        // كاملًا فيترك فجوة بيضاء تحت التحية أسوأ من غياب البانر.
-        !slides.length ? null :
-        h('div.promo' + (slides.length === 1 ? '.promo--single'
-                                             : `.promo--n${Math.min(slides.length, 6)}`),
-          ...slides.slice(0, 6).map((sl, i) => {
-            const onclick = bannerGo(sl);
-            const img = sl.image && Api.publicUrl(sl.image);
-            const n = Math.min(slides.length, 6);
-            return h('div.promo__slide' + (onclick ? '.promo__slide--tap' : ''),
-              {
-                // إزاحة كل شريحة بنصيبها من الدورة — المدّة 4 ثوانٍ لكل واحدة
-                style: n > 1 ? `animation-delay:${-i * 4}s` : '',
-                ...(onclick ? { onclick } : {}),
-              },
-              // الصورة طبقة خلفية تحت تعتيم — بلا التعتيم يصير النص الأبيض
-              // غير مقروء فوق صورة فاتحة، وهو ما لا يُكتشف إلا بعد النشر.
-              img && h('img.promo__img', { src: img, alt: '', loading: 'lazy' }),
-              img && h('span.promo__scrim'),
-              sl.tag && h('div.promo__tag', sl.tag),
-              h('div.promo__t', sl.title),
-              sl.sub && h('div.promo__s', sl.sub));
-          })),
-        slides.length > 1
-          ? h('div.promo-dots', ...slides.slice(0, 6).map(() => h('i')))
-          : null,
 
         // بطاقة الأستاذ = صورة واحدة مصمَّمة كاملةً باللوحة (الاسم والمادة
         // والخبرة مرسومة داخلها). لا نصّ فوقها من التطبيق: أي نصّ نضعه هنا
@@ -546,7 +504,7 @@ window.Screens = window.Screens || {};
             }))
         : h('div.newsfeed',
             ...posts.map((p) => {
-              const onclick = bannerGo(p, { insideNews: true });
+              const onclick = bannerGo(p);
               const img = p.image && Api.publicUrl(p.image);
               return h('div.newsfeed__card' + (onclick ? '.newsfeed__card--tap' : ''),
                 onclick ? { onclick } : {},

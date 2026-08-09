@@ -583,70 +583,9 @@ img, svg { max-width: 100%; display: block; }
   .pgreet { margin-bottom: 22px; }
 }
 
-/* --- بانر العروض المتحرّك: تلاشٍ CSS بحت بلا JS --------------------------------
-   بلا مؤقّت JavaScript عن قصد: الشاشات هنا تُعاد بناؤها عند كل render، فمؤقّت
-   لكل بناء يعني تسريبًا متراكمًا ما لم يُنظَّف بدقة في كل مسار خروج.
-
-   عدد الشرائح صار متغيّرًا (تُدار من اللوحة)، فلا يصحّ زمن ثابت مضبوط على
-   ثلاث: بأربع شرائح كانت الرابعة تتراكب مع الأولى، وبواحدة كانت تختفي
-   وتظهر بلا سبب. لكل عدد إطاراتُه المفتاحية، ونصيبُ كل شريحة 100/N. */
-.promo { position: relative; height: 178px; border-radius: 20px; overflow: hidden; box-shadow: var(--sh-2); }
-/* الشاشات الأوسع تحتمل بانرًا أطول — الارتفاع ثابت لا نسبة، لأن النسبة مع
-   حدّ العرض 820px بالحاسوب كانت تعطي بانرًا بارتفاع نصف الشاشة. */
-@media (min-width: 700px) { .promo { height: 230px; } }
-
-.promo__slide {
-  position: absolute; inset: 0; padding: 22px;
-  display: flex; flex-direction: column; justify-content: center;
-  color: #fff; opacity: 0;
-}
-/* التدرّجات تدور كل ثلاث، فلا تبقى شريحة رابعة بلا خلفية */
-.promo__slide:nth-child(3n+1) { background: linear-gradient(135deg, var(--vio-dp), var(--vio)); }
-.promo__slide:nth-child(3n+2) { background: linear-gradient(135deg, #8A5A1E, #C98A2E); }
-.promo__slide:nth-child(3n+3) { background: linear-gradient(135deg, var(--vio-dp), var(--vio-hi)); }
-
-/* صورة البانر: طبقة تملأ الشريحة، وفوقها تعتيم متدرّج يضمن قراءة النص
-   الأبيض مهما كانت الصورة فاتحة. */
-.promo__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.promo__scrim {
-  position: absolute; inset: 0;
-  background: linear-gradient(90deg, rgba(20,14,38,.78) 0%, rgba(20,14,38,.35) 100%);
-}
-.promo__slide > .promo__tag,
-.promo__slide > .promo__t,
-.promo__slide > .promo__s { position: relative; z-index: 1; }
-.promo__slide--tap { cursor: pointer; }
-
-/* شريحة واحدة: ثابتة ظاهرة، بلا أي حركة */
-.promo--single .promo__slide { opacity: 1; }
-
-.promo:not(.promo--single) .promo__slide { animation-iteration-count: infinite; }
-.promo--n2 .promo__slide { animation-name: promoFade2; animation-duration: 8s; }
-.promo--n3 .promo__slide { animation-name: promoFade3; animation-duration: 12s; }
-.promo--n4 .promo__slide { animation-name: promoFade4; animation-duration: 16s; }
-.promo--n5 .promo__slide { animation-name: promoFade5; animation-duration: 20s; }
-.promo--n6 .promo__slide { animation-name: promoFade6; animation-duration: 24s; }
-
-@keyframes promoFade2 { 0%,46%   { opacity: 1; } 50%,100%   { opacity: 0; } }
-@keyframes promoFade3 { 0%,29%   { opacity: 1; } 33%,100%   { opacity: 0; } }
-@keyframes promoFade4 { 0%,21%   { opacity: 1; } 25%,100%   { opacity: 0; } }
-@keyframes promoFade5 { 0%,16%   { opacity: 1; } 20%,100%   { opacity: 0; } }
-@keyframes promoFade6 { 0%,12.6% { opacity: 1; } 16.6%,100% { opacity: 0; } }
-
-@media (prefers-reduced-motion: reduce) {
-  .promo .promo__slide { animation: none; opacity: 0; }
-  .promo .promo__slide:first-child { opacity: 1; }
-}
-.promo__tag { font-size: 11.5px; font-weight: 600; opacity: .85; margin-bottom: 8px; }
-.promo__t { font-size: 20px; font-weight: 600; margin-bottom: 6px; line-height: 1.35; text-wrap: balance; }
-.promo__s { font-size: 13px; opacity: .92; line-height: 1.6; }
-@media (min-width: 700px) {
-  .promo__t { font-size: 25px; }
-  .promo__s { font-size: 14.5px; }
-}
-.promo-dots { display: flex; justify-content: center; gap: 5px; margin-top: 10px; }
-.promo-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--brd); }
-.promo-dots i:first-child { width: 14px; border-radius: 4px; background: var(--acc); }
+/* بانر العروض المتحرّك بـ«الرئيسية» أُزيل نهائيًا — البانرات صارت حصرًا
+   ضمن «آخر الأخبار» (.newsfeed أدناه)، فلا داعي لمكانين يعرضان المحتوى
+   نفسه ولا لمنطق الدورة/التلاشي الذي كان يخدم عرضًا مؤقّتًا محدودًا. */
 
 /* --- «آخر الأخبار»: نفس لغة بطاقة البانر (صورة + تعتيم + نصّ أبيض فوقها) —
    قائمةٌ ثابتة تُقرأ بالتمرير لا دورةٌ مؤقّتة، فكل خبر يستحق وقته الخاص لا
