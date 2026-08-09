@@ -24,7 +24,7 @@ window.Report = (function () {
      مُكرَّرة عمدًا هنا وفي `sw.js` — الصفحة لا تصل إلى ثابت داخل الـservice
      worker، وسؤاله بـpostMessage غير متاح عند أول تحميل ولا على file://.
      وحارسٌ في test/smoke.js يُسقط الفحص إن اختلف الرقمان، فلا ينحرفان. */
-  const APP_VERSION = 'v48';
+  const APP_VERSION = 'v49';
 
   const seen = new Set();
   let sending = false;

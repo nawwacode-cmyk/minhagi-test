@@ -308,6 +308,40 @@ window.Media = (function () {
     el.addEventListener('pause', () => secureScreen(false));
     el.addEventListener('ended', () => secureScreen(false));
 
+    /* --- قياس التقطيع --------------------------------------------------------
+       قرار «هل نحتاج جودات متعدّدة؟» يجب أن يُبنى على أرقام لا على تخمين،
+       والطالب لا يشتكي غالبًا — يغلق التطبيق. فنقيس ما يقع فعلًا: كم مرّة
+       توقّف الفيديو للتخزين المؤقّت، وكم استغرق قبل أن يبدأ.
+
+       يُرسل مرّة واحدة لكل مشاهدة وعند تجاوز حدٍّ يستحقّ الانتباه فقط —
+       تسجيلُ كل مشاهدة سليمة ضجيجٌ يغرق ما يهمّ. ويمرّ عبر مُبلِّغ الأعطال
+       نفسه: لا بنية ثانية لأجل قياس واحد. */
+    let stalls = 0, reported = false;
+    const t0 = Date.now();
+    let firstPlayAt = null;
+
+    el.addEventListener('waiting', () => { stalls++; });
+    el.addEventListener('playing', () => { firstPlayAt ??= Date.now(); });
+
+    const reportIfRough = () => {
+      if (reported) return;
+      const startMs = firstPlayAt ? firstPlayAt - t0 : null;
+      // ثلاث توقّفات أو أكثر، أو بدءٌ يتجاوز ثماني ثوانٍ: مشاهدةٌ سيّئة فعلًا
+      if (stalls < 3 && !(startMs && startMs > 8000)) return;
+      reported = true;
+      // المعرّف في الرسالة عمدًا: المُبلِّغ يكرّر الرسالة مرّة واحدة للجلسة،
+      // فبلا تمييز يُقاس أوّل درس متقطّع وحده وتضيع بقيّة الدروس.
+      window.Report?.send('video', `مشاهدة متقطّعة · ${videoId}`, null, {
+        stalls, start_ms: startMs,
+        duration_s: Math.round(el.duration || 0),
+        watched_s: Math.round(el.currentTime || 0),
+        // نوع الشبكة إن أتاحه المتصفّح — يفرّق بين «شبكتنا بطيئة» و«ملفّنا ثقيل»
+        net: navigator.connection?.effectiveType ?? null,
+      });
+    };
+    el.addEventListener('pause', reportIfRough);
+    el.addEventListener('ended', reportIfRough);
+
     box.append(el,
       watermarkLayer(meta?.watermark || Store.get().username || 'مشترك'),
       controls(el, box));
