@@ -28,21 +28,22 @@ window.App = (function () {
    *
    * الدروس والتمارين والامتحانات لا تظهر هنا كوجهات مستقلة — هي أقسام داخل
    * المادة نفسها (التبويبات داخل شاشة المادة)، لا مستوى تنقّل عابر للمواد.
-   * «حسابي» لم تعد وجهة تنقّل — صارت زر إعدادات بترويسة الرئيسية وموادّي.
+   * «حسابي» لم تعد وجهة تنقّل — صارت زر إعدادات بترويسة الرئيسية وموادّي
+   * (icon.settings بـ components.js)، فأُخلي مكانها الرابع هنا لـ«آخر الأخبار».
    */
   // ico تأخذ مقاسًا: الشريط الجانبي يعرض أيقونة صغيرة بجانب نصّها، والشريط
   // السفلي يعرض الأيقونة وحدها فيحتاجها أكبر لتبقى هدفًا واضحًا للمس.
   // ico خطّية للشريط الجانبي (أرضية فاتحة) · fico ممتلئة للشريط السفلي
   // (أرضية بنفسجية مصمتة يذوب فيها الخطّ الأبيض الرفيع).
   const RAIL_ITEMS = [
-    { id: 'home',     label: 'الرئيسية', ico: icon.home,  fico: icon.fHome,
+    { id: 'home',     label: 'الرئيسية',    ico: icon.home,  fico: icon.fHome,
       go: () => go('home') },
-    { id: 'subjects', label: 'موادّي',   ico: icon.grid,  fico: icon.fGrid,
+    { id: 'subjects', label: 'موادّي',      ico: icon.grid,  fico: icon.fGrid,
       go: () => go('subjects') },
-    { id: 'progress', label: 'تقدّمي',   ico: icon.chart, fico: icon.fChart,
+    { id: 'progress', label: 'تقدّمي',      ico: icon.chart, fico: icon.fChart,
       go: () => go('progress') },
-    { id: 'account',  label: 'حسابي',    ico: icon.user,  fico: icon.fUser,
-      go: () => go('account') },
+    { id: 'news',     label: 'آخر الأخبار', ico: icon.news,  fico: icon.fNews,
+      go: () => go('news') },
   ];
 
   function activeRailId() {

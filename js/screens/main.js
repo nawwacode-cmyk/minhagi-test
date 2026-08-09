@@ -23,6 +23,24 @@ window.Screens = window.Screens || {};
     return g.length === 1 ? gradeNameOf(g[0]) : '';
   };
 
+  /**
+   * وجهة البانر/الخبر عند النقر. تخدم «الرئيسية» و«آخر الأخبار» معًا — كانتا
+   * ستحملان نسختين متطابقتين من نفس المنطق، وهذا بالضبط ما تركنا فيه صفحة
+   * التقدّم وصفحة الرئيسية تفترقان بالغلط سابقًا (تعليق homeHeader).
+   *
+   * بلا هدف مخصَّص، البانر يقود لـ«آخر الأخبار» لا يبقى بلا فائدة — الشاشة
+   * موجودة أصلًا فلماذا يُغلَق الباب إليها. أمّا داخل «آخر الأخبار» نفسها
+   * فبطاقة بلا هدف تبقى إعلامية محضة: لا معنى للنقر لتصل إلى الشاشة التي
+   * أنت بداخلها أصلًا.
+   */
+  function bannerGo(b, { insideNews = false } = {}) {
+    const t = b.target;
+    if (t?.type === 'subject') return () => App.go('course', { subject: t.value });
+    if (t?.type === 'teacher') return () => App.go('teacher', { id: t.value });
+    if (t?.type === 'url') return () => window.open(t.value, '_blank', 'noopener');
+    return insideNews ? null : () => App.go('news');
+  }
+
   // --- ٥. الرئيسية (اكتشاف) -----------------------------------------------------
   // «الرئيسية» هنا واجهة تعريفية/ترويجية (بانر، أساتذتنا، خدماتنا) منفصلة عن
   // «موادّي» (Screens.subjects أدناه) التي تحمل لوحة الدراسة الفعلية. كل نصّ
@@ -41,16 +59,6 @@ window.Screens = window.Screens || {};
     // أبرز موضع في الشاشة بمحتوى لم يختره أحد، فيراها الطالب إعلانًا قائمًا
     // ويراها المدير مكانًا مشغولًا فلا ينتبه أن لوحته فارغة.
     const slides = SEED.banners || [];
-
-    /** وجهة البانر عند النقر — بلا وجهة يبقى إعلاميًا لا يُنقر. */
-    function bannerGo(b) {
-      const t = b.target;
-      if (!t) return null;
-      if (t.type === 'subject') return () => App.go('course', { subject: t.value });
-      if (t.type === 'teacher') return () => App.go('teacher', { id: t.value });
-      if (t.type === 'url') return () => window.open(t.value, '_blank', 'noopener');
-      return null;
-    }
 
     const goPractice = () => firstEntitled
       ? App.go('course', { subject: firstEntitled.id, tab: 'practice' })
@@ -79,7 +87,7 @@ window.Screens = window.Screens || {};
         h('div.promo' + (slides.length === 1 ? '.promo--single'
                                              : `.promo--n${Math.min(slides.length, 6)}`),
           ...slides.slice(0, 6).map((sl, i) => {
-            const onclick = sl.target ? bannerGo(sl) : null;
+            const onclick = bannerGo(sl);
             const img = sl.image && Api.publicUrl(sl.image);
             const n = Math.min(slides.length, 6);
             return h('div.promo__slide' + (onclick ? '.promo__slide--tap' : ''),
@@ -515,5 +523,39 @@ window.Screens = window.Screens || {};
 
     wrap.append(C.appbar({ title: 'حسابي', onBack: () => App.back() }), body);
     return wrap;
+  };
+
+  /**
+   * آخر الأخبار — امتداد لنفس البانرات المُدارة من اللوحة. «الرئيسية» تعرض
+   * أوّل ٦ فقط بدورة ٤ ثوانٍ لكل واحدة؛ هنا القائمة كاملةً بلا حدّ ولا دورة،
+   * فما لا يتّسع للبانر المتحرّك يبقى مقروءًا هنا. مصدر واحد (SEED.banners)
+   * لا محتوًى مستقلّ — نشرٌ من اللوحة يظهر بالمكانين معًا بلا ازدواج عمل.
+   *
+   * لا محتوى تجريبي: بلا بانر مُضاف الشاشة فارغة بوضوح (نفس قاعدة «الرئيسية»
+   * — لا نخترع خبرًا لم يُنشر فعليًا لنملأ الفراغ).
+   */
+  Screens.news = () => {
+    const posts = SEED.banners || [];
+
+    const body = h('div.screen__body',
+      !posts.length
+        ? h('div', { style: 'padding:16px' },
+            C.empty({
+              title: 'لا أخبار منشورة بعد',
+              text: 'كل جديد يُنشر من لوحة الإدارة يظهر هنا فور اعتماده.',
+            }))
+        : h('div.newsfeed',
+            ...posts.map((p) => {
+              const onclick = bannerGo(p, { insideNews: true });
+              const img = p.image && Api.publicUrl(p.image);
+              return h('div.newsfeed__card' + (onclick ? '.newsfeed__card--tap' : ''),
+                onclick ? { onclick } : {},
+                img && h('img.newsfeed__img', { src: img, alt: '', loading: 'lazy' }),
+                img && h('span.newsfeed__scrim'),
+                h('div.newsfeed__t', p.title),
+                p.sub && h('div.newsfeed__s', p.sub));
+            })));
+
+    return h('div.screen', C.appbar({ title: 'آخر الأخبار', onBack: () => App.back() }), body);
   };
 })();

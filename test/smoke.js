@@ -243,13 +243,19 @@ ok('الشريط يطفو بثلاث طبقات لا بواحدة',
    /\.tabbar \{[^}]*inset 0 1px 0 rgba\(255, 255, 255/.test(cssSrc));
 ok('الشريط الجانبي يبقي نصّه', /it\.ico\(20\), it\.label/.test(appSrc));
 ok('«موادّي» وجهة تنقّل مستقلّة الآن', /id:\s*'subjects'/.test(appSrc));
-ok('«حسابي» صارت وجهة تنقّل رابعة', /id:\s*'account'/.test(appSrc)
+// الرابعة صارت «آخر الأخبار» لا «حسابي» — الحساب أُبقي زرّ إعدادات بالترويسة
+// فقط (icon.settings)، فمعرّفه ما عاد يظهر ضمن RAIL_ITEMS إطلاقًا.
+ok('الرابعة صارت «آخر الأخبار»', /id:\s*'news'/.test(appSrc)
    && (appSrc.match(/\{ id: '/g) || []).length === 4);
+ok('و«حسابي» لم تعد ضمن وجهات الشريط', !/RAIL_ITEMS = \[[\s\S]*?id:\s*'account'[\s\S]*?\];/.test(appSrc));
+// وما زالت شاشة قائمة — يفتحها زرّ الإعدادات بالترويسة لا الشريط
+ok('لكن Screens.account ما زالت موجودة (يفتحها زرّ الإعدادات)',
+   /Screens\.account = /.test(mainSrc));
 
 // --- الشريط السفلي على نمط المرجع البصري -----------------------------------------
 // أيقونات ممتلئة لا خطّية: خطٌّ أبيض رفيع على أرضية بنفسجية عند ٢٣px يذوب
 ok('أيقونات الشريط ممتلئة', /fill: 'currentColor', stroke: 'none'/.test(uiSrc)
-   && /fHome:|fGrid:|fChart:|fUser:/.test(uiSrc));
+   && /fHome:|fGrid:|fChart:|fNews:/.test(uiSrc));
 ok('والشريط الجانبي يبقى بالخطّية (أرضيته فاتحة)', /ico: icon\.home/.test(appSrc));
 ok('الشريط يطفو لا يلتصق بالحافة',
    /\.tabbar \{[^}]*inset-inline: 16px[^}]*bottom: calc\(14px/.test(cssSrc));

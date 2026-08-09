@@ -87,6 +87,9 @@ window.SEED.teachers[0].name = 'نوار بشناق';
 window.SEED.banners = [
   { id:'b1', title:'اشتراك سنوي — كل المنهاج', sub:'دروس وتمارين وامتحانات وزارية', image:null, target:null },
   { id:'b2', title:'امتحانات وزارية محلولة', sub:'دورات سابقة بصيغة ورقة الفحص', image:null, target:null },
+  // بصورة ووجهة مخصَّصة — لنرى بطاقة «آخر الأخبار» بصورتها وتعتيمها فعليًا
+  { id:'b3', title:'دورة تقوية فرنسي — تسجيل مفتوح', sub:'مقاعد محدودة هذا الشهر',
+    image: 'banners/promo1.jpg', target: { type: 'subject', value: 'fr' } },
 ];
 Store.set({ signedIn: true, activated: true, username: 'أحمد', grade: 'g9', daysLeft: 283 });
 
@@ -103,6 +106,9 @@ const cases = [
      عن الشاشة — ظهر الفيديو مقتطعًا والعنوان مبتورًا. */
   ['درس بجدول', () => Screens.lesson({ id: 'salutations', subject: 'fr' })],
   ['account', () => Screens.account()],
+  ['آخر الأخبار', () => Screens.news()],
+  ['آخر الأخبار — لا بانرات', () => { const full = window.SEED.banners; window.SEED.banners = [];
+    const n = Screens.news(); window.SEED.banners = full; return n; }],
   ['auth', () => Screens.auth()],
   ['teacher (بصورة)', () => { window.SEED.teachers[0].photo='teachers/x.png'; const n=Screens.teacher({id:'ustaz-sami'}); window.SEED.teachers[0].photo=null; return n; }],
 
@@ -178,6 +184,27 @@ window.SEED = full;
   ok2('كل صورة مادة مذكورة في SHELL (تعمل أوفلاين)', missing.length === 0, missing.join(' · '));
 }
 function ok2(n, c, x = '') { if (c) console.log('ok   ' + n); else { bad++; console.log('FAIL ' + n + (x ? ' → ' + x : '')); } }
+
+/* بانر «الرئيسية» بلا هدف مخصَّص يقود لـ«آخر الأخبار» بدل أن يبقى بلا فائدة
+   — الشاشة موجودة أصلًا. لكن نفس البطاقة **داخل** «آخر الأخبار» يجب أن تبقى
+   إعلامية محضة: لا معنى للنقر لتصل إلى الشاشة التي أنت بداخلها أصلًا.
+   `bannerGo` نفسها محصورة داخل IIFE الشاشات — نفحص أثرها على HTML الناتج
+   لا الدالّة مباشرةً، بما يوافق بقية هذا الملف. b1 أعلاه بلا هدف مخصَّص. */
+{
+  const homeHtml = Screens.home().outerHTML;
+  const b1Home = (homeHtml.match(/<div class="promo__slide[^"]*"[^>]*>/g) || [])[0] || '';
+  ok2('بانر بلا هدف بـ«الرئيسية» صار قابلًا للنقر (يقود لـ«آخر الأخبار»)',
+      /promo__slide--tap/.test(b1Home), b1Home);
+
+  const newsHtml = Screens.news().outerHTML;
+  const b1News = (newsHtml.match(/<div class="newsfeed__card[^"]*"[^>]*>/g) || [])[0] || '';
+  ok2('نفس البطاقة داخل «آخر الأخبار» غير قابلة للنقر (لا --tap)',
+      b1News !== '' && !/newsfeed__card--tap/.test(b1News), b1News);
+
+  // b3 بالفكستور بوجهة مخصَّصة — تبقى قابلة للنقر بالمكانين معًا
+  ok2('وبطاقة بهدف مخصَّص تبقى قابلة للنقر داخل «آخر الأخبار»',
+      /newsfeed__card--tap/.test(newsHtml));
+}
 
 fs.writeFileSync(path.join(__dirname, 'render-out.json'), JSON.stringify(out, null, 1));
 console.log(bad ? `\n${bad} فشل` : '\nكل الشاشات تُبنى بلا خطأ');

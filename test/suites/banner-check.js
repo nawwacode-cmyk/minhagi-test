@@ -1,5 +1,10 @@
 // عدد شرائح البانر صار متغيّرًا (تُدار من اللوحة). الحالات الحدّية — صفر
 // وواحد وأكثر من ستّ — هي ما يكسر حركة CSS المضبوطة أصلًا على ثلاث.
+//
+// العدّ بـ`class="promo__slide` لا `promo__slide` وحدها: كل بانر صار قابلًا
+// للنقر افتراضيًا (يقود لـ«آخر الأخبار» بلا هدف مخصَّص)، فيحمل صنف
+// `promo__slide--tap` الذي يحتوي السلسلة `promo__slide` داخله فيضاعف العدّ
+// الساذج. مرساة `class="` تلتقط جذر العنصر مرّة واحدة لا مرّتين.
 require('./render-check-lib.js');
 
 let bad = 0;
@@ -13,7 +18,7 @@ for (const [n, expect] of [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [7, 6]]) {
   window.SEED.banners = mkB(n);
   try {
     const html = Screens.home().outerHTML;
-    const slides = (html.match(/promo__slide/g) || []).length;
+    const slides = (html.match(/class="promo__slide/g) || []).length;
     const cls = (html.match(/class="promo[^"]*"/) || [''])[0];
     ok(`بانرات=${n} ⇒ ${expect} شريحة`, slides === expect, `${slides} · ${cls}`);
   } catch (e) { ok(`بانرات=${n}`, false, e.message); }
