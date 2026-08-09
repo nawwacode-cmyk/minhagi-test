@@ -8,7 +8,7 @@
    إلى الأبد ما لم يتغيّر هذا السطر، فيرى الطالب تطبيقًا قديمًا رغم النشر.
    ============================================================================= */
 
-const VERSION = 'manhaji-shell-v43';
+const VERSION = 'manhaji-shell-v44';
 
 const SHELL = [
   './', './index.html',
@@ -76,13 +76,33 @@ self.addEventListener('fetch', (e) => {
         })
         .catch(() => null);
 
+      /* ⚠️ `waitUntil` ليس تفصيلًا: بدونه يُنهي المتصفّح العامل بمجرّد أن
+         يُحلّ `respondWith`، فيُقطع الجلب الجاري قبل أن يكتب `cache.put`.
+         أي أن نصف «stale-while-revalidate» الثاني **لا يقع أبدًا**، ويبقى
+         الكاش على حاله إلى الأبد. هذا سبب بقاء الطالب على نسخة قديمة رغم
+         النشر — لا بطء الشبكة. */
+      e.waitUntil(network);
+
+      /* التنقّل (index.html) من الشبكة أوّلًا لا من الكاش.
+         هو الملفّ الذي يسحب بقيّة الملفّات، فخدمتُه من الكاش تعني أن النشر
+         لا يصل إلّا بعد دورة كاملة. وهو أصغر ملفّ في التطبيق، فكلفة انتظاره
+         زهيدة — ومع ذلك نحدّها بثانيتين ونصف كي لا تتحوّل شبكةٌ بطيئة إلى
+         شاشة بيضاء: بعدها نخدم الكاش ونُبقي التحديث في الخلفية.
+         والحصيلة: التطبيق يبقى يعمل بلا إنترنت كما كان. */
+      if (req.mode === 'navigate') {
+        const fresh = await Promise.race([
+          network,
+          new Promise((r) => setTimeout(() => r(null), 2500)),
+        ]);
+        if (fresh) return fresh;
+        return cached || (await cache.match('./index.html')) || Response.error();
+      }
+
       // بلا كاش: ننتظر الشبكة، ونسقط إلى الصفحة الرئيسية لطلبات التنقّل
       if (!cached) {
         const res = await network;
         if (res) return res;
-        return req.mode === 'navigate'
-          ? (await cache.match('./index.html')) || Response.error()
-          : Response.error();
+        return Response.error();
       }
 
       return cached;

@@ -443,6 +443,19 @@ ok('welcome.jpg خرج من التخزين المسبق', !/welcome\.jpg/.test(s
 ok('التطبيق يعيد التحميل عند وصول نسخة جديدة',
    /controllerchange/.test(appSrc) && /location\.reload\(\)/.test(appSrc));
 ok('ويفحص التحديث صراحةً عند الإقلاع', /reg\.update\(\)/.test(appSrc));
+// GitHub Pages يرسل max-age=600 على sw.js؛ بلا هذا قد لا يُفحص الملفّ أصلًا
+// لعشر دقائق مهما أعاد الطالب التحميل، فيبدو كأن النشر لم يحدث.
+ok('ويسأل الخادم عن sw.js لا كاشه', /updateViaCache: 'none'/.test(appSrc));
+
+/* بدون `waitUntil` يُنهي المتصفّح العامل بمجرّد أن يُحلّ `respondWith`،
+   فيُقطع الجلب قبل `cache.put` — أي أن نصف stale-while-revalidate الثاني
+   لا يقع أبدًا ويبقى الكاش على حاله. هذا سبب بقاء نسخة قديمة رغم النشر. */
+ok('والتحديث الخلفي يُنجَز فعلًا (waitUntil)', /e\.waitUntil\(network\)/.test(swSrc));
+// index.html هو ما يسحب بقيّة الملفّات: خدمتُه من الكاش تؤجّل كل نشر دورةً
+ok('والتنقّل من الشبكة أوّلًا', /req\.mode === 'navigate'[\s\S]{0,300}Promise\.race/.test(swSrc));
+// ومع ذلك يبقى التطبيق يعمل بلا إنترنت — مهلة قصيرة ثم الكاش
+ok('مع مهلة تحفظ العمل بلا إنترنت',
+   /setTimeout\(\(\) => r\(null\), 2500\)/.test(swSrc) && /return cached \|\|/.test(swSrc));
 // `clients.claim()` يطلق الحدث عند أوّل تثبيت أيضًا؛ بلا التمييز تُعاد
 // الصفحة أمام زائر يفتح التطبيق لأوّل مرّة بلا سبب يفهمه.
 ok('ولا يعيد تحميل زائر أوّل مرّة', /hadController/.test(appSrc));

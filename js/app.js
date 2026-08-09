@@ -385,7 +385,11 @@ window.App = (function () {
         location.reload();
       });
 
-      navigator.serviceWorker.register('sw.js')
+      /* `updateViaCache: 'none'` يُلزم المتصفّح بسؤال الخادم عن sw.js بدل
+         إعادة استعمال نسخته المخزَّنة. GitHub Pages يرسل
+         `Cache-Control: max-age=600`، فبدون هذا قد لا يُفحص الملفّ أصلًا
+         لعشر دقائق مهما أعاد الطالب التحميل — يبدو كأن النشر لم يحدث. */
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
         .then((reg) => {
           // فحصٌ صريح عند كل إقلاع: المتصفّح يفحص sw.js من تلقائه لكن بتوقيت
           // لا نضمنه، وقد يخدم نسخته المخزَّنة هو أيضًا.
