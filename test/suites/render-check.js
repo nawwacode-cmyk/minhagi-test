@@ -142,6 +142,23 @@ for (const [name, fn] of [['home', Screens.home], ['subjects', Screens.subjects]
 }
 window.SEED = full;
 
+/* أيقونة كل مادة: بطاقات «موادّي» صُمِّمت على هيئة كتب، وكانت كلّها تحمل
+   أيقونة كتاب عامّة واحدة فلا يميّز الطالب مادّته من شكلها قبل قراءة الاسم.
+   كل معرّف معروف الآن يرجع مسارًا مختلفًا، ومعرّفٌ مجهول يرجع لأيقونة الكتاب —
+   لا يكسر بطاقة مادة تُضاف قبل أن تُرسَم لها أيقونة مخصَّصة. */
+{
+  const codes = ['fr', 'en', 'math', 'physics', 'chemistry', 'biology',
+                  'history', 'geography', 'philosophy', 'religion', 'arabic', 'national_edu'];
+  const paths = codes.map((c) => UI.subjectIcon(c, 20).outerHTML);
+  const distinct = new Set(paths).size === paths.length;
+  if (distinct) console.log('ok   كل مادة معروفة بأيقونة مختلفة');
+  else { bad++; console.log('FAIL كل مادة معروفة بأيقونة مختلفة → أيقونتان متطابقتان على الأقل'); }
+
+  const fallback = UI.subjectIcon('لا-معرّف-كهذا', 20).outerHTML === UI.icon.book(20).outerHTML;
+  if (fallback) console.log('ok   معرّف مجهول يرجع لأيقونة الكتاب');
+  else { bad++; console.log('FAIL معرّف مجهول يرجع لأيقونة الكتاب'); }
+}
+
 fs.writeFileSync(path.join(__dirname, 'render-out.json'), JSON.stringify(out, null, 1));
 console.log(bad ? `\n${bad} فشل` : '\nكل الشاشات تُبنى بلا خطأ');
 process.exit(bad ? 1 : 0);

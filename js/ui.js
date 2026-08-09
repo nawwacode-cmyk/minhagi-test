@@ -323,7 +323,65 @@ window.UI = (function () {
     key:      (s) => svg('<circle cx="8.2" cy="15.8" r="4.2"/>'
                        + '<path d="m11.2 12.8 8.6-8.6"/>'
                        + '<path d="m17.2 6.8 2.2 2.2"/><path d="m14.6 9.4 2.2 2.2"/>', s),
+
+    // --- أيقونات الموادّ: كل مادة بشكلها لا بأيقونة كتاب عامّة واحدة ------------
+    // الوزن ١٫٧٥ الموحّد للمشروع، لا ١٫٥ كما وردت الأصول — لتبقى متّسقة مع
+    // بقية الأيقونات على نفس الشاشة بدل أن تبدو أرفع منها.
+    subjArabic:     (s) => svg('<path d="M12 19l7-7 3 3-7 7-3-3z"/>'
+                             + '<path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>'
+                             + '<path d="M2 2l1.5 1.5"/>', s),
+    subjBiology:    (s) => svg('<path d="M2 21c0-3 1.85-5.36 4.63-6C7 14.7 8 15.5 8 16.5c0 1.1-.9 2-2 2h-1"/>'
+                             + '<path d="M22 3c0 3-1.85 5.36-4.63 6C17 8.7 16 7.9 16 6.9c0-1.1.9-2 2-2h1"/>'
+                             + '<path d="M8 16.5a4.5 4.5 0 0 1 9-9"/>'
+                             + '<path d="M10.5 14l3-3"/><path d="M7.5 11l3-3"/><path d="M13.5 17l3-3"/>', s),
+    subjChemistry:  (s) => svg('<path d="M10 2v7.521C10 10.337 9.615 11.116 8.94 11.622L5 14.578'
+                             + 'C4.367 15.054 4 15.803 4 16.598V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3.402'
+                             + 'c0-.795-.367-1.544-1-2.02l-3.94-2.956c-.675-.506-1.06-1.285-1.06-2.101V2"/>'
+                             + '<path d="M8 2h8"/><path d="M7 16h10"/>', s),
+    subjEnglish:    (s) => svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>'
+                             + '<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>'
+                             + '<path d="M10 10l2-4 2 4"/><path d="M10 13h4"/>', s),
+    subjFrench:     (s) => svg('<path d="M12 2L8 22h8L12 2z"/>'
+                             + '<path d="M9 15h6"/><path d="M10 10h4"/><path d="M12 2v3"/>', s),
+    subjGeography:  (s) => svg('<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/>'
+                             + '<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10'
+                             + 'a15.3 15.3 0 0 1 4-10z"/>', s),
+    subjHistory:    (s) => svg('<path d="M5 22h14"/><path d="M5 2h14"/>'
+                             + '<path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/>'
+                             + '<path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>', s),
+    subjMath:       (s) => svg('<path d="M4 7h6"/><path d="M4 17h6"/><path d="M7 4v6"/>'
+                             + '<path d="M14 7h6"/><path d="M14 17h6"/><path d="M17 14v6"/>', s),
+    subjNationalEdu:(s) => svg('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'
+                             + '<path d="M12 8v4"/><path d="M12 16h.01"/>', s),
+    subjPhilosophy: (s) => svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>'
+                             + '<path d="M19 12a7 7 0 1 0-7 7"/><path d="M12 9v4l3 2"/>', s),
+    subjPhysics:    (s) => svg('<circle cx="12" cy="12" r="3"/>'
+                             + '<ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(45 12 12)"/>'
+                             + '<ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-45 12 12)"/>', s),
+    subjReligion:   (s) => svg('<path d="M12 7v14"/><path d="M9 21h6"/>'
+                             + '<path d="M8 7a4 4 0 1 1 8 0"/><path d="M12 3v4"/>', s),
   };
+
+  /**
+   * أيقونة كل مادة بحسب معرّفها. الفرنسي وحده حيّ على الإنتاج اليوم؛ البقية
+   * جاهزة لبكالوريا وتاسع حين تُضاف الموادّ فعليًا (البنية المعتمدة: كل شيء
+   * بمعرّف المادة، لا طبقة كورسات). معرّفٌ غير معروف يرجع لأيقونة الكتاب
+   * العامّة بدل أن يكسر البطاقة.
+   */
+  const SUBJECT_ICON = {
+    fr: icon.subjFrench, french: icon.subjFrench,
+    en: icon.subjEnglish, english: icon.subjEnglish,
+    ar: icon.subjArabic, arabic: icon.subjArabic,
+    math: icon.subjMath,
+    physics: icon.subjPhysics, chemistry: icon.subjChemistry,
+    biology: icon.subjBiology,
+    history: icon.subjHistory,
+    geography: icon.subjGeography,
+    philosophy: icon.subjPhilosophy,
+    religion: icon.subjReligion,
+    national_edu: icon.subjNationalEdu, natedu: icon.subjNationalEdu,
+  };
+  const subjectIcon = (code, s) => (SUBJECT_ICON[code] || icon.book)(s);
 
 
   /** حلقة التقدّم — SVG بمحيط محسوب */
@@ -392,5 +450,5 @@ window.UI = (function () {
     return el;
   }
 
-  return { h, fr, rich, prose, ar, icon, svg, ring, bar, mount, swipe };
+  return { h, fr, rich, prose, ar, icon, subjectIcon, svg, ring, bar, mount, swipe };
 })();
