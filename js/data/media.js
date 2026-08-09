@@ -107,7 +107,16 @@ window.Media = (function () {
    * يبني عنصر فيديو محميًا.
    * `local` مسار ملف منزَّل مسبقًا؛ إن وُجد لا نلمس الشبكة إطلاقًا.
    */
+  /* آخر مشغّل بُني. العلامة المائية تُشغّل مؤقّتًا كل ٢٠ ثانية يُنظَّف
+     بـ`_dispose`، ولا شيء في التطبيق يستدعيها — فكل درس يُفتح كان يترك
+     مؤقّتًا يعمل إلى الأبد. والتطبيق لا يشغّل أكثر من فيديو واحد في وقت
+     واحد، فتنظيفُ السابق عند بناء التالي يحصر التسريب في صفر. */
+  let live = null;
+
   async function player(videoId, { local } = {}) {
+    try { live?._dispose?.(); } catch { /* لا يمنع بناء الجديد */ }
+    live = null;
+
     const box = h('div.video');
     let meta = null;
 
@@ -138,8 +147,10 @@ window.Media = (function () {
     box._dispose = () => {
       const layer = box.querySelector('.wm');
       if (layer?._timer) clearInterval(layer._timer);
+      try { el.pause(); el.removeAttribute('src'); el.load(); } catch { /* لا شيء */ }
       secureScreen(false);
     };
+    live = box;
     return box;
   }
 

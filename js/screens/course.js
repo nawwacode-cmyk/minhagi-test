@@ -381,14 +381,49 @@ window.Screens = window.Screens || {};
     const saved = s.downloaded.includes(l.id);
     const unit = SEED.units.find((u) => u.lessons.includes(l.id));
 
-    const video = h('div.video',
-      h('img', { src: l.video.thumb, alt: '' }),
-      h('button.video__play', { 'aria-label': 'تشغيل الفيديو' }, h('span', icon.play(26))),
-      h('div.video__len.mono', l.video.length),
-      // الفيديو أثقل من أن يُنزَّل ضمنيًا: إن لم يكن محفوظًا ولا يوجد اتصال،
-      // نقول ذلك صراحةً بدل إظهار مشغّل معطّل بلا سبب.
-      (!saved && !s.online) && h('div.video__offline', 'يحتاج اتصالًا'),
-    );
+    /* الملصق ثم المشغّل.
+       كان الزرّ زخرفةً بلا معالج نقر: `Media.player` مكتوبة بالكامل (توقيع
+       الرابط والعلامة المائية وحماية الشاشة) ولم يستدعِها أحد في التطبيق
+       إطلاقًا. فكان الطالب يضغط «تشغيل» ولا يقع شيء ولا تظهر رسالة.
+
+       ونستبدل الملصق بالمشغّل عند النقر لا نعرضهما معًا: تحميل الفيديو يبدأ
+       عند الطلب لا مع فتح الدرس — الفيديو أثقل ما في التطبيق، وأكثر من يفتح
+       درسًا يقرأ نصّه ولا يشاهد. */
+    // حاوية محايدة: `Media.player` تُرجع `div.video` بنفسها، ووضعُها داخل
+    // `div.video` أخرى يضاعف صندوق النسبة ١٦:٩ فيخرج المشغّل عن مقاسه.
+    const video = h('div');
+
+    const poster = (...extra) => video.replaceChildren(
+      h('div.video', ...[
+        h('img', { src: l.video.thumb, alt: '' }),
+        l.video.id && h('button.video__play',
+          { 'aria-label': 'تشغيل الفيديو', onclick: playNow }, h('span', icon.play(26))),
+        h('div.video__len.mono', l.video.length),
+        // الفيديو أثقل من أن يُنزَّل ضمنيًا: إن لم يكن محفوظًا ولا يوجد اتصال،
+        // نقول ذلك صراحةً بدل إظهار مشغّل معطّل بلا سبب.
+        (!saved && !s.online) && h('div.video__offline', 'يحتاج اتصالًا'),
+        // درسٌ بلا فيديو مربوط: نقولها بدل زرّ لا يفعل شيئًا
+        !l.video.id && h('div.video__offline', 'لا فيديو لهذا الدرس بعد'),
+        ...extra,
+      ].filter(Boolean)));
+
+    async function playNow() {
+      video.replaceChildren(h('div.video', h('div.video__offline', 'جارٍ التجهيز…')));
+      try {
+        const box = await Media.player(l.video.id);
+        video.replaceChildren(box);
+        // التشغيل التلقائي بعد نقرة المستخدم مسموح — النقرة هي الإذن
+        box.querySelector('video')?.play?.().catch(() => {});
+      } catch (e) {
+        /* الرسالة من الخادم أدقّ ممّا نخمّنه: «هذا الجهاز غير مرتبط بحسابك»
+           أو «لا تملك صلاحية» أو انقطاع شبكة — وكلٌّ يحتاج فعلًا مختلفًا من
+           الطالب. عرضُ «تعذّر التشغيل» وحده يخفي ما يفيده. */
+        poster(h('div.video__offline', e.message || 'تعذّر تشغيل الفيديو'));
+        window.Report?.capture('تشغيل الفيديو', e);
+      }
+    }
+
+    poster();
 
     // العمود الجانبي على اللابتوب: بقية دروس الوحدة تبقى مرئية أثناء القراءة
     const siblings = h('div.card', { style: 'overflow:hidden' });
