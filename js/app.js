@@ -364,8 +364,34 @@ window.App = (function () {
     if (hide) { if (first) first.then(finish, finish); else finish(); }
 
     // service worker يعمل على http(s) فقط — يُتجاهل عند فتح الملف مباشرةً
+    /* --- تحديث النسخة: إعادة تحميل مرّة واحدة عند وصول إصدار جديد ----------
+       الـservice worker يخدم النسخة المخزَّنة، فالإصلاح المنشور لا يصل
+       الطالب إلّا عند **الفتحة التالية** — ولو كان الإصلاح هو ما يمكّنه من
+       الدخول أصلًا، بقي عالقًا بلا أن يعرف السبب. وقع هذا فعلًا: أُصلح طول
+       كود التفعيل ونُشر، والهاتف ما زال يرفض الكود برسالة قديمة.
+
+       `controllerchange` يقع حين يستولي عامل جديد (بعد skipWaiting في
+       sw.js). نعيد التحميل عندها مرّة واحدة — والحارس `reloaded` ضروري:
+       بلا هذا تعيد الصفحة تحميل نفسها بلا نهاية إن استولى عامل آخر بعدها. */
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      // وجود عامل مسبق يميّز «تحديث» عن «أوّل تثبيت»: `clients.claim()` يطلق
+      // نفس الحدث في الحالتين، فبلا هذا التمييز تُعيد الصفحة تحميل نفسها
+      // أمام زائر يفتح التطبيق لأوّل مرّة — بلا سبب يفهمه.
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController || reloaded) return;
+        reloaded = true;
+        location.reload();
+      });
+
+      navigator.serviceWorker.register('sw.js')
+        .then((reg) => {
+          // فحصٌ صريح عند كل إقلاع: المتصفّح يفحص sw.js من تلقائه لكن بتوقيت
+          // لا نضمنه، وقد يخدم نسخته المخزَّنة هو أيضًا.
+          reg.update().catch(() => {});
+        })
+        .catch(() => {});
     }
   }
 
