@@ -130,7 +130,7 @@ assets/img/             رسوم SVG (تعمل أوفلاين، خفيفة، ب�
 لا الأوزان التسعة، لأن كل ملف غير مستعمل تأخير في أول فتح.
 
 ### ٢. الربط بـ Supabase
-الباك اند جاهز في `C:\Users\Agha\syria-edu\supabase` (الجداول، RLS، دوال
+الباك اند جاهز في `C:\Users\Agha\manhaji-backend\supabase` (الجداول، RLS، دوال
 التفعيل والمزامنة). يبقى استبدال `js/data/seed.js` بطبقة `js/data/`:
 `db.js` (SQLite) · `sync.js` (outbox) · `entitlement.js` (التفعيل).
 
