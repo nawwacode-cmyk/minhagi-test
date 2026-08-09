@@ -383,6 +383,33 @@ window.UI = (function () {
   };
   const subjectIcon = (code, s) => (SUBJECT_ICON[code] || icon.book)(s);
 
+  /**
+   * أيقونة المادة كصورة WebP جاهزة (رسم ثلاثي الأبعاد بدل خطوط). عولجت من
+   * أصول خامة بخلفية خضراء لم تُزَل تمامًا (هالة شفافة باقية على كل الكانفاس)؛
+   * قُصّت الهالة وحدود الشكل وصُغِّرت لحجم العرض الفعلي — ١١ أيقونة = ٧٦ ك.ب
+   * إجمالًا، لا وزن الأصول الخام (~٣٠ م.ب). لا صورة لكل الموادّ بعد (الأحياء
+   * مثلًا)؛ SUBJECT_IMG تحمل ما هو جاهز فقط، والباقي يقع على subjectIcon.
+   */
+  const SUBJECT_IMG = {
+    fr: 'french', french: 'french',
+    en: 'english', english: 'english',
+    ar: 'arabic', arabic: 'arabic',
+    math: 'math',
+    physics: 'physics', chemistry: 'chemistry',
+    history: 'history',
+    geography: 'geography',
+    philosophy: 'philosophy',
+    religion: 'religion',
+    national_edu: 'national_edu', natedu: 'national_edu',
+  };
+  /** عنصر أيقونة المادة: صورة WebP إن وُجدت، وإلّا خطوط SVG. */
+  function subjectIconEl(code, s = 20) {
+    const file = SUBJECT_IMG[code];
+    return file
+      ? h('img', { src: `assets/img/subjects/${file}.webp`, alt: '', width: s, height: s, loading: 'lazy' })
+      : subjectIcon(code, s);
+  }
+
 
   /** حلقة التقدّم — SVG بمحيط محسوب */
   function ring(percent, size = 64, stroke = 7) {
@@ -450,5 +477,5 @@ window.UI = (function () {
     return el;
   }
 
-  return { h, fr, rich, prose, ar, icon, subjectIcon, svg, ring, bar, mount, swipe };
+  return { h, fr, rich, prose, ar, icon, subjectIcon, subjectIconEl, svg, ring, bar, mount, swipe };
 })();

@@ -489,6 +489,10 @@ img, svg { max-width: 100%; display: block; }
   width: 42px; height: 42px; border-radius: 13px;
   background: rgba(255, 255, 255, .22);
 }
+/* أيقونات الموادّ الجديدة WebP ليست مربّعة (شكلها الطبيعي، لا إطار مصمَّم
+   حوله)؛ سمتا width/height=20 على <img> هما مجرّد حجز مساحة يمنع القفزة قبل
+   التحميل — object-fit تمنع تمطّطها لتطابق مربّعًا لا تشبهه. */
+.subj__ico img { object-fit: contain; }
 .subj__pct {
   font-size: 11.5px; font-weight: 600; padding: 4px 9px;
   border-radius: var(--r-full); background: rgba(255, 255, 255, .2);

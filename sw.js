@@ -8,7 +8,7 @@
    إلى الأبد ما لم يتغيّر هذا السطر، فيرى الطالب تطبيقًا قديمًا رغم النشر.
    ============================================================================= */
 
-const VERSION = 'manhaji-shell-v36';
+const VERSION = 'manhaji-shell-v37';
 
 const SHELL = [
   './', './index.html',
@@ -21,6 +21,12 @@ const SHELL = [
   './assets/img/video-thumb.svg', './assets/img/empty-download.svg',
   './assets/img/icon-192.png', './assets/img/icon-512.png',
   './assets/img/icon-maskable-512.png',
+  './assets/img/subjects/french.webp', './assets/img/subjects/english.webp',
+  './assets/img/subjects/arabic.webp', './assets/img/subjects/math.webp',
+  './assets/img/subjects/physics.webp', './assets/img/subjects/chemistry.webp',
+  './assets/img/subjects/history.webp', './assets/img/subjects/geography.webp',
+  './assets/img/subjects/philosophy.webp', './assets/img/subjects/religion.webp',
+  './assets/img/subjects/national_edu.webp',
   './assets/fonts/Alexandria-400.woff2',
   './assets/fonts/Alexandria-600.ttf',
   './assets/fonts/Alexandria-700.woff2',

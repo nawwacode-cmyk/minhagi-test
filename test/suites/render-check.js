@@ -159,6 +159,26 @@ window.SEED = full;
   else { bad++; console.log('FAIL معرّف مجهول يرجع لأيقونة الكتاب'); }
 }
 
+/* subjectIconEl: صورة WebP لما يملك أصلًا، وإلّا خطوط SVG. الأحياء بلا صورة
+   معالَجة بعد (لم تصل الملفّات الخام) فيجب أن تقع على SVG لا أن تُظهر <img>
+   بمسار غير موجود — عرضٌ مكسور صامت أسوأ من أيقونة مبسّطة. */
+{
+  const withImg = UI.subjectIconEl('fr', 20);
+  ok2('مادة لها صورة ⇒ <img> بمسار WebP الصحيح',
+      withImg.tagName === 'img' && withImg.attrs.src === 'assets/img/subjects/french.webp');
+
+  const noImg = UI.subjectIconEl('biology', 20);
+  ok2('مادة بلا صورة بعد ⇒ SVG لا <img> مكسور', noImg.tagName === 'svg');
+
+  // كل معرّف بصورة مذكور فعليًا في SHELL — وإلّا غاب أوفلاين رغم أنه يعمل أونلاين
+  const swSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'sw.js'), 'utf8');
+  const codes2 = ['french', 'english', 'arabic', 'math', 'physics', 'chemistry',
+                   'history', 'geography', 'philosophy', 'religion', 'national_edu'];
+  const missing = codes2.filter((c) => !swSrc.includes(`assets/img/subjects/${c}.webp`));
+  ok2('كل صورة مادة مذكورة في SHELL (تعمل أوفلاين)', missing.length === 0, missing.join(' · '));
+}
+function ok2(n, c, x = '') { if (c) console.log('ok   ' + n); else { bad++; console.log('FAIL ' + n + (x ? ' → ' + x : '')); } }
+
 fs.writeFileSync(path.join(__dirname, 'render-out.json'), JSON.stringify(out, null, 1));
 console.log(bad ? `\n${bad} فشل` : '\nكل الشاشات تُبنى بلا خطأ');
 process.exit(bad ? 1 : 0);

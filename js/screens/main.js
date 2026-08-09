@@ -4,7 +4,7 @@
 window.Screens = window.Screens || {};
 
 (function () {
-  const { h, fr, ar, icon, ring, bar, subjectIcon } = UI;
+  const { h, fr, ar, icon, ring, bar, subjectIconEl } = UI;
 
   /** اسم الصف من رمزه — فارغ إن لم يُعرَف بعد، لا اسم مفترَض. */
   const gradeNameOf = (code) =>
@@ -215,7 +215,7 @@ window.Screens = window.Screens || {};
                     'aria-label': subject.name,
                   },
                     h('span.subj__top',
-                      h('span.subj__ico', subjectIcon(subject.id, 20)),
+                      h('span.subj__ico', subjectIconEl(subject.id, 20)),
                       /* موضع «علامة الحفظ» في المرجع — شغلناه بالتقدّم بدل
                          أيقونة زخرفية: نفس التوازن البصري، ومعلومةٌ يقصدها
                          الطالب فعلًا. (وقد سبق أن رُفضت علامة الحفظ.) */
