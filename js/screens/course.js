@@ -393,9 +393,22 @@ window.Screens = window.Screens || {};
     // `div.video` أخرى يضاعف صندوق النسبة ١٦:٩ فيخرج المشغّل عن مقاسه.
     const video = h('div');
 
+    /* سطح الملصق: إطارٌ حقيقي من الدرس إن أمكن، وإلّا الرسم النائب.
+       يُطلب بعد الرسم لا قبله — انتظارُ الشبكة قبل إظهار الشاشة يجعل الدرس
+       يبدو معلَّقًا، والرسم النائب ثم استبداله أهدأ من فراغ ثم قفزة. */
+    let surface = null;
+    if (l.video.id && s.online) {
+      Media.posterFor(l.video.id).then((el) => {
+        if (!el) return;
+        surface = el;
+        // لا نستبدل شيئًا إن كان الطالب قد بدأ المشاهدة بالفعل
+        if (!video.querySelector('.vc')) poster();
+      }).catch(() => {});
+    }
+
     const poster = (...extra) => video.replaceChildren(
       h('div.video', ...[
-        h('img', { src: l.video.thumb, alt: '' }),
+        surface || h('img', { src: l.video.thumb, alt: '' }),
         l.video.id && h('button.video__play',
           { 'aria-label': 'تشغيل الفيديو', onclick: playNow }, h('span', icon.play(26))),
         h('div.video__len.mono', l.video.length),

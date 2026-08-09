@@ -107,6 +107,35 @@ window.Media = (function () {
    * يبني عنصر فيديو محميًا.
    * `local` مسار ملف منزَّل مسبقًا؛ إن وُجد لا نلمس الشبكة إطلاقًا.
    */
+  /**
+   * سطح الملصق قبل التشغيل — إطارٌ حقيقي من الدرس لا رسمٌ نائب.
+   *
+   * كل الدروس كانت تعرض الرسم النائب نفسه فتتشابه قبل فتحها. والصورة
+   * المخزَّنة (`poster_key`) لا توجد إلّا لما رُفع بعد إضافتها — وإصلاحٌ
+   * يشترط إعادة رفع كل درس ليس إصلاحًا.
+   *
+   * فإن غابت الصورة نستعمل الفيديو نفسه سطحًا: `#t=3` تجعل المتصفّح يطلب
+   * أوّل بايتات الملفّ ويعرض إطار الثانية الثالثة — بلا تنزيل المقطع كلّه
+   * وبلا رفعٍ جديد. والنداء يُدفئ ذاكرة الروابط أيضًا، فيبدأ التشغيل فورًا
+   * عند الضغط بدل جولة توقيع جديدة.
+   *
+   * يُرجع null بلا إنترنت أو عند أي فشل: الرسم النائب أفضل من فراغ.
+   */
+  async function posterFor(videoId) {
+    if (!navigator.onLine) return null;
+    try {
+      const [got] = await fetchUrls([videoId]);
+      if (!got) return null;
+      if (got.poster) return h('img', { src: got.poster, alt: '', loading: 'lazy' });
+      return h('video', {
+        src: got.url + '#t=3',
+        preload: 'metadata', muted: true, playsinline: true,
+        tabindex: -1, 'aria-hidden': 'true',
+        disablepictureinpicture: true, disableremoteplayback: true,
+      });
+    } catch { return null; }
+  }
+
   // ---------------------------------------------------------------------------
   // أدوات التحكّم — بهوية التطبيق لا بشكل المتصفّح
   //
@@ -266,8 +295,12 @@ window.Media = (function () {
       // شكلًا وسلوكًا بين كروم وسفاري وأندرويد، ولا يعرف RTL، ويعرض قائمة
       // «تنزيل» في بعضها.
       preload: 'metadata',
-      controlslist: 'nodownload noplaybackrate',
+      controlslist: 'nodownload noplaybackrate noremoteplayback',
       disablepictureinpicture: true,
+      // يزيل زرّ البثّ (Chromecast) الذي يحقنه كروم فوق الفيديو: مربّع رمادي
+      // كبير في الزاوية يحجب الصورة، ولا معنى لبثّ درسٍ محميٍّ برابط موقّع
+      // إلى شاشة أخرى أصلًا.
+      disableremoteplayback: true,
       oncontextmenu: (e) => e.preventDefault(),
     });
 
@@ -290,5 +323,5 @@ window.Media = (function () {
     return box;
   }
 
-  return { fetchUrls, player, watermarkLayer, secureScreen };
+  return { fetchUrls, posterFor, player, watermarkLayer, secureScreen };
 })();
