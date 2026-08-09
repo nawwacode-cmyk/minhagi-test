@@ -994,7 +994,7 @@ img, svg { max-width: 100%; display: block; }
    أي سلوك `dir="auto"` لكن **بلا لمس المحتوى ولا سطر JS**. وهو يسري على كل
    ما تنتجه اللوحة مستقبلًا بلا إعادة تحرير. */
 .prose p, .prose li, .prose td, .prose th,
-.prose h1, .prose h2, .prose h3, .prose h4, .prose blockquote {
+.prose h1, .prose h2, .prose h3, .prose h4, .prose blockquote, .prose pre {
   unicode-bidi: plaintext;
 }
 
@@ -1016,6 +1016,14 @@ img, svg { max-width: 100%; display: block; }
 }
 /* وكلمةٌ لاتينية طويلة بلا مواضع قطع (رابط أو مصطلح) تفعل ما يفعله الجدول */
 .prose { overflow-wrap: anywhere; }
+/* نموذج الكتابة في درس «الكتابة» (الرابع بكل وحدة) يُحقن ضمن <pre> ليحافظ
+   على فواصل الأسطر. لكن `<pre>` افتراضيًا `white-space: pre` — لا يلتفّ
+   إطلاقًا مهما كان overflow-wrap، فتخرج فقرة فرنسية طويلة عن الشاشة تمامًا
+   كما فعل الجدول. `pre-wrap` تُبقي فواصل الأسطر وتسمح بالالتفاف معًا. */
+.prose pre {
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  font-family: inherit; font-size: inherit; margin: 0 0 14px;
+}
 .prose td, .prose th { padding: 9px 6px; border-bottom: 1px solid var(--brd); text-align: start; }
 .prose th { color: var(--txm); font-weight: 600; font-size: 13px; }
 .prose tr:last-child td { border-bottom: 0; }

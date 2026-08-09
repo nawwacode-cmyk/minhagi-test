@@ -76,7 +76,12 @@ window.SEED = {
         <h3>Tu ou vous ?</h3>
         <p><span class="fr">tu</span> مع صديق أو زميل من نفس العمر.
            <span class="fr">vous</span> مع الأستاذ أو الغريب أو الأكبر سنًّا.
-           استخدام <span class="fr">tu</span> مع أستاذك خطأ اجتماعي، لا مجرد خطأ نحوي.</p>`,
+           استخدام <span class="fr">tu</span> مع أستاذك خطأ اجتماعي، لا مجرد خطأ نحوي.</p>
+        <h3>نموذج</h3>
+        <pre>La conquête spatiale a bouleversé le domaine de la
+technologie et d'autres domaines. D'abord, avec le satellite
+de télécommunication qui permet d'émettre et de recevoir des
+appels téléphoniques et des SMS.</pre>`,
       exercises: ['q-sal-1', 'q-sal-2'],
     },
 
