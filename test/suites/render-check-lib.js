@@ -69,11 +69,16 @@ global.Api = {
   publicUrl: (p) => (p ? `https://example.supabase.co/storage/v1/object/public/public-media/${p}` : null),
 };
 global.Sync = { applyStored() {}, syncNow: () => Promise.resolve(), clearContent() {}, pushProgress() {} };
-global.Device = { label: () => 'جهاز' };
+global.Device = { label: () => 'جهاز', fingerprint: () => Promise.resolve('fp-فحص') };
+/* عارض الـPDF يبني عقدته تزامنيًّا ثم يملؤها من الشبكة. الفحص يهمّه البناء،
+   فنعطيه ما يكفي كي لا يرمي: مراقبَ تقاطعٍ صامتًا ونداءَ شبكةٍ يفشل بهدوء. */
+global.IntersectionObserver = class { observe() {} unobserve() {} disconnect() {} };
+if (!global.Api.invoke) global.Api.invoke = () => Promise.reject(new Error('لا شبكة في الفحص'));
 
 eval(fs.readFileSync(dir + 'ui.js', 'utf8'));
 eval(fs.readFileSync(path.join(__dirname, '..', 'fixtures.js'), 'utf8'));
 eval(fs.readFileSync(dir + 'store.js', 'utf8'));
+eval(fs.readFileSync(dir + 'data/doc.js', 'utf8'));
 eval(fs.readFileSync(dir + 'components.js', 'utf8'));
 eval(fs.readFileSync(dir + 'screens/main.js', 'utf8'));
 eval(fs.readFileSync(dir + 'screens/course.js', 'utf8'));

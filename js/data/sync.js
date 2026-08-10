@@ -106,7 +106,7 @@ window.Sync = (function () {
       Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order' }),
       Api.from('grades',    { select: 'id,code,name_ar,sort_order' }),
       Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order,courses(subject_id,grade_id)', order: 'sort_order' }),
-      Api.from('lessons',   { select: 'id,code,title_ar,body_html,est_minutes,is_free,unit_id,video_id,sort_order', order: 'sort_order' }),
+      Api.from('lessons',   { select: 'id,code,title_ar,body_html,est_minutes,is_free,unit_id,video_id,doc_id,sort_order', order: 'sort_order' }),
       Api.from('questions', { select: 'id,code,type,stem_md,passage_md,answer_key,difficulty,explanation_md,lesson_id,section,unit_code,subject_id' }),
       /* بلا `order` عمدًا — وهو أكبر جدول يُسحب. الترتيب هنا كان زائدًا أصلًا:
          التحويل أدناه يرتّب خيارات كل سؤال بـsort_order بنفسه. وإسقاطه يسمح
@@ -247,6 +247,9 @@ window.Sync = (function () {
           ? { id: l.video_id, title: V[l.video_id].title,
               length: fmtDuration(V[l.video_id].duration_s), thumb: 'assets/img/video-thumb.svg' }
           : { title: l.title_ar, length: '—', thumb: 'assets/img/video-thumb.svg' },
+        /* معرّف الشرح فقط — لا الرابط، للسبب نفسه أعلاه: الرابط موقّع ويموت
+           بعد عشر دقائق بينما المحتوى يُخزَّن لأسابيع. يُطلب عند فتح الدرس. */
+        doc: l.doc_id || null,
         exercises: lessonQuestions[l.code] || [],
       }])),
 

@@ -39,6 +39,15 @@ const cases = [
   ['آخر الأخبار — لا بانرات', () => { const full = window.SEED.banners; window.SEED.banners = [];
     const n = Screens.news(); window.SEED.banners = full; return n; }],
   ['auth', () => Screens.auth()],
+  /* درسٌ شرحه PDF — الفرع الجديد. والفرع المقابل (بلا اتصال) يظهر رسالةً
+     صريحة لا فراغًا: الشرح خلف رابطٍ موقّع فلا يعمل أوفلاين بعد. */
+  ['درس بشرح PDF', () => { const l = window.SEED.lessons['salutations'];
+    l.doc = 'doc-1'; const n = Screens.lesson({ id: 'salutations', subject: 'fr' });
+    delete l.doc; return n; }],
+  ['درس بشرح PDF (بلا اتصال)', () => { const l = window.SEED.lessons['salutations'];
+    l.doc = 'doc-1'; Store.set({ online: false });
+    const n = Screens.lesson({ id: 'salutations', subject: 'fr' });
+    Store.set({ online: true }); delete l.doc; return n; }],
   /* تنبيه الاشتراك **شرطيّ**، والتجهيزات فيها ٢٨٣ يومًا — فالفرع لا يُرسم
      أبدًا ما لم نضيّق المدّة هنا. فرعٌ لا يُرسم في أي فحص هو فرعٌ يُكتشف عطله
      على طالبٍ يوشك اشتراكه على الانتهاء، وهو أسوأ وقت لاكتشافه. */

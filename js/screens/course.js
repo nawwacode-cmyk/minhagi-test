@@ -487,7 +487,18 @@ window.Screens = window.Screens || {};
             h('button.btn.btn--secondary.btn--sm', {
               onclick: () => App.go('focus', { lesson: l.id, subject: subjectId }),
             }, icon.clock(16), 'تركيز')),
-          h('div.card', UI.prose(l.body))),
+
+          /* الشرح: ملفّ PDF مصمَّم إن وُجد، وإلّا فالنصّ القديم.
+             لا يُحذف النصّ ولا يُستبدل بفراغ — الانتقال يجري درسًا درسًا،
+             فلا لحظةَ يفقد فيها طالبٌ شرحَ درسه. */
+          l.doc && s.online
+            ? Doc.viewer(l.doc, { title: l.title })
+            : l.doc
+              ? h('div.card.card--pad.doc__off',
+                  icon.wifiOff(20),
+                  h('div', h('b', 'الشرح يحتاج اتصالًا'),
+                    h('span', 'افتح الدرس وأنت متصل ليُحمَّل الشرح المصوَّر.')))
+              : h('div.card', UI.prose(l.body))),
 
         h('aside.dash__side',
           h('div.card.card--pad',
