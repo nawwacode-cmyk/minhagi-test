@@ -343,8 +343,8 @@ img, svg { max-width: 100%; display: block; }
 .trio--gold { color: var(--gold) !important; }
 
 /* شريط أفقي: المواد بحلقات تقدّم. الحلقة تُقرأ بلمحة والرقم يؤكّدها. */
-.rail { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
-.rail::-webkit-scrollbar { display: none; }
+.hrail { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.hrail::-webkit-scrollbar { display: none; }
 .mini {
   flex: none; width: 108px; background: var(--surf); border-radius: 16px;
   padding: 11px 9px; box-shadow: var(--sh-2); text-align: center;
@@ -356,12 +356,12 @@ img, svg { max-width: 100%; display: block; }
 .mini small { font-size: 9.5px; color: var(--txf); }
 /* `conic-gradient` لا صورة ولا SVG: حلقةٌ بسطر واحد تتبع اللون الحالي وتتكيّف
    مع الوضع الليلي بلا أصلٍ ثانٍ يُحمَّل. */
-.ring {
+.mring {
   width: 42px; height: 42px; border-radius: 50%; margin: 0 auto 7px;
   display: grid; place-items: center;
   background: conic-gradient(var(--acc) var(--p, 0%), var(--surf3) 0);
 }
-.ring em {
+.mring em {
   width: 31px; height: 31px; border-radius: 50%; background: var(--surf);
   display: grid; place-items: center; font-style: normal;
   font-size: 10px; font-weight: 600; color: var(--acc-tx);
@@ -1616,3 +1616,53 @@ img, svg { max-width: 100%; display: block; }
 .focus__l { text-align: center; margin-top: 18px; }
 .focus__l b { font-size: 13px; font-weight: 600; display: block; }
 .focus__l small { font-size: 10.5px; color: var(--txf); }
+
+/* =============================================================================
+   آخر الأخبار — خبرٌ مميَّز، ثم تصنيف، ثم قائمة
+   ============================================================================= */
+.feat {
+  display: block; position: relative; width: 100%; border: 0; padding: 0; cursor: pointer;
+  border-radius: 19px; overflow: hidden; height: 168px; box-shadow: var(--sh-2);
+  font: inherit; color: inherit; margin-bottom: 12px;
+}
+.feat__i { width: 100%; height: 100%; object-fit: cover; display: block; }
+.feat__i--blank { background: linear-gradient(135deg, var(--acc-deep), var(--acc-lite)); }
+.feat__tag {
+  position: absolute; top: 11px; inset-inline-start: 11px; background: var(--gold);
+  color: #241704; font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+}
+.feat__b {
+  position: absolute; inset-inline: 0; bottom: 0; padding: 36px 14px 14px;
+  display: block; text-align: start; color: #fff;
+  background: linear-gradient(0deg, rgba(8,5,20,.90), rgba(8,5,20,.44) 55%, transparent);
+}
+.feat__t { display: block; font-size: 14.5px; font-weight: 600; line-height: 1.5; }
+.feat__s { display: block; font-size: 11px; opacity: .87; margin-top: 3px; }
+
+.nchips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.nchips::-webkit-scrollbar { display: none; }
+.nchip {
+  flex: none; font: inherit; font-size: 11.5px; padding: 6px 14px; border-radius: 20px;
+  border: 1px solid var(--brd); background: var(--surf); color: var(--txf); cursor: pointer;
+}
+.nchip.is-on { background: var(--acc); color: var(--on-acc); font-weight: 600; border-color: transparent; }
+.nchips:empty { display: none; }
+
+.item {
+  display: flex; gap: 10px; width: 100%; text-align: start; font: inherit; color: inherit;
+  background: var(--surf); border: 1px solid var(--brd); border-radius: 15px;
+  padding: 9px; box-shadow: var(--sh-2); cursor: pointer; margin-bottom: 9px;
+}
+.item:hover { background: var(--surf2); }
+.item__i { width: 58px; height: 58px; border-radius: 12px; object-fit: cover; flex: none; }
+.item__i--blank { display: grid; place-items: center; background: var(--acc-soft); color: var(--acc); }
+.item b { font-size: 12.5px; font-weight: 600; display: block; line-height: 1.5; }
+.item small { font-size: 10.5px; color: var(--txf); display: block; margin-top: 2px; }
+.item__m { display: flex; gap: 7px; align-items: center; margin-top: 6px; font-size: 9.5px; color: var(--txf); }
+.tag-new { background: var(--ok-soft); color: var(--ok); border-radius: 20px; padding: 2px 8px; font-weight: 600; }
+
+/* صفحة الخبر */
+.post__i { width: 100%; max-height: 220px; object-fit: cover; display: block; }
+.post__m { font-size: 11px; color: var(--txf); }
+.post__t { font-size: 19px; font-weight: 600; line-height: 1.45; margin: 5px 0 0; text-wrap: balance; }
+.post__s { font-size: 13px; color: var(--txf); margin-top: 6px; line-height: 1.7; }

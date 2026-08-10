@@ -123,8 +123,10 @@ window.Sync = (function () {
       // البانرات: RLS تحصرها بالمفعَّل ضمن نافذته الزمنية، فما يصل هنا هو
       // بالضبط ما يجوز عرضه — لا تصفية تواريخ في العميل.
       Api.from('banners', {
-        select: 'id,title_ar,subtitle_ar,image_path,target_type,target_value,sort_order',
-        order: 'sort_order',
+        select: 'id,title_ar,subtitle_ar,image_path,target_type,target_value,sort_order'
+              + ',published_at,category,pinned,body_ar,show_on_home',
+        // ترتيب القسم: المثبَّت أوّلًا ثم الأحدث — و`sort_order` يفصل التعادل
+        order: 'pinned.desc,published_at.desc,sort_order',
       }).catch(() => []),
     ]);
 
@@ -267,10 +269,19 @@ window.Sync = (function () {
       // «أساتذتنا» بشاشة الاكتشاف. RLS على teachers أصلًا تحصر النتيجة
       // بالنشطين (is_active) فلا تصفية إضافية لازمة هنا. bio/photo قد تغيبان
       // بصدق (لا بيانات مُختلَقة) — الواجهة تتعامل مع غيابهما كحالة متوقَّعة.
+      /* الحقول الجديدة تُقرأ بقيَم احتياطية: جهازٌ زامن قبل الهجرة يحمل
+         بانرات بلا `published_at` ولا `category`، والشاشة تقرأها مباشرةً.
+         بلا الاحتياط تُرسم «Invalid Date» أو شريحةٌ بلا اسم على كل جهاز لم
+         يزامن بعد — أي على كل الأجهزة لحظة النشر. */
       banners: (banners || []).map((b) => ({
         id: b.id, title: b.title_ar, sub: b.subtitle_ar || '',
         image: b.image_path || null,
         target: b.target_type === 'none' ? null : { type: b.target_type, value: b.target_value },
+        at: b.published_at || null,
+        category: b.category || 'announcement',
+        pinned: !!b.pinned,
+        body: b.body_ar || '',
+        onHome: b.show_on_home !== false,
       })),
 
       teachers: (teachers || []).map((t) => ({

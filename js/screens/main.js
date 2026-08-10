@@ -115,12 +115,12 @@ window.Screens = window.Screens || {};
               h('div.sec-label.sec-label--row', { style: 'margin-top:20px' },
                 h('span', 'موادّي'),
                 h('button.sec-more', { onclick: () => App.go('subjects') }, 'الكل')),
-              h('div.rail',
+              h('div.hrail',
                 ...subjects.map((sub) => {
                   const p = Store.subjectProgress(sub.id);
                   return h('button.mini', { onclick: () => App.go('course', { subject: sub.id }),
                                             'aria-label': sub.name },
-                    h('span.ring', { style: `--p:${p.percent}%` },
+                    h('span.mring', { style: `--p:${p.percent}%` },
                       h('em', ar(p.percent) + '٪')),
                     h('b', sub.name),
                     h('small', `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا`));
@@ -554,37 +554,147 @@ window.Screens = window.Screens || {};
     return wrap;
   };
 
-  /**
-   * آخر الأخبار — امتداد لنفس البانرات المُدارة من اللوحة. «الرئيسية» تعرض
-   * أوّل ٦ فقط بدورة ٤ ثوانٍ لكل واحدة؛ هنا القائمة كاملةً بلا حدّ ولا دورة،
-   * فما لا يتّسع للبانر المتحرّك يبقى مقروءًا هنا. مصدر واحد (SEED.banners)
-   * لا محتوًى مستقلّ — نشرٌ من اللوحة يظهر بالمكانين معًا بلا ازدواج عمل.
-   *
-   * لا محتوى تجريبي: بلا بانر مُضاف الشاشة فارغة بوضوح (نفس قاعدة «الرئيسية»
-   * — لا نخترع خبرًا لم يُنشر فعليًا لنملأ الفراغ).
-   */
+  /* ---------------------------------------------------------------------------
+     آخر الأخبار
+
+     مصدرٌ واحد (`SEED.banners`) لا محتوًى مستقلّ: نشرٌ من اللوحة يظهر في
+     الرئيسية والقسم بلا ازدواج عمل. والرئيسية تعرض مقتطفًا من عنصرين، فهذا
+     هو المكان الذي تُقرأ فيه الأخبار كاملةً.
+
+     لا محتوى تجريبي: بلا خبرٍ منشور الشاشة فارغة بوضوح — لا نخترع خبرًا لم
+     يُنشر لنملأ الفراغ.
+  --------------------------------------------------------------------------- */
+  const CATS = {
+    announcement: 'إعلانات',
+    content:      'محتوى جديد',
+    update:       'تحديثات',
+  };
+
+  /** «منذ ٣ ساعات» — التاريخ المطلق لا يقول للطالب أجديدٌ هو أم لا. */
+  function since(iso) {
+    if (!iso) return '';
+    const t = new Date(iso).getTime();
+    if (!Number.isFinite(t)) return '';           // تاريخٌ فاسد لا يُرسم «Invalid Date»
+    const mins = Math.round((Date.now() - t) / 60000);
+    if (mins < 1) return 'الآن';
+    if (mins < 60) return `منذ ${ar(mins)} ${mins === 1 ? 'دقيقة' : 'دقائق'}`;
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return `منذ ${ar(hrs)} ${hrs === 1 ? 'ساعة' : hrs === 2 ? 'ساعتين' : 'ساعات'}`;
+    const days = Math.round(hrs / 24);
+    if (days < 7) return `منذ ${ar(days)} ${days === 1 ? 'يوم' : days === 2 ? 'يومين' : 'أيام'}`;
+    // أبعد من أسبوع: التاريخ نفسه أوضح من «منذ ٣٤ يومًا»
+    return new Date(iso).toLocaleDateString('ar-SY', { day: 'numeric', month: 'long' });
+  }
+
   Screens.news = () => {
-    const posts = SEED.banners || [];
+    const all = SEED.banners || [];
+    /* شارة «جديد» تُحسب على الجهاز: آخر مرّة فُتح فيها القسم مقابل تاريخ
+       النشر. لا عمود خادم لها — «جديد» صفةٌ بالنسبة إلى هذا الطالب لا إلى
+       الخبر، فطالبٌ قرأه أمس وآخر لم يفتح التطبيق منذ شهر لا يريان الشيء نفسه. */
+    const seenAt = Store.get().newsSeenAt;
+    const isNew = (p) => !!p.at && (!seenAt || p.at > seenAt);
 
-    const body = h('div.screen__body',
-      !posts.length
-        ? h('div', { style: 'padding:16px' },
-            C.empty({
-              title: 'لا أخبار منشورة بعد',
-              text: 'كل جديد يُنشر من لوحة الإدارة يظهر هنا فور اعتماده.',
-            }))
-        : h('div.newsfeed',
-            ...posts.map((p) => {
-              const onclick = bannerGo(p);
-              const img = p.image && Api.publicUrl(p.image);
-              return h('div.newsfeed__card' + (onclick ? '.newsfeed__card--tap' : ''),
-                onclick ? { onclick } : {},
-                img && h('img.newsfeed__img', { src: img, alt: '', loading: 'lazy' }),
-                img && h('span.newsfeed__scrim'),
-                h('div.newsfeed__t', p.title),
-                p.sub && h('div.newsfeed__s', p.sub));
-            })));
+    if (!all.length) {
+      return h('div.screen',
+        C.appbar({ title: 'آخر الأخبار', onBack: () => App.back() }),
+        h('div.screen__body', { style: 'padding:16px' },
+          C.empty({
+            title: 'لا أخبار منشورة بعد',
+            text: 'كل جديد يُنشر من لوحة الإدارة يظهر هنا فور اعتماده.',
+          })));
+    }
 
-    return h('div.screen', C.appbar({ title: 'آخر الأخبار', onBack: () => App.back() }), body);
+    // المثبَّت يتصدّر بصورةٍ كبيرة. أوّلُ مثبَّت فقط: بطاقتان كبيرتان تُلغيان
+    // معنى التصدير أصلًا.
+    const featured = all.find((p) => p.pinned) || null;
+    let filter = 'all';
+
+    const listBox = h('div.newsfeed');
+    const chipsBox = h('div.nchips');
+
+    /* الشرائح تُبنى من التصنيفات **الموجودة فعلًا** لا من القائمة الثابتة:
+       شريحةٌ فارغة تُنقر فلا يظهر شيء أسوأ من غياب التصنيف. وتُخفى كلّها إن
+       كان الكلّ من تصنيف واحد — لا معنى لمصفاةٍ بخيار واحد. */
+    const present = [...new Set(all.map((p) => p.category).filter((c) => CATS[c]))];
+
+    function drawList() {
+      const rows = all.filter((p) => (filter === 'all' || p.category === filter)
+                                     && p !== featured);
+      listBox.replaceChildren(...(rows.length
+        ? rows.map(newsRow)
+        : [C.empty({ title: 'لا شيء في هذا التصنيف', text: 'جرّب تصنيفًا آخر.' })]));
+    }
+
+    function drawChips() {
+      if (present.length < 2) return;
+      chipsBox.replaceChildren(
+        ...[['all', 'الكل'], ...present.map((c) => [c, CATS[c]])].map(([key, label]) =>
+          h('button.nchip', { class: filter === key ? 'is-on' : '',
+                             onclick: () => { filter = key; drawChips(); drawList(); } }, label)));
+    }
+
+    function newsRow(p) {
+      const go = () => App.go('post', { id: p.id });
+      const img = p.image && Api.publicUrl(p.image);
+      return h('button.item', { onclick: go },
+        img ? h('img.item__i', { src: img, alt: '', loading: 'lazy' })
+            : h('span.item__i.item__i--blank', icon.news(19)),
+        h('div.grow',
+          h('b', p.title),
+          p.sub ? h('small', p.sub) : null,
+          h('div.item__m',
+            isNew(p) ? h('span.tag-new', 'جديد') : null,
+            h('span', since(p.at) || CATS[p.category] || ''))));
+    }
+
+    drawChips();
+    drawList();
+
+    // يُعلَّم القسم مقروءًا عند فتحه، فالشارات تختفي في الزيارة التالية لا في
+    // هذه — وإلّا اختفت تحت عين الطالب قبل أن يقرأها.
+    const newest = all.map((p) => p.at).filter(Boolean).sort().pop();
+    if (newest && newest !== seenAt) setTimeout(() => Store.set({ newsSeenAt: newest }), 0);
+
+    return h('div.screen',
+      C.appbar({ title: 'آخر الأخبار', onBack: () => App.back() }),
+      h('div.screen__body', { style: 'padding:14px 16px 20px' },
+        featured
+          ? h('button.feat', { onclick: () => App.go('post', { id: featured.id }) },
+              featured.image
+                ? h('img.feat__i', { src: Api.publicUrl(featured.image), alt: '', loading: 'lazy' })
+                : h('span.feat__i.feat__i--blank'),
+              h('span.feat__tag', 'مثبَّت'),
+              h('span.feat__b',
+                h('span.feat__t', featured.title),
+                h('span.feat__s', [since(featured.at), CATS[featured.category]]
+                  .filter(Boolean).join(' · '))))
+          : null,
+        chipsBox,
+        listBox));
+  };
+
+  /**
+   * صفحة الخبر — عنوانٌ وسطرٌ لا يكفيان لخبرٍ يستحقّ النشر.
+   * وإن لم يُكتب نصٌّ بعد فالصفحة تعرض ما هو موجود بلا فراغٍ يبدو عطلًا،
+   * وتُبقي زرّ الوجهة إن كان للخبر وجهة.
+   */
+  Screens.post = (params) => {
+    const p = (SEED.banners || []).find((x) => x.id === params.id);
+    if (!p) return Screens.news();
+
+    const go = bannerGo(p);
+    const img = p.image && Api.publicUrl(p.image);
+
+    return h('div.screen',
+      C.appbar({ title: CATS[p.category] || 'خبر', onBack: () => App.back() }),
+      h('div.screen__body', { style: 'padding:0 0 24px' },
+        img ? h('img.post__i', { src: img, alt: '' }) : null,
+        h('div', { style: 'padding:16px' },
+          h('div.post__m', since(p.at) || ''),
+          h('h1.post__t', p.title),
+          p.sub ? h('div.post__s', p.sub) : null,
+          p.body ? h('div.card.card--pad', { style: 'margin-top:14px' }, UI.prose(p.body)) : null,
+          go ? h('button.btn.btn--primary.btn--block', { style: 'margin-top:16px', onclick: go },
+                 'اذهب إلى الوجهة') : null)));
   };
 })();

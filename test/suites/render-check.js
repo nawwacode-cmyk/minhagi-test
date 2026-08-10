@@ -131,23 +131,33 @@ window.SEED = full;
 }
 function ok2(n, c, x = '') { if (c) console.log('ok   ' + n); else { bad++; console.log('FAIL ' + n + (x ? ' → ' + x : '')); } }
 
-/* البانر أُزيل من «الرئيسية» نهائيًا — صار حصرًا ضمن «آخر الأخبار». بطاقةٌ
-   بلا هدف مخصَّص هناك تبقى إعلامية محضة: لا معنى للنقر لتصل إلى الشاشة التي
-   أنت بداخلها أصلًا. `bannerGo` محصورة داخل IIFE الشاشات — نفحص أثرها على
-   HTML الناتج لا الدالّة مباشرةً، بما يوافق بقية هذا الملف. */
+/* الشريط المتحرّك أُزيل من «الرئيسية» نهائيًا؛ بقي منها مقتطفٌ من صفّين
+   بطريقٍ إلى القسم. والوجهة انتقلت من البطاقة إلى زرٍّ داخل صفحة الخبر، فكل
+   صفٍّ في القسم يفتح صفحته أيًّا كانت وجهته — والقاعدة القديمة («بلا وجهة لا
+   نقر») كانت صحيحة يوم لم تكن ثمّة صفحةٌ تُفتح. */
 {
   const homeHtml = Screens.home().outerHTML;
-  ok2('لا أثر للبانر بـ«الرئيسية» إطلاقًا',
-      !/class="promo/.test(homeHtml) && !/newsfeed/.test(homeHtml));
+  ok2('لا شريط بانر بـ«الرئيسية»',
+      !/class="promo/.test(homeHtml) && !/newsfeed/.test(homeHtml) && !/class="feat/.test(homeHtml));
+  /* `class="nrow[ "]` لا `class="nrow` وحدها: الصورة داخل الصفّ تحمل
+     `nrow__i` التي تبدأ بالسلسلة نفسها، فيتضاعف العدّ الساذج. */
+  ok2('بل مقتطفٌ من صفّين بطريقٍ إلى القسم',
+      (homeHtml.match(/class="nrow[ "]/g) || []).length === 2 && /sec-more/.test(homeHtml),
+      String((homeHtml.match(/class="nrow[ "]/g) || []).length));
 
   const newsHtml = Screens.news().outerHTML;
-  const b1News = (newsHtml.match(/<div class="newsfeed__card[^"]*"[^>]*>/g) || [])[0] || '';
-  ok2('نفس البطاقة داخل «آخر الأخبار» غير قابلة للنقر (لا --tap)',
-      b1News !== '' && !/newsfeed__card--tap/.test(b1News), b1News);
+  ok2('وكل خبرٍ في القسم يفتح صفحته', /class="item"/.test(newsHtml));
 
-  // b3 بالفكستور بوجهة مخصَّصة — تبقى قابلة للنقر بالمكانين معًا
-  ok2('وبطاقة بهدف مخصَّص تبقى قابلة للنقر داخل «آخر الأخبار»',
-      /newsfeed__card--tap/.test(newsHtml));
+  // التجهيزات فيها ثلاثة أخبار — بلا مثبَّت فلا بطاقة مميَّزة
+  ok2('ولا بطاقة مميَّزة بلا خبرٍ مثبَّت', !/class="feat"/.test(newsHtml));
+
+  const pin = window.SEED.banners;
+  window.SEED.banners = pin.map((p, i) => (i === 1 ? { ...p, pinned: true } : p));
+  const pinnedHtml = Screens.news().outerHTML;
+  ok2('والمثبَّت يتصدّر ببطاقة كبيرة', /class="feat"/.test(pinnedHtml));
+  ok2('ولا يتكرّر في القائمة تحتها',
+      (pinnedHtml.match(new RegExp(pin[1].title, 'g')) || []).length === 1);
+  window.SEED.banners = pin;
 }
 
 fs.writeFileSync(path.join(__dirname, 'render-out.json'), JSON.stringify(out, null, 1));
