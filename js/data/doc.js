@@ -139,7 +139,20 @@ window.Doc = (function () {
         canvas.style.width = '100%';
         canvas.style.height = 'auto';
 
-        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        const ctx = canvas.getContext('2d');
+        /* **هذا السطر هو ما كان يكسر الشرح.**
+
+           `ctx.direction` قيمته الافتراضية `inherit`، والتطبيق كلّه `rtl` —
+           فكان كل نداء `fillText` يرسمه pdf.js يُوضَع من اليمين إلى اليسار،
+           فتنزاح كل مجموعة حروف عن موضعها المحسوب. النتيجة كلماتٌ متكسّرة
+           ومتباعدة، **في العربية واللاتينية معًا** (وهذا ما دلّ على السبب:
+           عطلُ تشكيلٍ عربي لا يمسّ «On fête ensemble»).
+
+           والمواضع في PDF مطلقة ومحسوبة سلفًا، فلا شأن للمتصفّح باتجاهها:
+           `ltr` هنا ليست لغةً بل «لا تتدخّل». */
+        ctx.direction = 'ltr';
+
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
         canvas.dataset.done = String(zoom);
       } catch { /* صفحةٌ تعذّر رسمها تبقى فارغة ولا تُسقط البقيّة */ }
       finally { rendering.delete(n); }
@@ -156,7 +169,22 @@ window.Doc = (function () {
       status(h('div.doc__load', UI.spinner ? UI.spinner() : null, h('span', 'جارٍ تجهيز الشرح…')));
       try {
         const [lib, got] = await Promise.all([loadLib(), fetchUrl(docId)]);
-        pdf = await lib.getDocument({ url: got.url }).promise;
+        /* هذان المساران **شرط صحّة العرض العربي لا تحسين**.
+
+           بدون `cMapUrl` لا يفكّ pdf.js ترميز الخطوط من نوع CID — وهي الأغلب
+           في ملفّات InDesign وWord العربية — فيرسم رموزًا بدل الحروف.
+           وبدون `standardFontDataUrl` لا يجد بديلًا حين يعجز عن قراءة الخطّ
+           المضمَّن، فيرسم بمقاييس خاطئة: الحروف تتباعد وتنكسر الكلمات داخل
+           السطر. وهذا بعينه ما ظهر في أوّل تجربة.
+
+           والملفّان يُجلبان **عند الحاجة فقط**: صفحةٌ لاتينية لا تطلب أيًّا
+           منهما، فلا كلفة على من لا يحتاجها. */
+        pdf = await lib.getDocument({
+          url: got.url,
+          cMapUrl: 'js/vendor/cmaps/',
+          cMapPacked: true,
+          standardFontDataUrl: 'js/vendor/standard_fonts/',
+        }).promise;
 
         pages.replaceChildren(...Array.from({ length: pdf.numPages }, (_, i) =>
           h('canvas.doc__p', { 'data-page': String(i + 1), 'aria-label': `صفحة ${ar(i + 1)}` })));

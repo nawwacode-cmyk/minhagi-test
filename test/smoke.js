@@ -1085,5 +1085,40 @@ ok('البطاقة لا تترك السحب الأفقي للمتصفّح', /\.q
   ok('لا صنف CSS مُعرَّف مرّتين خارج @media', dup.length === 0, dup.join(' · '));
 }
 
+/* =============================================================================
+   عارض الـPDF داخل صفحة RTL
+
+   `ctx.direction` قيمته الافتراضية `inherit`، والتطبيق كلّه `rtl`. فكل نداء
+   `fillText` يصدر عن pdf.js كان يُوضَع من اليمين إلى اليسار وتنزاح مجموعات
+   الحروف عن مواضعها المحسوبة — كلماتٌ متكسّرة في العربية **واللاتينية معًا**.
+
+   ولم يكشفه فحصٌ واحد: الشاشة تُبنى بلا استثناء، والملفّ سليم، والمكتبة
+   سليمة (رسمتُ الملفّ نفسه في Node بنفس الخيارات فخرج مضبوطًا). العطل في
+   بيئة الصفحة وحدها، ولا يُرى إلّا بالعين على جهاز.
+
+   فالحارس نصّي بالضرورة — لا وسيلة أرخص تمنع عودته.
+   ============================================================================= */
+{
+  const docSrc = fs.readFileSync(dir + 'data/doc.js', 'utf8');
+  ok('سياق الرسم يُجبَر على ltr', /ctx\.direction\s*=\s*'ltr'/.test(docSrc));
+  ok('ويُضبط قبل النداء لا بعده',
+     docSrc.indexOf("ctx.direction = 'ltr'") < docSrc.indexOf('page.render('));
+  ok('وصفحة الملفّ ltr في CSS أيضًا',
+     /\.doc__p \{[^}]*direction: ltr/.test(cssSrc));
+
+  /* CMap والخطوط القياسية: لازمتان للخطوط المضمَّنة من نوع CID وللبدائل حين
+     يعجز عن قراءة خطّ. لم تكونا سبب العطل الأوّل، لكن غيابهما يكسر ملفّات
+     أخرى بصمت — ولا يُكتشف إلّا بشكوى. */
+  ok('ومسار CMap مضبوط', /cMapUrl:\s*'js\/vendor\/cmaps\//.test(docSrc)
+     && /cMapPacked:\s*true/.test(docSrc));
+  ok('ومسار الخطوط القياسية', /standardFontDataUrl:\s*'js\/vendor\/standard_fonts\//.test(docSrc));
+  for (const p of ['js/vendor/cmaps', 'js/vendor/standard_fonts',
+                   'js/vendor/pdf.min.js', 'js/vendor/pdf.worker.min.js']) {
+    ok(`${p} موجود فعلًا`, fs.existsSync(require('node:path').join(ROOT, p)));
+  }
+  // ١٫٤ م.ب لا يجوز أن ينزّلها طالبٌ لن يفتح شرحًا مصوَّرًا
+  ok('ومكتبة الـPDF خارج التخزين المسبق', !/pdf\.(min\.)?(worker\.)?js/.test(swSrc));
+}
+
 console.log('\n' + (fail.length ? `${fail.length} فشل` : 'كل الاختبارات نجحت'));
 process.exit(fail.length ? 1 : 0);
