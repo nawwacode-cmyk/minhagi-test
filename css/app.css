@@ -1737,3 +1737,57 @@ img, svg { max-width: 100%; display: block; }
   overflow: auto; overscroll-behavior: contain;
   height: calc(100dvh - 47px);
 }
+
+/* =============================================================================
+   ملفّات الدرس — بطاقة لكل ملفّ، تُفتح بملء الشاشة أو تنسدل في مكانها
+   ============================================================================= */
+.files { display: grid; gap: 10px; }
+.file {
+  background: var(--surf); border: 1px solid var(--brd);
+  border-radius: 16px; box-shadow: var(--sh-2); overflow: hidden;
+}
+.file__h { display: flex; align-items: center; gap: 10px; padding: 11px 12px; }
+.file__ico {
+  width: 38px; height: 38px; border-radius: 11px; flex: none; display: grid;
+  place-items: center; background: var(--acc-soft); color: var(--acc);
+}
+.min0 { min-width: 0; }
+.file__t {
+  display: block; font-size: 13px; font-weight: 600; line-height: 1.5;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.file__m { display: block; font-size: 10.5px; color: var(--txf); }
+.file__b {
+  width: 32px; height: 32px; border-radius: 10px; flex: none; border: 0; cursor: pointer;
+  display: grid; place-items: center; background: var(--surf2); color: var(--txf);
+}
+.file__b:hover { background: var(--surf3); color: var(--acc); }
+.file__chev { display: grid; transition: transform var(--dur) var(--ease); }
+.file.is-open .file__chev { transform: rotate(180deg); }
+
+/* المحتوى يبقى مبنيًّا عند الطيّ ويُخفى بـCSS: هدمُه يعني تنزيل الملفّ
+   وترقيم صفحاته من جديد عند كل فتحة. */
+.file__body { display: none; border-top: 1px solid var(--line); }
+.file.is-open .file__body { display: block; }
+/* داخل البطاقة لا حاجة لإطارٍ ثانٍ حول العارض */
+.file__body .doc { border: 0; border-radius: 0; box-shadow: none; }
+
+/* --- ملء الشاشة: طبقة مستقلّة -------------------------------------------------
+   لا `requestFullscreen`: غير مدعومة للعناصر على iOS، وزرٌّ لا يعمل على نصف
+   الأجهزة أسوأ من غيابه. */
+.docfull {
+  position: fixed; inset: 0; z-index: 80; background: var(--bg);
+  display: flex; flex-direction: column;
+}
+.docfull__h {
+  display: flex; align-items: center; gap: 10px; flex: none;
+  padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
+  background: var(--surf); border-bottom: 1px solid var(--line);
+}
+.docfull__t {
+  font-size: 13.5px; font-weight: 600; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.docfull .doc { flex: 1; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
+/* الصفحة خلف الطبقة لا تتمرّر، فالتمرير هنا لازم */
+.docfull .doc__pages { overflow: auto; overscroll-behavior: contain; flex: 1; min-height: 0; }

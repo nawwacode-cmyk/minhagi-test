@@ -42,20 +42,20 @@ const cases = [
   /* درسٌ شرحه PDF — الفرع الجديد. والفرع المقابل (بلا اتصال) يظهر رسالةً
      صريحة لا فراغًا: الشرح خلف رابطٍ موقّع فلا يعمل أوفلاين بعد. */
   ['درس بشرح PDF', () => { const l = window.SEED.lessons['salutations'];
-    l.doc = 'doc-1'; l.mode = 'pdf';
+    l.docs = [{ id: 'doc-1', title: 'شرح', pages: 3, size: 92000 }]; l.mode = 'pdf';
     const n = Screens.lesson({ id: 'salutations', subject: 'fr' });
-    delete l.doc; delete l.mode; return n; }],
+    delete l.docs; delete l.mode; return n; }],
   ['درس بشرح PDF (بلا اتصال)', () => { const l = window.SEED.lessons['salutations'];
-    l.doc = 'doc-1'; l.mode = 'pdf'; Store.set({ online: false });
+    l.docs = [{ id: 'doc-1', title: 'شرح', pages: 3, size: 92000 }]; l.mode = 'pdf'; Store.set({ online: false });
     const n = Screens.lesson({ id: 'salutations', subject: 'fr' });
-    Store.set({ online: true }); delete l.doc; delete l.mode; return n; }],
+    Store.set({ online: true }); delete l.docs; delete l.mode; return n; }],
   /* ملفٌّ مرفوع والوضع «نصّ»: المحرِّر يجهّز شرحًا ولمّا يقرّر عرضه بعد.
      يجب أن يرى الطالب النصّ لا الملفّ — وهذا هو الفرق بين قرارٍ صريح
      وقاعدةٍ ضمنية «إن وُجد ملفّ فهو الفائز». */
   ['درس بملفّ مرفوع لكن الوضع نصّ', () => { const l = window.SEED.lessons['salutations'];
-    l.doc = 'doc-1'; l.mode = 'text';
+    l.docs = [{ id: 'doc-1', title: 'شرح', pages: 3, size: 92000 }]; l.mode = 'text';
     const n = Screens.lesson({ id: 'salutations', subject: 'fr' });
-    delete l.doc; delete l.mode; return n; }],
+    delete l.docs; delete l.mode; return n; }],
   /* الوضع «pdf» بلا ملفّ — سهوٌ في اللوحة أو ملفٌّ حُذف. الطالب يرى النصّ
      لا شاشةً فارغة: لا يدفع ثمن خطأ إدخال. */
   ['درس وضعه pdf بلا ملفّ', () => { const l = window.SEED.lessons['salutations'];
@@ -175,11 +175,11 @@ function ok2(n, c, x = '') { if (c) console.log('ok   ' + n); else { bad++; cons
     const lesson = window.SEED.lessons['salutations'];
     const draw = (mode, doc, online = true) => {
       if (mode) lesson.mode = mode; else delete lesson.mode;
-      if (doc) lesson.doc = doc; else delete lesson.doc;
+      if (doc) lesson.docs = [{ id: 'doc-1', title: 'شرح الوحدة ١', pages: 3, size: 92000 }]; else delete lesson.docs;
       Store.set({ online });
       const html = Screens.lesson({ id: 'salutations', subject: 'fr' }).outerHTML;
       delete lesson.mode; delete lesson.doc; Store.set({ online: true });
-      return { pdf: /class="doc"/.test(html), text: /class="prose/.test(html),
+      return { pdf: /class="files"/.test(html), text: /class="prose/.test(html),
                off: /doc__off/.test(html) };
     };
 

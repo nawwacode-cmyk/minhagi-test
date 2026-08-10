@@ -495,14 +495,19 @@ window.Screens = window.Screens || {};
              اللوحة، أو ملفٌّ حُذف) يجب أن يُظهر النصّ لا شاشةً فارغة — الطالب
              لا يدفع ثمن خطأ إدخال. */
           (() => {
-            const wantsPdf = l.mode === 'pdf' && l.doc;
+            const files = l.docs || [];
+            const wantsPdf = l.mode === 'pdf' && files.length;
             if (!wantsPdf) return h('div.card', UI.prose(l.body));
-            return s.online
-              ? Doc.viewer(l.doc, { title: l.title })
-              : h('div.card.card--pad.doc__off',
-                  icon.wifiOff(20),
-                  h('div', h('b', 'الشرح يحتاج اتصالًا'),
-                    h('span', 'افتح الدرس وأنت متصل ليُحمَّل الشرح المصوَّر.')));
+            if (!s.online) {
+              return h('div.card.card--pad.doc__off',
+                icon.wifiOff(20),
+                h('div', h('b', 'ملفّات الدرس تحتاج اتصالًا'),
+                  h('span', 'افتح الدرس وأنت متصل لتُحمَّل ملفّاته.')));
+            }
+            return h('div',
+              h('div.sec-label', { style: 'margin-bottom:8px' },
+                `ملفّات الدرس (${ar(files.length)})`),
+              Doc.fileList(files));
           })()),
 
         h('aside.dash__side',

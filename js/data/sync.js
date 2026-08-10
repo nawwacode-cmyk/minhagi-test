@@ -102,7 +102,7 @@ window.Sync = (function () {
     // ليس عودة لطبقة الكورسات القديمة.
     const [subjects, grades, units, lessons,
            questions, options, exams, examQuestions, videos,
-           teachers, teacherCourses, banners] = await Promise.all([
+           lessonDocs, teachers, teacherCourses, banners] = await Promise.all([
       Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order' }),
       Api.from('grades',    { select: 'id,code,name_ar,sort_order' }),
       Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order,courses(subject_id,grade_id)', order: 'sort_order' }),
@@ -118,6 +118,9 @@ window.Sync = (function () {
       Api.from('exam_questions', { select: 'exam_id,question_id,sort_order,points',
                                    pageKey: 'exam_id,question_id' }),
       Api.from('videos',    { select: 'id,title,quality,duration_s,size_bytes' }).catch(() => []),
+      // ملفّات الدرس: البيانات الوصفية فقط — الملفّ خلف رابط موقّع يُطلب عند الفتح
+      Api.from('lesson_docs', { select: 'id,title,lesson_id,sort_order,pages,size_bytes',
+                                order: 'sort_order' }).catch(() => []),
       Api.from('teachers',  { select: 'id,code,name,bio,photo_path', order: 'sort_order' }).catch(() => []),
       Api.from('courses',   { select: 'teacher_id,subject_id' }).catch(() => []),
       // البانرات: RLS تحصرها بالمفعَّل ضمن نافذته الزمنية، فما يصل هنا هو
@@ -134,6 +137,15 @@ window.Sync = (function () {
     const byId = (rows) => Object.fromEntries(rows.map((r) => [r.id, r]));
     const subjectByUuid = byId(subjects);
     const L = byId(lessons), Q = byId(questions), V = byId(videos || []);
+
+    // ملفّات كل درس، مرتّبةً كما رتّبها المحرِّر
+    const docsByLesson = {};
+    for (const d of (lessonDocs || [])) {
+      if (!d.lesson_id) continue;                 // ملفٌّ يتيم لا يُعرض
+      (docsByLesson[d.lesson_id] ||= []).push({
+        id: d.id, title: d.title, pages: d.pages || null, size: d.size_bytes || null,
+      });
+    }
     const idMap = {};                       // 'lesson:salutations' → uuid
     const put = (kind, code, id) => { idMap[`${kind}:${code}`] = id; };
 
@@ -249,7 +261,10 @@ window.Sync = (function () {
           : { title: l.title_ar, length: '—', thumb: 'assets/img/video-thumb.svg' },
         /* معرّف الشرح فقط — لا الرابط، للسبب نفسه أعلاه: الرابط موقّع ويموت
            بعد عشر دقائق بينما المحتوى يُخزَّن لأسابيع. يُطلب عند فتح الدرس. */
-        doc: l.doc_id || null,
+        /* ملفّات الدرس — أكثر من ملفّ للدرس الواحد (شرح، ورقة تمارين، ملحق).
+           المعرّفات فقط لا الروابط: الروابط موقّعة وتموت بعد عشر دقائق
+           بينما المحتوى يُخزَّن لأسابيع، فتُطلب عند فتح كل ملفّ. */
+        docs: docsByLesson[l.id] || [],
         /* أيّ شرحٍ يُعرض — قرار المحرِّر لا استنتاج من وجود الملفّ. القيمة
            الاحتياطية 'text': جهازٌ زامن قبل الهجرة لا يحمل الحقل، والنصّ هو
            ما كان يراه أصلًا. */

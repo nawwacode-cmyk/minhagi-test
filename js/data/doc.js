@@ -25,7 +25,14 @@ window.Doc = (function () {
   const WORKER = 'js/vendor/pdf.worker.min.js';
 
   let libp = null;                 // وعد التحميل، يُنشأ مرّة
-  let live = null;                 // آخر عارضٍ بُني — يُنظَّف عند بناء التالي
+  /* كل العارضين الأحياء. كان مفردًا فيكفي — ثم صار الدرس يعرض أكثر من ملفّ،
+     فبناء الثاني كان يهدم الأوّل وهو معروضٌ أمام الطالب.
+
+     ولا شيء في التطبيق يستدعي `_dispose` عند تبديل الشاشة (`render` تستبدل
+     المحتوى فحسب)، فبلا تنظيفٍ يترك كل درسٍ يُفتح مراقبَ تقاطعٍ ومستمعَ تحجيم
+     ووثيقةَ PDF في الذاكرة. المالك الآن قائمة الملفّات: فتحُ درسٍ جديد ينظّف
+     عارضي الدرس السابق كلّهم. */
+  const live = new Set();
 
   /** يحمّل pdf.js مرّة واحدة مهما تكرّر النداء. */
   function loadLib() {
@@ -67,13 +74,6 @@ window.Doc = (function () {
    * فلا تنتظر الشاشةُ الشبكة، وهو نفس مبدأ بقيّة التطبيق.
    */
   function viewer(docId, { title } = {}) {
-    /* آخر عارضٍ بُني يُنظَّف عند بناء التالي — نفس نمط `Media.player`.
-       لا شيء في التطبيق يستدعي `_dispose` عند تبديل الشاشة (`render` تستبدل
-       المحتوى فحسب)، فبلا هذا يترك كل درسٍ يُفتح مراقبَ تقاطعٍ ومستمعَ تحجيم
-       ووثيقةَ PDF في الذاكرة إلى الأبد. والتطبيق لا يعرض شرحين معًا. */
-    try { live?._dispose?.(); } catch { /* لا يمنع بناء الجديد */ }
-    live = null;
-
     const box = h('div.doc');
     const pages = h('div.doc__pages');
     const pageLbl = h('span.doc__n', '—');
@@ -238,6 +238,7 @@ window.Doc = (function () {
     window.addEventListener('resize', onResize);
 
     box._dispose = () => {
+      live.delete(box);
       try { io?.disconnect(); } catch { /* لا شيء */ }
       window.removeEventListener('resize', onResize);
       clearTimeout(onResize._t);
@@ -245,9 +246,101 @@ window.Doc = (function () {
     };
 
     start();
-    live = box;
+    live.add(box);
     return box;
   }
 
-  return { viewer, loadLib, fetchUrl };
+  /**
+   * قائمة «ملفّات الدرس».
+   *
+   * لا تُفتح الملفّات كلّها معًا: كلٌّ بطاقةٌ ساكنة حتى يطلبها الطالب. درسٌ
+   * بثلاثة ملفّات يعني ثلاث وثائق PDF في الذاكرة وثلاثة روابط موقّعة لو
+   * فُتحت كلّها — على هاتفٍ اقتصادي ذلك ثقيل بلا سبب.
+   *
+   * وطريقان لكل ملفّ عن قصد: **ملء الشاشة** لمن يريد قراءةً مركّزة (وهو
+   * الأنسب لملفٍّ طويل)، و**السهم** لمن يريد نظرةً سريعة بلا مغادرة الدرس.
+   */
+  function fileList(docs, { onFull } = {}) {
+    /* درسٌ جديد ⇒ عارضو الدرس السابق يُهدمون. هذه هي نقطة التنظيف الوحيدة
+       في التطبيق، إذ لا يستدعي شيءٌ `_dispose` عند تبديل الشاشة. */
+    disposeAll();
+    const wrap = h('div.files');
+
+    for (const d of docs) {
+      const body = h('div.file__body');           // يُملأ عند أوّل فتح فقط
+      let open = false;
+      let built = false;
+
+      const chev = h('span.file__chev', UI.svg('<path d="m6 9 6 6 6-6"/>', 18));
+      const toggle = () => {
+        open = !open;
+        wrap.classList.toggle('has-open', open);
+        card.classList.toggle('is-open', open);
+        if (open && !built) { built = true; body.replaceChildren(viewer(d.id, { title: d.title })); }
+        /* العارض لا يُهدم عند الطيّ: إعادة بنائه تعني تنزيل الملفّ وترقيم
+           صفحاته من جديد في كل فتحة. الإخفاء بـCSS أرخص، ومَن يغادر الدرس
+           يهدمه `_dispose` على أي حال. */
+      };
+
+      const meta = [d.pages ? `${ar(d.pages)} صفحة` : null,
+                    d.size ? `${ar(Math.round(d.size / 1024 / 102.4) / 10)} م.ب` : null]
+        .filter(Boolean).join(' · ');
+
+      const card = h('div.file',
+        h('div.file__h',
+          h('span.file__ico', UI.svg(
+            '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/>'
+            + '<path d="M14 3v5h5"/>', 19)),
+          h('div.grow.min0',
+            h('b.file__t', d.title),
+            meta ? h('small.file__m', meta) : null),
+          h('button.btn.btn--primary.btn--sm', {
+            onclick: () => (onFull || openFull)(d),
+          }, 'افتح الملف'),
+          h('button.file__b', { onclick: toggle, 'aria-label': 'عرض الصفحات هنا' }, chev)),
+        body);
+
+      wrap.appendChild(card);
+    }
+    return wrap;
+  }
+
+  /**
+   * يفتح ملفًّا بملء الشاشة فوق كل شيء.
+   *
+   * طبقةٌ مستقلّة لا `requestFullscreen`: الأخيرة غير مدعومة للعناصر على iOS،
+   * وزرٌّ لا يعمل على نصف الأجهزة أسوأ من غيابه. وزرّ رجوع الهاتف يغلقها —
+   * وإلّا خرج الطالب من الدرس كلّه وهو يظنّ أنه يغلق الملفّ.
+   */
+  function openFull(doc) {
+    const v = viewer(doc.id, { title: doc.title });
+    const close = () => {
+      layer.remove();
+      try { v._dispose?.(); } catch { /* لا شيء */ }
+      removeEventListener('popstate', onPop);
+      document.documentElement.style.overflow = prevOverflow;
+    };
+    const onPop = () => close();
+
+    const layer = h('div.docfull',
+      h('div.docfull__h',
+        h('button.doc__b', { onclick: close, 'aria-label': 'إغلاق' },
+          UI.svg('<path d="m6 6 12 12M18 6 6 18"/>', 20)),
+        h('span.docfull__t', doc.title)),
+      v);
+
+    const prevOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';   // لا تمرير خلف الطبقة
+    document.body.appendChild(layer);
+    try { history.pushState({ docFull: true }, ''); } catch { /* بيئة بلا history */ }
+    addEventListener('popstate', onPop);
+  }
+
+  /** يهدم كل عارضٍ حيّ — يُنادى عند فتح درسٍ جديد. */
+  function disposeAll() {
+    for (const v of [...live]) { try { v._dispose?.(); } catch { /* لا شيء */ } }
+    live.clear();
+  }
+
+  return { viewer, fileList, openFull, disposeAll, loadLib, fetchUrl };
 })();
