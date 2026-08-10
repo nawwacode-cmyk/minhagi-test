@@ -1853,29 +1853,6 @@ img, svg { max-width: 100%; display: block; }
 }
 .acct__dlr + .acct__dlr { box-shadow: inset 0 1px 0 var(--line); }
 
-/* --- مفتاح المظهر: خياران معروضان معًا --- */
-.tseg {
-  position: relative; flex: none; display: flex; align-items: center;
-  width: 66px; height: 32px; padding: 3px; border-radius: 999px;
-  background: var(--surf2); border: 1px solid var(--brd);
-}
-.seg__thumb {
-  position: absolute; inset-block: 3px; inset-inline-start: 3px; width: 29px;
-  border-radius: 999px; background: linear-gradient(160deg, var(--acc-lite), var(--acc-deep));
-  box-shadow: 0 4px 10px -3px rgba(91,71,201,.34);
-  /* ارتداءة خفيفة: تجعل الحركة تُحسّ لا تُلاحَظ فقط */
-  transition: transform .42s cubic-bezier(.34,1.42,.5,1);
-}
-/* RTL: الخانة الأولى (فاتح) يمينًا، فينزلق الإبهام يسارًا للداكن */
-.tseg.is-dark .tseg__thumb { transform: translateX(-29px); }
-.seg__o {
-  position: relative; z-index: 1; flex: 1; height: 100%; display: grid; place-items: center;
-  border: 0; background: none; padding: 0; cursor: pointer; color: var(--txf);
-  transition: color .3s var(--ease), transform .42s cubic-bezier(.34,1.42,.5,1);
-}
-.seg__o[aria-pressed="true"] { color: #fff; transform: scale(1.06); }
-.seg__o:focus-visible { outline: 2px solid var(--acc-hi); outline-offset: 2px; border-radius: 999px; }
-
 /* =============================================================================
    الدرج المنزلق
    ============================================================================= */

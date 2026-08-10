@@ -467,6 +467,59 @@ ok('الخروج/إعادة الضبط يودّيان إلى auth',
 
   ok('والدرج يمنع تمرير الصفحة خلفه',
      /documentElement\.style\.overflow = 'hidden'/.test(acctSrc));
+
+  ok('واسم القسم «القائمة» لا «حسابي»',
+     /drawer__t', 'القائمة'/.test(acctSrc) && /title: 'القائمة'/.test(acctSrc));
+
+  /* نفس مفتاح اللوحة لا مبدَّلٌ خاصّ — المخصَّص بدا ضبابيًّا على الشاشة.
+     ويُفحص **موضع الاستدعاء** لا وجود الدالّة: تعريفٌ لا يُستدعى يمرّ على
+     تعبيرٍ يبحث عن الاسم وحده. */
+  ok('ومفتاح المظهر هو مفتاح اللوحة نفسه',
+     /theme-toggle/.test(acctSrc) && /themeToggle\(draw\)/.test(acctSrc));
+
+  // التنزيلات شاشةٌ مستقلّة: قائمةٌ قد تطول تدفن ما تحتها في درجٍ ضيّق
+  ok('والتنزيلات شاشة مستقلّة', /Screens\.downloads = /.test(acctSrc)
+     && /App\.go\('downloads'\)/.test(acctSrc));
+  ok('ولها أبٌ في التنقّل', /case 'downloads':/.test(appSrc));
+}
+
+/* =============================================================================
+   `replaceChildren` الأصلية تُحوّل `null` إلى **عقدة نصّية**
+
+   بخلاف `UI.h` التي تُسقط الزائف. فتعبيرٌ مثل `cond ? node : null` داخلها
+   يطبع كلمة "null" في الواجهة. وقع هذا مرّتين في هذا المستودع: مرّةً بـ
+   "false" تحت شارات حجم الملفّ في اللوحة، ومرّةً بـ "null" أسفل القائمة.
+
+   الحارس يفحص وسائط كل نداء **على المستوى الأعلى** بعدّ الأقواس: `null`
+   داخل `h(...)` مقبولة لأن `h` ترشّح.
+   ============================================================================= */
+{
+  const bad = [];
+  for (const f of ['screens/account.js', 'screens/main.js', 'screens/course.js',
+                   'screens/plan.js', 'screens/exam.js', 'components.js', 'app.js']) {
+    const src = fs.readFileSync(dir + f, 'utf8');
+    let i = -1;
+    while ((i = src.indexOf('.replaceChildren(', i + 1)) !== -1) {
+      const open = src.indexOf('(', i + 1);
+      let depth = 0, end = open;
+      for (; end < src.length; end++) {
+        if (src[end] === '(') depth++;
+        else if (src[end] === ')' && --depth === 0) break;
+      }
+      // ما داخل أقواسٍ متداخلة يخصّ `h(...)` وهي ترشّح — نُزيله
+      let args = src.slice(open + 1, end);
+      let prev;
+      do { prev = args; args = args.replace(/\([^()]*\)/g, ''); } while (args !== prev);
+      if (/(^|[,\s?:])null([,\s)]|$)/.test(args)) bad.push(`${f} @${src.slice(0, i).split('\n').length}`);
+    }
+  }
+  ok('لا null يُمرَّر مباشرةً إلى replaceChildren', bad.length === 0, bad.join(' · '));
+
+  /* والحالة التي لا يراها الفحص أعلاه: مصفوفةٌ تُنشر (`...kids`) — الـ`null`
+     داخلها لا يظهر في نصّ النداء. لوحة «القائمة» تبنيها بفروعٍ شرطية كثيرة،
+     فيُشترط ترشيحها صراحةً. وهي الحالة التي أنتجت "null" أسفل القائمة فعلًا. */
+  ok('ومصفوفة لوحة القائمة تُرشَّح قبل النشر',
+     /box\.replaceChildren\(\.\.\.kids\.filter\(Boolean\)\)/.test(acctSrc));
 }
 // أصل صورة الترحيب ما عاد له مستهلك — بقاؤه بالتخزين المسبق تنزيل بلا فائدة
 const swSrc = fs.readFileSync(require('node:path').join(ROOT, 'sw.js'), 'utf8');

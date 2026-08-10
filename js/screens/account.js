@@ -1,5 +1,5 @@
 /* =============================================================================
-   account.js — «حسابي»: لوحة واحدة تُعرض بمكانين
+   account.js — «القائمة»: لوحة واحدة تُعرض بمكانين
 
    تُفتح من زرّ القائمة في الرئيسية كدرجٍ ينزلق، وتُفتح كشاشةٍ كاملة عبر
    المسار `account` (يقصدها تنبيه الاشتراك مثلًا). والمحتوى **واحد** لا
@@ -23,22 +23,19 @@ window.Account = (function () {
       h('span.row2__l', label),
       right || (onclick ? h('span.row2__c', icon.fwd(17)) : null));
 
-  /** مفتاح المظهر: خيارانِ معروضان معًا لا مفتاح تشغيل/إيقاف.
-      المفتاح التقليدي يُخفي الحالة الثانية فيترك المستخدم يخمّن ماذا يعني
-      «مطفأ» — وهنا الوجهتان ظاهرتان دائمًا. */
-  function themeSeg(onChange) {
+  /* مفتاح المظهر: **نفس مفتاح اللوحة** (شمس · مفتاح · قمر) لا مبدَّلٌ خاصّ.
+     كان مبدَّلًا مقسومًا بإبهامٍ متدرّج، فبدا ضبابيًّا على الشاشة — تدرّجٌ
+     تحت أيقونةٍ بيضاء صغيرة داخل قرصٍ ٢٩ بكسلًا. والمفتاح القائم في التطبيق
+     مُجرَّبٌ ومطابقٌ للوحة، فلا سبب لاختراع ثانٍ. */
+  function themeToggle(onChange) {
     const dark = Store.get().theme === 'dark';
-    const seg = h('span.tseg' + (dark ? '.is-dark' : ''), { role: 'group', 'aria-label': 'مظهر التطبيق' },
-      h('span.tseg__thumb', { 'aria-hidden': 'true' }));
-
-    for (const [mode, ico, label] of [['light', icon.sun, 'فاتح'], ['dark', icon.moon, 'داكن']]) {
-      seg.appendChild(h('button.tseg__o', {
-        'aria-pressed': String((mode === 'dark') === dark),
-        'aria-label': label,
-        onclick: () => { Store.setTheme(mode); onChange(); },
-      }, ico(15)));
-    }
-    return seg;
+    const set = (d) => { Store.setTheme(d ? 'dark' : 'light'); onChange(); };
+    return h('div.theme-toggle',
+      h('span.theme-ic' + (dark ? '' : '.is-on'), { onclick: () => set(false) }, icon.sun(16)),
+      h('button.switch' + (dark ? '.is-on' : ''), {
+        'aria-label': 'تبديل الوضع الليلي', onclick: () => set(!dark),
+      }, h('i')),
+      h('span.theme-ic' + (dark ? '.is-on' : ''), { onclick: () => set(true) }, icon.moon(16)));
   }
 
   /**
@@ -48,7 +45,6 @@ window.Account = (function () {
   function panel({ onClose } = {}) {
     const box = h('div.acct');
     const close = () => onClose?.();
-    let showDl = false;                 // قائمة التنزيلات مطويّة حتى تُطلب
 
     function draw() {
       const s = Store.get();
@@ -56,7 +52,10 @@ window.Account = (function () {
       const subs = (SEED.subjects || []).filter((x) => x.entitled);
       const name = s.username || 'زائر';
 
-      box.replaceChildren(
+      /* **يُرشَّح قبل التمرير.** `replaceChildren` الأصلية تحوّل `null` إلى
+         **عقدة نصّية** فتظهر كلمة "null" في الواجهة — بخلاف `UI.h` التي
+         تُسقط الزائف. وقد ظهرت فعلًا أسفل القائمة. */
+      const kids = [
         C.syncBanner() || h('span'),
 
         // --- بطاقة الحساب ---
@@ -80,24 +79,17 @@ window.Account = (function () {
 
         // --- المظهر والتنزيلات ---
         h('div.card.acct__g',
-          row(icon.theme, 'مظهر التطبيق', null, themeSeg(draw)),
+          row(icon.theme, 'مظهر التطبيق', null, themeToggle(draw)),
           row(icon.wifiOff, 'محاكاة انقطاع الإنترنت', null,
             h('button.switch' + (!s.online ? '.is-on' : ''), {
               'aria-label': 'وضع أوفلاين',
               onclick: () => { Store.toggleOnline(); App.drawRail(); draw(); },
             }, h('i'))),
-          row(icon.down, 'التنزيلات', () => { showDl = !showDl; draw(); },
-            h('span.row2__n', ar(dl.length))),
-          showDl ? h('div.acct__dl',
-            dl.length
-              ? h('div', ...dl.map((l) => h('div.acct__dlr',
-                  h('span.grow.small', l.title),
-                  h('button.btn.btn--ghost.btn--sm', {
-                    onclick: () => { Store.toggleDownload(l.id); draw(); },
-                  }, 'حذف'))))
-              : h('div.hint', { style: 'padding:12px 16px' },
-                  'لا دروس منزَّلة بعد. نزّل درسًا مرّة واحدة لتدرسه دون إنترنت.'))
-            : null),
+          /* التنزيلات شاشةٌ مستقلّة لا قائمةٌ تنسدل داخل الدرج: قد تطول إلى
+             عشرات الدروس، ولكلٍّ منها زرّ حذف — قائمةٌ كهذه داخل درجٍ ضيّق
+             تدفن ما تحتها وتُصعّب الوصول إليه. */
+          row(icon.down, 'التنزيلات', () => { close(); App.go('downloads'); },
+            h('span.row2__n', ar(dl.length)))),
 
         /* --- صفحات تعريفية: محتواها لم يُكتب بعد ---
            تُعرض ساكنةً بعلامة «قريبًا» لا كأزرارٍ تُنقر فلا تفعل شيئًا. زرٌّ
@@ -134,7 +126,8 @@ window.Account = (function () {
                 Store.reset(); close(); App.go('auth');
               } }, 'إعادة ضبط التجربة')
           : null,
-      );
+      ];
+      box.replaceChildren(...kids.filter(Boolean));
     }
 
     draw();
@@ -165,7 +158,7 @@ window.Account = (function () {
         h('div.drawer__h',
           h('button.iconbtn.iconbtn--ghost', { onclick: close, 'aria-label': 'إغلاق' },
             icon.close(20)),
-          h('span.drawer__t', 'حسابي')),
+          h('span.drawer__t', 'القائمة')),
         h('div.drawer__b', panel({ onClose: close }))));
 
     const prevOverflow = document.documentElement.style.overflow;
@@ -180,8 +173,46 @@ window.Account = (function () {
 
   // الشاشة الكاملة — نفس اللوحة، بترويسة الشاشات المعتادة
   Screens.account = () => h('div.screen',
-    C.appbar({ title: 'حسابي', onBack: () => App.back() }),
+    C.appbar({ title: 'القائمة', onBack: () => App.back() }),
     h('div.screen__body', { style: 'padding:14px 16px 24px' }, panel()));
+
+  /* --- التنزيلات: شاشة مستقلّة -------------------------------------------
+     كانت قائمةً تنسدل داخل الدرج. وقائمةٌ قد تطول إلى عشرات الدروس، ولكلٍّ
+     زرّ حذف، تدفن ما تحتها في درجٍ ضيّق. */
+  Screens.downloads = () => {
+    const wrap = h('div.screen');
+    const body = h('div.screen__body', { style: 'padding:14px 16px 24px' });
+
+    function draw() {
+      const dl = Store.get().downloaded.map((id) => SEED.lessons[id]).filter(Boolean);
+      body.replaceChildren(...[
+        dl.length
+          ? h('div.card.acct__g',
+              ...dl.map((l) => h('div.row2.row2--static',
+                h('span.row2__i', icon.down(20)),
+                h('span.row2__l', l.title),
+                h('button.btn.btn--ghost.btn--sm', {
+                  style: 'color:var(--err)',
+                  onclick: () => { Store.toggleDownload(l.id); draw(); },
+                }, 'حذف'))))
+          : C.empty({
+              img: 'assets/img/empty-download.svg',
+              title: 'لا توجد دروس منزَّلة',
+              text: 'نزّل الدروس التي تريدها مرة واحدة، ثم ادرسها دون إنترنت في أي وقت.',
+              action: (() => {
+                const first = (SEED.subjects || []).find((x) => x.entitled);
+                return first && h('button.btn.btn--primary', {
+                  onclick: () => App.go('course', { subject: first.id }),
+                }, 'تصفّح الدروس');
+              })(),
+            }),
+      ].filter(Boolean));
+    }
+
+    draw();
+    wrap.append(C.appbar({ title: 'التنزيلات', onBack: () => App.back() }), body);
+    return wrap;
+  };
 
   return { panel, openMenu };
 })();

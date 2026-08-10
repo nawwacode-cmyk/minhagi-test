@@ -187,7 +187,8 @@ window.App = (function () {
       case 'course':    return { name: 'subjects', params: {} };
       // جلسة التركيز تُفتح من الدرس، فالرجوع منها يعود إليه
       case 'focus':     return { name: 'lesson', params: { id: params.lesson, subject } };
-      case 'plan':      return { name: 'home', params: {} };
+      case 'plan':
+      case 'downloads': return { name: 'home', params: {} };
       case 'post':      return { name: 'news', params: {} };
       /* تبويبات الشريط السفلي ترجع إلى الرئيسية، والرئيسية وحدها تُغادر
          التطبيق. ليست هذه مجاراةً لعُرف أندرويد فحسب: «تقدّمي» و«آخر الأخبار»
