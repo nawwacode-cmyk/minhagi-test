@@ -1,85 +1,14 @@
 // يتحقّق أن الشاشات الجديدة تُبنى فعلًا بلا استثناء، ويطبع HTML الناتج.
 // ليس بديلًا عن الفحص البصري — يكشف أخطاء التشغيل فقط.
+//
+/* البيئة الوهمية كانت **منسوخةً حرفيًّا** هنا وفي `render-check-lib.js`.
+   نسختان تنحرفان بصمت: إصلاحُ الواحدة لا يبلغ الأخرى، وقد وقع ذلك فعلًا —
+   أُضيفت `exam.js` و`evicted.js` و`halted.js` و`plan.js` إلى المكتبة فبقيت
+   هذه عمياء عنها، فكان `render-check` يمرّ وهو لا يرسم نصف الشاشات. */
 const fs = require('fs');
 const path = require('node:path');
-const dir = path.join(require('node:path').join(__dirname,'..','..'), 'js') + '/';
-
-// --- DOM شحيح ---------------------------------------------------------------
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const VOID = new Set(['img', 'input', 'br', 'hr']);
-
-class Node2 {
-  constructor(tag) {
-    this.tagName = tag; this.children = []; this.attrs = {}; this.className = '';
-    this._text = null; this._html = null; this.style = { setProperty() {} };
-  }
-  get classList() {
-    const self = this;
-    return { add(c) { self.className += (self.className ? ' ' : '') + c; },
-             toggle() {}, remove() {}, contains() { return false; } };
-  }
-  setAttribute(k, v) { this.attrs[k] = v; }
-  getAttribute(k) { return this.attrs[k]; }
-  addEventListener() {}
-  appendChild(c) { this.children.push(c); return c; }
-  append(...cs) { cs.forEach((c) => c && this.children.push(c)); }
-  prepend(...cs) { this.children.unshift(...cs.filter(Boolean)); }
-  replaceChildren(...cs) { this.children = cs.filter(Boolean); }
-  set textContent(v) { this._text = v; this.children = []; }
-  get textContent() {
-    if (this._text !== null) return this._text;
-    return this.children.map((c) => (c.nodeType === 3 ? c.data : c.textContent)).join('');
-  }
-  set innerHTML(v) { this._html = v; }
-  get outerHTML() {
-    const cls = this.className ? ` class="${this.className}"` : '';
-    const at = Object.entries(this.attrs).map(([k, v]) => ` ${k}="${esc(v)}"`).join('');
-    if (VOID.has(this.tagName)) return `<${this.tagName}${cls}${at}>`;
-    let inner = this._html !== null ? this._html
-      : this._text !== null ? esc(this._text)
-      : this.children.map((c) => (c.nodeType === 3 ? esc(c.data) : c.outerHTML)).join('');
-    return `<${this.tagName}${cls}${at}>${inner}</${this.tagName}>`;
-  }
-}
-
-global.window = global;
-global.document = {
-  createElement: (t) => new Node2(t),
-  createTextNode: (t) => ({ nodeType: 3, data: String(t) }),
-  createElementNS: (ns, t) => new Node2(t),
-  documentElement: { setAttribute() {} },
-  getElementById: () => new Node2('div'),
-  addEventListener() {},
-};
-global.Node = Node2;
-global.localStorage = {
-  _d: {}, getItem(k) { return this._d[k] ?? null; },
-  setItem(k, v) { this._d[k] = v; }, removeItem(k) { delete this._d[k]; },
-};
-global.navigator = { onLine: true };
-global.matchMedia = () => ({ addEventListener() {} });
-global.addEventListener = () => {};
-global.history = { pushState() {} };
-global.confirm = () => false;
-global.setInterval = () => 0;
-global.App = { go() {}, back() {}, drawRail() {}, render() {} };
-global.Api = {
-  isSignedIn: () => true, signOut() {},
-  // نفس منطق api.js الحقيقي: مسار ⇒ رابط، وفارغ ⇒ null
-  publicUrl: (p) => (p ? `https://example.supabase.co/storage/v1/object/public/public-media/${p}` : null),
-};
-global.Sync = { applyStored() {}, syncNow: () => Promise.resolve(), clearContent() {}, pushProgress() {} };
-global.Device = { label: () => 'جهاز' };
-
-eval(fs.readFileSync(dir + 'ui.js', 'utf8'));
-eval(fs.readFileSync(path.join(require('node:path').join(__dirname,'..','..'), 'test/fixtures.js'), 'utf8'));
-eval(fs.readFileSync(dir + 'store.js', 'utf8'));
-eval(fs.readFileSync(dir + 'components.js', 'utf8'));
-eval(fs.readFileSync(dir + 'screens/main.js', 'utf8'));
-eval(fs.readFileSync(dir + 'screens/course.js', 'utf8'));
-eval(fs.readFileSync(dir + 'screens/progress.js', 'utf8'));
-eval(fs.readFileSync(dir + 'screens/onboarding.js', 'utf8'));
-
+const dir = path.join(__dirname, '..', '..', 'js') + '/';
+require('./render-check-lib.js');
 
 // صورة أستاذ حقيقية بالبطاقة لنرى القصّ من عدمه بالمعاينة  // صورة-أستاذ-حقيقية
 window.SEED.teachers[0].photo = 'teachers/demo.jpg';
@@ -110,6 +39,23 @@ const cases = [
   ['آخر الأخبار — لا بانرات', () => { const full = window.SEED.banners; window.SEED.banners = [];
     const n = Screens.news(); window.SEED.banners = full; return n; }],
   ['auth', () => Screens.auth()],
+  /* تنبيه الاشتراك **شرطيّ**، والتجهيزات فيها ٢٨٣ يومًا — فالفرع لا يُرسم
+     أبدًا ما لم نضيّق المدّة هنا. فرعٌ لا يُرسم في أي فحص هو فرعٌ يُكتشف عطله
+     على طالبٍ يوشك اشتراكه على الانتهاء، وهو أسوأ وقت لاكتشافه. */
+  ['home (اشتراك يوشك)', () => { const d = Store.get().daysLeft;
+    Store.set({ daysLeft: 9 }); const n = Screens.home(); Store.set({ daysLeft: d }); return n; }],
+  ['خطّتي', () => Screens.plan()],
+  ['خطّتي (اشتراك يوشك — وتيرة لا تكفي)', () => { const d = Store.get().daysLeft;
+    Store.set({ daysLeft: 1 }); const n = Screens.plan(); Store.set({ daysLeft: d }); return n; }],
+  ['خطّتي (بلا مواد)', () => { const subs = window.SEED.subjects;
+    window.SEED.subjects = []; const n = Screens.plan(); window.SEED.subjects = subs; return n; }],
+  ['خطّتي (المنهاج منتهٍ)', () => {
+    // كل درس مُنجَز: البطاقة تتحوّل إلى تهنئة لا إلى فراغ
+    const before = { ...Store.get().lessons };
+    (window.SEED.units || []).forEach((u) => (u.lessons || []).forEach((id) => Store.completeLesson(id)));
+    const n = Screens.plan(); Store.set({ lessons: before }); return n; }],
+  ['جلسة تركيز', () => Screens.focus({ lesson: 'salutations', subject: 'fr' })],
+  ['جلسة تركيز (درس محذوف)', () => Screens.focus({ lesson: 'لا-يوجد', subject: 'fr' })],
   ['teacher (بصورة)', () => { window.SEED.teachers[0].photo='teachers/x.png'; const n=Screens.teacher({id:'ustaz-sami'}); window.SEED.teachers[0].photo=null; return n; }],
 
   /* بطاقة سؤال بنصوص **حقيقية** خلطت اللغتين وكسرت العرض سابقًا. لم تكن

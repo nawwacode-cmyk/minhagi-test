@@ -261,6 +261,7 @@ window.UI = (function () {
     down:     (s) => svg('<path d="M12 4v11.4"/><path d="m7.9 11.6 4.1 4.1 4.1-4.1"/>'
                        + '<path d="M5 20h14"/>', s),
     check:    (s) => svg('<path d="m5 12.6 4.4 4.4L19 7.4"/>', s),
+    clock:    (s) => svg('<circle cx="12" cy="12" r="9.2"/><path d="M12 6.8V12l3.4 2"/>', s),
     // مثلّث مصمت بزوايا مدوّرة — مثلّث حادّ الزوايا يبدو خشنًا بجانب دوائر ناعمة
     play:     (s) => svg('<path d="M9 6.9v10.2a1 1 0 0 0 1.53.85l8.2-5.1a1 1 0 0 0 0-1.7l-8.2-5.1A1 1 0 0 0 9 6.9Z"/>',
                          s, { fill: 'currentColor', stroke: 'currentColor', width: 1.2 }),

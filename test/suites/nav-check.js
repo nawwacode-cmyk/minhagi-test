@@ -150,6 +150,17 @@ function hwBack() {
   bootAt({ name: 'teacher', params: { id: 'ustaz-sami' } });
   App.back();
   ok('وملفّ الأستاذ يرجع إلى الرئيسية', shown?.name === 'home', shown?.name);
+
+  bootAt({ name: 'plan', params: {} });
+  App.back();
+  ok('و«خطّتي» ترجع إلى الرئيسية', shown?.name === 'home', shown?.name);
+
+  /* جلسة التركيز تُفتح من الدرس، فالرجوع منها يعود إليه لا إلى الرئيسية —
+     وإلّا خرج الطالب من درسه لأنه جرّب مؤقّتًا. */
+  bootAt({ name: 'focus', params: { lesson: 'salutations', subject: 'fr' } });
+  App.back();
+  ok('وجلسة التركيز ترجع إلى درسها', shown?.name === 'lesson', shown?.name);
+  ok('إلى الدرس نفسه لا غيره', shown?.params?.id === 'salutations', shown?.params?.id);
 }
 
 // =============================================================================

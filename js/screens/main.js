@@ -47,6 +47,24 @@ window.Screens = window.Screens || {};
     const s = Store.get();
     const teachers = SEED.teachers || [];
     const subjectName = (code) => (SEED.subjects || []).find((x) => x.id === code)?.name || code;
+    const subjects = (SEED.subjects || []).filter((x) => x.entitled);
+    const posts = SEED.banners || [];
+
+    /* --- الدرس التالي ------------------------------------------------------
+       ما حالته `doing` أوّلًا: الطالب تركه في منتصفه فهو أصدق جواب لسؤال
+       «وين كنت واقف». وإلّا فأوّل درس لم يُنجَز بترتيب المنهاج. */
+    const ordered = subjects
+      .flatMap((sub) => (SEED.units || []).filter((u) => u.subject === sub.id))
+      .flatMap((u) => (u.lessons || []).map((id) => ({ id, unit: u })));
+    const nextEntry = ordered.find((x) => s.lessons[x.id] === 'doing')
+      || ordered.find((x) => s.lessons[x.id] !== 'done');
+    const nextLesson = nextEntry && SEED.lessons[nextEntry.id];
+
+    // نسبة الإنجاز الكلّية — متوسط المواد المشترَك بها لا مادةً مفترَضة
+    const overall = subjects.length
+      ? Math.round(subjects.reduce((a, x) => a + Store.subjectProgress(x.id).percent, 0) / subjects.length)
+      : 0;
+    const bestExam = Math.max(0, ...Object.values(s.exams || {}).map((e) => e.best || 0));
 
     return h('div.screen',
       /* لا ترويسة: التحية والزرّان أوّلُ **محتوى الصفحة** داخل منطقة التمرير،
@@ -54,6 +72,60 @@ window.Screens = window.Screens || {};
          ولا هامش سالب ولا مستمع تمرير. */
       h('div.screen__body', { style: 'padding:14px 16px 8px' },
         C.homeHeader(C.greeting(), s.username || 'زائر'),
+
+        /* تنبيه الاشتراك **شرطيّ**: تحت أسبوعين فقط. تنبيهٌ دائم يصير أثاثًا
+           لا يُقرأ، فحين يقترب الانتهاء فعلًا لا يراه أحد. */
+        s.activated && s.daysLeft > 0 && s.daysLeft <= 14
+          ? h('button.warnbar', { onclick: () => App.go('account') },
+              icon.warn(17),
+              h('span.grow', `اشتراكك ينتهي بعد ${ar(s.daysLeft)} يومًا`),
+              icon.fwd(15, { width: 2.4 }))
+          : null,
+
+        /* أهمّ عنصر في الصفحة: الطالب يفتح التطبيق ومعه سؤال واحد. بلا مادة
+           مشترَك بها لا بطاقة — لا نعرض زرًّا يقود إلى لا شيء. */
+        nextLesson
+          ? h('div', { style: 'margin-top:14px' },
+              C.continueCard({
+                eyebrow: s.lessons[nextEntry.id] === 'doing' ? 'تابِع من حيث وقفت' : 'ابدأ من هنا',
+                title: nextLesson.title,
+                meta: `${subjectName(nextEntry.unit.subject)} · ${nextEntry.unit.title}`,
+                pct: Store.unitProgress(nextEntry.unit).pct,
+                label: s.lessons[nextEntry.id] === 'doing' ? 'تابِع' : 'ابدأ',
+                onclick: () => App.go('lesson', { id: nextEntry.id, subject: nextEntry.unit.subject }),
+              }))
+          : null,
+
+        /* الشريط الثلاثي. أرقامه كلّها محسوبة من التخزين المحلّي، فالصفحة
+           تكتمل بلا إنترنت — وهو وعد التطبيق أصلًا. والأصفار تُعرض كما هي:
+           طالبٌ جديد يرى صفرًا صادقًا لا رقمًا مُجامِلًا. */
+        subjects.length
+          ? h('div.trio', { style: 'margin-top:14px' },
+              h('button.trio__c', { onclick: () => App.go('progress') },
+                h('b', ar(overall) + '٪'), h('small', 'إنجازك')),
+              h('button.trio__c', { onclick: () => App.go('progress') },
+                h('b.trio--ok', ar(bestExam) + '٪'), h('small', 'أفضل امتحان')),
+              h('button.trio__c', { onclick: () => App.go('plan') },
+                h('b.trio--gold', ar(s.daysLeft || 0)), h('small', 'يومًا متبقّيًا')))
+          : null,
+
+        // موادّي بحلقات تقدّم — الحلقة تُقرأ بلمحة والرقم يؤكّدها
+        subjects.length
+          ? h('div',
+              h('div.sec-label.sec-label--row', { style: 'margin-top:20px' },
+                h('span', 'موادّي'),
+                h('button.sec-more', { onclick: () => App.go('subjects') }, 'الكل')),
+              h('div.rail',
+                ...subjects.map((sub) => {
+                  const p = Store.subjectProgress(sub.id);
+                  return h('button.mini', { onclick: () => App.go('course', { subject: sub.id }),
+                                            'aria-label': sub.name },
+                    h('span.ring', { style: `--p:${p.percent}%` },
+                      h('em', ar(p.percent) + '٪')),
+                    h('b', sub.name),
+                    h('small', `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا`));
+                })))
+          : null,
 
         // بطاقة الأستاذ = صورة واحدة مصمَّمة كاملةً باللوحة (الاسم والمادة
         // والخبرة مرسومة داخلها). لا نصّ فوقها من التطبيق: أي نصّ نضعه هنا
@@ -82,6 +154,23 @@ window.Screens = window.Screens || {};
               // غير صالح ويكسر التنقّل بلوحة المفاتيح.
               h('span.tcard__go', icon.fwd(19, { width: 2.6 }))))))
           : h('span'),
+
+        /* مدخلٌ إلى القسم لا نسخةٌ منه: خبران فقط. عرضُ القائمة كاملةً هنا
+           يجعل تبويب «آخر الأخبار» بلا سبب لوجوده. */
+        posts.length
+          ? h('div',
+              h('div.sec-label.sec-label--row', { style: 'margin-top:20px' },
+                h('span', 'آخر الأخبار'),
+                h('button.sec-more', { onclick: () => App.go('news') }, 'الكل')),
+              ...posts.slice(0, 2).map((p) => {
+                const go = bannerGo(p);
+                const img = p.image && Api.publicUrl(p.image);
+                return h('div.nrow' + (go ? '.nrow--tap' : ''), go ? { onclick: go } : {},
+                  img ? h('img.nrow__i', { src: img, alt: '', loading: 'lazy' })
+                      : h('span.nrow__i.nrow__i--blank', icon.news(17)),
+                  h('div.grow', h('b', p.title), p.sub ? h('small', p.sub) : null));
+              }))
+          : null,
 
         h('div', { style: 'height:20px' }),
       ),

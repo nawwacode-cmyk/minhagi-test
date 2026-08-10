@@ -185,6 +185,9 @@ window.App = (function () {
       case 'exam':
       case 'result':    return { name: 'course', params: { subject, tab: 'exams' } };
       case 'course':    return { name: 'subjects', params: {} };
+      // جلسة التركيز تُفتح من الدرس، فالرجوع منها يعود إليه
+      case 'focus':     return { name: 'lesson', params: { id: params.lesson, subject } };
+      case 'plan':      return { name: 'home', params: {} };
       /* تبويبات الشريط السفلي ترجع إلى الرئيسية، والرئيسية وحدها تُغادر
          التطبيق. ليست هذه مجاراةً لعُرف أندرويد فحسب: «تقدّمي» و«آخر الأخبار»
          تعرضان سهم رجوع في شريط العنوان، وكان يموت بعد تحديث الصفحة — سهمٌ

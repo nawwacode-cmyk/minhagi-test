@@ -304,6 +304,81 @@ img, svg { max-width: 100%; display: block; }
 
 .section-label { padding: 18px 20px 8px; font-size: 13px; font-weight: 600; color: var(--txm); }
 .sec-label { font-size: 12.5px; font-weight: 600; color: var(--txf); letter-spacing: .02em; margin: 4px 0 10px; }
+.sec-label--row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.sec-more {
+  font: inherit; font-size: 11.5px; font-weight: 600; color: var(--acc);
+  background: none; border: 0; cursor: pointer; padding: 2px 4px; border-radius: 8px;
+}
+.sec-more:hover { background: var(--acc-soft); }
+
+/* =============================================================================
+   الرئيسية — الشريط الثلاثي وحلقات المواد وتنبيه الاشتراك
+   ============================================================================= */
+
+/* تنبيه شرطيّ لا دائم: يظهر تحت أسبوعين من انتهاء الاشتراك فقط. */
+.warnbar {
+  display: flex; align-items: center; gap: 9px; width: 100%; margin-top: 14px;
+  padding: 10px 13px; border-radius: 14px; border: 0; cursor: pointer;
+  font: inherit; font-size: 12.5px; text-align: start;
+  background: var(--gold-soft); color: var(--gold);
+}
+.warnbar .grow { font-weight: 600; }
+
+.trio {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  background: var(--surf); border-radius: 17px; overflow: hidden; box-shadow: var(--sh-2);
+}
+.trio__c {
+  padding: 11px 5px; text-align: center; background: none; border: 0; cursor: pointer;
+  font: inherit; color: inherit; border-inline-start: 1px solid var(--line);
+}
+.trio__c:first-child { border-inline-start: 0; }
+.trio__c:hover { background: var(--surf2); }
+.trio__c b {
+  display: block; font-size: 17px; font-weight: 600; color: var(--acc);
+  font-variant-numeric: tabular-nums;
+}
+.trio__c small { font-size: 10px; color: var(--txf); }
+.trio--ok { color: var(--ok) !important; }
+.trio--gold { color: var(--gold) !important; }
+
+/* شريط أفقي: المواد بحلقات تقدّم. الحلقة تُقرأ بلمحة والرقم يؤكّدها. */
+.rail { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.rail::-webkit-scrollbar { display: none; }
+.mini {
+  flex: none; width: 108px; background: var(--surf); border-radius: 16px;
+  padding: 11px 9px; box-shadow: var(--sh-2); text-align: center;
+  border: 0; cursor: pointer; font: inherit; color: inherit;
+  transition: transform var(--dur) var(--ease);
+}
+.mini:hover { transform: translateY(-2px); }
+.mini b { font-size: 11.5px; font-weight: 600; display: block; }
+.mini small { font-size: 9.5px; color: var(--txf); }
+/* `conic-gradient` لا صورة ولا SVG: حلقةٌ بسطر واحد تتبع اللون الحالي وتتكيّف
+   مع الوضع الليلي بلا أصلٍ ثانٍ يُحمَّل. */
+.ring {
+  width: 42px; height: 42px; border-radius: 50%; margin: 0 auto 7px;
+  display: grid; place-items: center;
+  background: conic-gradient(var(--acc) var(--p, 0%), var(--surf3) 0);
+}
+.ring em {
+  width: 31px; height: 31px; border-radius: 50%; background: var(--surf);
+  display: grid; place-items: center; font-style: normal;
+  font-size: 10px; font-weight: 600; color: var(--acc-tx);
+  font-variant-numeric: tabular-nums;
+}
+
+/* صفّ خبر مختصر على الرئيسية — مدخلٌ إلى القسم لا نسخةٌ منه */
+.nrow {
+  display: flex; gap: 10px; align-items: center; background: var(--surf);
+  border-radius: 15px; padding: 8px; box-shadow: var(--sh-2); margin-bottom: 8px;
+}
+.nrow--tap { cursor: pointer; }
+.nrow--tap:hover { background: var(--surf2); }
+.nrow__i { width: 50px; height: 50px; border-radius: 11px; object-fit: cover; flex: none; }
+.nrow__i--blank { display: grid; place-items: center; background: var(--acc-soft); color: var(--acc); }
+.nrow b { font-size: 12.5px; font-weight: 600; display: block; line-height: 1.5; }
+.nrow small { font-size: 10.5px; color: var(--txf); }
 
 /* بطاقة «تابع من حيث توقفت» */
 .next-eyebrow { font-size: 11.5px; color: var(--txm); margin-bottom: 4px; }
@@ -1429,3 +1504,115 @@ img, svg { max-width: 100%; display: block; }
   50%      { stroke-dashoffset: 164.93; transform: translate(100px,100px) rotate(-113deg); }
   75%, to  { stroke-dashoffset: 439.82; transform: translate(100px,100px) rotate(112deg); }
 }
+
+/* =============================================================================
+   خطّتي — الروزنامة وهدف اليوم والوتيرة
+
+   الروزنامة **عرضٌ لا إدخال**: لا حقل ولا سحب ولا جدولة. الطالب لا يُدخل
+   شيئًا، والخانة الخضراء أثرُ دراسته لا شيءٌ يضعه بيده.
+   ============================================================================= */
+.plan { display: grid; gap: 16px; min-width: 0; }
+.plan__main, .plan__side { display: grid; gap: 12px; align-content: start; min-width: 0; }
+@media (min-width: 900px) {
+  .plan { grid-template-columns: 1.15fr .85fr; align-items: start; }
+}
+
+.cal__h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.cal__h b { font-size: 13.5px; font-weight: 600; }
+.cal__h small { font-size: 11px; color: var(--txf); }
+.cal__h small.is-met { color: var(--ok); font-weight: 600; }
+
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.cal__w { font-size: 9px; color: var(--txf); padding-bottom: 3px; }
+.cal__d {
+  aspect-ratio: 1; border-radius: 9px; display: grid; place-items: center;
+  font-size: 10.5px; background: var(--surf2); color: var(--txf);
+  font-variant-numeric: tabular-nums;
+}
+.cal__d.is-did { background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+/* «اليوم» يسبق «درستَ فيه» في الأسبقية: الطالب يبحث عن موضعه أوّلًا */
+.cal__d.is-today {
+  background: var(--acc); color: var(--on-acc); font-weight: 600;
+  box-shadow: 0 0 0 3px var(--acc-soft);
+}
+.cal__lg { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; font-size: 9.5px; color: var(--txf); }
+.cal__lg i { width: 8px; height: 8px; border-radius: 3px; display: inline-block;
+             margin-inline-end: 4px; vertical-align: middle; }
+.cal__lg i.is-did { background: var(--ok); }
+.cal__lg i.is-today { background: var(--acc); }
+
+/* هدف اليوم — لوحٌ مصمت: هو الجواب على «شو لازم أعمل اليوم» */
+.goal {
+  border-radius: 18px; padding: 14px; color: #fff; position: relative; overflow: hidden;
+  background: linear-gradient(125deg, var(--acc-deep), var(--acc) 62%, var(--acc-lite));
+  box-shadow: var(--sh-2);
+}
+.goal::after {
+  content: ""; position: absolute; inset-inline-end: -42px; bottom: -54px;
+  width: 130px; height: 130px; border-radius: 50%; background: rgba(255,255,255,.11);
+}
+.goal--done { background: linear-gradient(125deg, #1F6B4C, var(--ok) 70%); }
+.goal__k { font-size: 10.5px; opacity: .86; letter-spacing: .06em; position: relative; }
+.goal__t { font-size: 15px; font-weight: 600; margin: 2px 0 10px; position: relative; }
+.goal__s { font-size: 11.5px; opacity: .88; margin-top: 8px; position: relative; line-height: 1.6; }
+
+.task {
+  display: flex; align-items: center; gap: 9px; width: 100%; position: relative;
+  background: rgba(255,255,255,.15); border: 0; cursor: pointer; color: #fff;
+  border-radius: 11px; padding: 8px 10px; margin-bottom: 5px; font: inherit; text-align: start;
+}
+.task:hover { background: rgba(255,255,255,.24); }
+.task em {
+  width: 17px; height: 17px; border-radius: 5px; flex: none; font-style: normal;
+  border: 1.6px solid rgba(255,255,255,.7); display: grid; place-items: center;
+}
+.task.is-done em { background: #fff; color: var(--acc-tx); border-color: #fff; }
+.task.is-done .grow { opacity: .62; text-decoration: line-through; }
+.task .grow { font-size: 12px; }
+.task small { font-size: 10px; opacity: .84; flex: none; font-variant-numeric: tabular-nums; }
+
+/* الوتيرة: الاختيار الوحيد المطلوب من الطالب — نقرةٌ لا جدول */
+.pace { display: flex; gap: 6px; }
+.pace__c {
+  flex: 1; text-align: center; font: inherit; font-size: 11.5px; padding: 8px 4px;
+  border-radius: 12px; border: 1px solid var(--brd); cursor: pointer;
+  background: var(--surf); color: var(--txf);
+}
+.pace__c.is-on { background: var(--acc); color: var(--on-acc); font-weight: 600; border-color: transparent; }
+
+.proj {
+  display: flex; gap: 9px; align-items: flex-start; line-height: 1.65;
+  background: var(--ok-soft); color: var(--ok);
+  border-radius: 13px; padding: 11px 13px; font-size: 11.5px;
+}
+.proj--tight { background: var(--gold-soft); color: var(--gold); }
+
+/* الهدف الأسبوعي — متسامح لا عقابيّ: يُقاس الأسبوع كلّه ولا يُهدَم بيوم */
+.week { display: flex; gap: 5px; justify-content: space-between; }
+.week__d { flex: 1; text-align: center; }
+.week__d i { display: block; height: 34px; border-radius: 10px; background: var(--surf2); margin-bottom: 4px; }
+.week__d.is-on i { background: var(--ok); }
+.week__d.is-now i { box-shadow: inset 0 0 0 2px var(--acc); }
+.week__d small { font-size: 9px; color: var(--txf); }
+
+/* =============================================================================
+   جلسة التركيز — مؤقّت على الجهاز وحده، بلا خادم ولا جدول
+   ============================================================================= */
+.focus {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px 16px; gap: 0;
+}
+.dial {
+  width: 190px; height: 190px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(var(--acc) var(--p, 0%), var(--surf3) 0);
+  box-shadow: var(--sh-3);
+}
+.dial__in {
+  width: 160px; height: 160px; border-radius: 50%; background: var(--surf);
+  display: grid; place-items: center; align-content: center; gap: 0;
+}
+.dial__t { font-size: 38px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.dial__s { font-size: 10.5px; color: var(--txf); }
+.focus__l { text-align: center; margin-top: 18px; }
+.focus__l b { font-size: 13px; font-weight: 600; display: block; }
+.focus__l small { font-size: 10.5px; color: var(--txf); }

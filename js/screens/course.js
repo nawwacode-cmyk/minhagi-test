@@ -480,7 +480,13 @@ window.Screens = window.Screens || {};
                 btn.replaceChildren(...label(Store.get().downloaded.includes(l.id)));
               });
               return btn;
-            })()),
+            })(),
+            /* جلسة التركيز تبدأ من هنا لا من الشريط السفلي: تبويبٌ مستقلّ
+               يُفتح مرّةً للفضول ثم يُنسى، أمّا زرٌّ في الدرس فيقع في لحظة
+               الحاجة إليه — وهي لحظة فتح الدرس بالضبط. */
+            h('button.btn.btn--secondary.btn--sm', {
+              onclick: () => App.go('focus', { lesson: l.id, subject: subjectId }),
+            }, icon.clock(16), 'تركيز')),
           h('div.card', UI.prose(l.body))),
 
         h('aside.dash__side',

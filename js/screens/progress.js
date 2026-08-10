@@ -10,7 +10,7 @@
 window.Screens = window.Screens || {};
 
 (function () {
-  const { h, fr, ar, ring, bar } = UI;
+  const { h, fr, ar, ring, bar, icon } = UI;
 
   Screens.progress = () => {
     const s = Store.get();
@@ -58,7 +58,13 @@ window.Screens = window.Screens || {};
     };
 
     return h('div.screen',
-      C.appbar({ title: 'تقدّمي', sub: `عبر ${ar(entitledSubjects.length)} مادة`, onBack: () => App.back() }),
+      /* «تقدّمي» يقيس ما مضى و«خطّتي» ما بقي — وجهان لسؤال واحد، فالطريق
+         بينهما هنا. وبدونه لا تُبلَغ «خطّتي» إلّا من خانة واحدة في الرئيسية. */
+      C.appbar({ title: 'تقدّمي', sub: `عبر ${ar(entitledSubjects.length)} مادة`,
+                 onBack: () => App.back(),
+                 right: h('button.iconbtn.iconbtn--ghost', {
+                   onclick: () => App.go('plan'), 'aria-label': 'خطّتي',
+                 }, icon.clock(20)) }),
       h('div.screen__body', { style: 'padding:16px' },
         h('div.wide', ...entitledSubjects.map(subjectCard)),
       ),
