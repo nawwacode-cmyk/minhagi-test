@@ -488,17 +488,22 @@ window.Screens = window.Screens || {};
               onclick: () => App.go('focus', { lesson: l.id, subject: subjectId }),
             }, icon.clock(16), 'تركيز')),
 
-          /* الشرح: ملفّ PDF مصمَّم إن وُجد، وإلّا فالنصّ القديم.
-             لا يُحذف النصّ ولا يُستبدل بفراغ — الانتقال يجري درسًا درسًا،
-             فلا لحظةَ يفقد فيها طالبٌ شرحَ درسه. */
-          l.doc && s.online
-            ? Doc.viewer(l.doc, { title: l.title })
-            : l.doc
-              ? h('div.card.card--pad.doc__off',
+          /* الشرح: نصّ المحرِّر أو ملفّ PDF — **باختيار المحرِّر** لا باستنتاج
+             من وجود الملفّ. كلاهما محفوظ دائمًا، والتبديل بينهما لا يُتلف شيئًا.
+
+             و`l.doc` شرطٌ ثانٍ لا زائد: وضعُ `pdf` بلا ملفٍّ مربوط (سهوٌ في
+             اللوحة، أو ملفٌّ حُذف) يجب أن يُظهر النصّ لا شاشةً فارغة — الطالب
+             لا يدفع ثمن خطأ إدخال. */
+          (() => {
+            const wantsPdf = l.mode === 'pdf' && l.doc;
+            if (!wantsPdf) return h('div.card', UI.prose(l.body));
+            return s.online
+              ? Doc.viewer(l.doc, { title: l.title })
+              : h('div.card.card--pad.doc__off',
                   icon.wifiOff(20),
                   h('div', h('b', 'الشرح يحتاج اتصالًا'),
-                    h('span', 'افتح الدرس وأنت متصل ليُحمَّل الشرح المصوَّر.')))
-              : h('div.card', UI.prose(l.body))),
+                    h('span', 'افتح الدرس وأنت متصل ليُحمَّل الشرح المصوَّر.')));
+          })()),
 
         h('aside.dash__side',
           h('div.card.card--pad',

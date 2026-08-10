@@ -42,12 +42,26 @@ const cases = [
   /* درسٌ شرحه PDF — الفرع الجديد. والفرع المقابل (بلا اتصال) يظهر رسالةً
      صريحة لا فراغًا: الشرح خلف رابطٍ موقّع فلا يعمل أوفلاين بعد. */
   ['درس بشرح PDF', () => { const l = window.SEED.lessons['salutations'];
-    l.doc = 'doc-1'; const n = Screens.lesson({ id: 'salutations', subject: 'fr' });
-    delete l.doc; return n; }],
-  ['درس بشرح PDF (بلا اتصال)', () => { const l = window.SEED.lessons['salutations'];
-    l.doc = 'doc-1'; Store.set({ online: false });
+    l.doc = 'doc-1'; l.mode = 'pdf';
     const n = Screens.lesson({ id: 'salutations', subject: 'fr' });
-    Store.set({ online: true }); delete l.doc; return n; }],
+    delete l.doc; delete l.mode; return n; }],
+  ['درس بشرح PDF (بلا اتصال)', () => { const l = window.SEED.lessons['salutations'];
+    l.doc = 'doc-1'; l.mode = 'pdf'; Store.set({ online: false });
+    const n = Screens.lesson({ id: 'salutations', subject: 'fr' });
+    Store.set({ online: true }); delete l.doc; delete l.mode; return n; }],
+  /* ملفٌّ مرفوع والوضع «نصّ»: المحرِّر يجهّز شرحًا ولمّا يقرّر عرضه بعد.
+     يجب أن يرى الطالب النصّ لا الملفّ — وهذا هو الفرق بين قرارٍ صريح
+     وقاعدةٍ ضمنية «إن وُجد ملفّ فهو الفائز». */
+  ['درس بملفّ مرفوع لكن الوضع نصّ', () => { const l = window.SEED.lessons['salutations'];
+    l.doc = 'doc-1'; l.mode = 'text';
+    const n = Screens.lesson({ id: 'salutations', subject: 'fr' });
+    delete l.doc; delete l.mode; return n; }],
+  /* الوضع «pdf» بلا ملفّ — سهوٌ في اللوحة أو ملفٌّ حُذف. الطالب يرى النصّ
+     لا شاشةً فارغة: لا يدفع ثمن خطأ إدخال. */
+  ['درس وضعه pdf بلا ملفّ', () => { const l = window.SEED.lessons['salutations'];
+    l.mode = 'pdf';
+    const n = Screens.lesson({ id: 'salutations', subject: 'fr' });
+    delete l.mode; return n; }],
   /* تنبيه الاشتراك **شرطيّ**، والتجهيزات فيها ٢٨٣ يومًا — فالفرع لا يُرسم
      أبدًا ما لم نضيّق المدّة هنا. فرعٌ لا يُرسم في أي فحص هو فرعٌ يُكتشف عطله
      على طالبٍ يوشك اشتراكه على الانتهاء، وهو أسوأ وقت لاكتشافه. */
@@ -153,6 +167,38 @@ function ok2(n, c, x = '') { if (c) console.log('ok   ' + n); else { bad++; cons
   ok2('بل مقتطفٌ من صفّين بطريقٍ إلى القسم',
       (homeHtml.match(/class="nrow[ "]/g) || []).length === 2 && /sec-more/.test(homeHtml),
       String((homeHtml.match(/class="nrow[ "]/g) || []).length));
+
+  /* أيّ شرحٍ يراه الطالب — أربع تركيبات، والرسم وحده لا يفحصها: كلّها تُبنى
+     بلا استثناء وهي تعرض الشيء الخطأ. القاعدة: قرار المحرِّر (`mode`) هو
+     الحَكَم، و`doc` شرطٌ ثانٍ يمنع شاشةً فارغة عند سهوٍ في اللوحة. */
+  {
+    const lesson = window.SEED.lessons['salutations'];
+    const draw = (mode, doc, online = true) => {
+      if (mode) lesson.mode = mode; else delete lesson.mode;
+      if (doc) lesson.doc = doc; else delete lesson.doc;
+      Store.set({ online });
+      const html = Screens.lesson({ id: 'salutations', subject: 'fr' }).outerHTML;
+      delete lesson.mode; delete lesson.doc; Store.set({ online: true });
+      return { pdf: /class="doc"/.test(html), text: /class="prose/.test(html),
+               off: /doc__off/.test(html) };
+    };
+
+    let r = draw('pdf', 'doc-1');
+    ok2('وضع pdf مع ملفّ ⇒ العارض لا النصّ', r.pdf && !r.text);
+
+    r = draw('text', 'doc-1');
+    ok2('وضع نصّ ومعه ملفّ مرفوع ⇒ النصّ (المحرِّر لم يقرّر عرضه بعد)',
+        r.text && !r.pdf);
+
+    r = draw('pdf', null);
+    ok2('وضع pdf بلا ملفّ ⇒ النصّ لا شاشة فارغة', r.text && !r.pdf);
+
+    r = draw(null, null);
+    ok2('وبلا وضعٍ محفوظ (جهازٌ زامن قبل الهجرة) ⇒ النصّ', r.text && !r.pdf);
+
+    r = draw('pdf', 'doc-1', false);
+    ok2('ووضع pdf دون اتصال ⇒ رسالة صريحة لا فراغ', r.off && !r.pdf);
+  }
 
   const newsHtml = Screens.news().outerHTML;
   ok2('وكل خبرٍ في القسم يفتح صفحته', /class="item"/.test(newsHtml));
