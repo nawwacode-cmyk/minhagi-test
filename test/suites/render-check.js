@@ -170,9 +170,8 @@ function ok2(n, c, x = '') { if (c) console.log('ok   ' + n); else { bad++; cons
       !/class="promo/.test(homeHtml) && !/newsfeed/.test(homeHtml) && !/class="feat/.test(homeHtml));
   /* `class="nrow[ "]` لا `class="nrow` وحدها: الصورة داخل الصفّ تحمل
      `nrow__i` التي تبدأ بالسلسلة نفسها، فيتضاعف العدّ الساذج. */
-  ok2('بل مقتطفٌ من صفّين بطريقٍ إلى القسم',
-      (homeHtml.match(/class="nrow[ "]/g) || []).length === 2 && /sec-more/.test(homeHtml),
-      String((homeHtml.match(/class="nrow[ "]/g) || []).length));
+  ok2('بل كومةٌ محدودة بطريقٍ إلى القسم',
+      /class="nstack"/.test(homeHtml) && /sec-more/.test(homeHtml));
 
   /* أيّ شرحٍ يراه الطالب — أربع تركيبات، والرسم وحده لا يفحصها: كلّها تُبنى
      بلا استثناء وهي تعرض الشيء الخطأ. القاعدة: قرار المحرِّر (`mode`) هو

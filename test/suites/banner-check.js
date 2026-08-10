@@ -235,9 +235,11 @@ for (const n of [0, 1, 2, 7, 40]) {
   const html = Screens.home().outerHTML;
   ok('«الرئيسية» بلا شريط بانر رغم سبعة أخبار',
      !/class="promo/.test(html) && !/class="feat/.test(html) && !/newsfeed/.test(html));
-  ok('ومقتطفٌ من صفّين لا أكثر',
-     (html.match(/class="nrow[ "]/g) || []).length === 2,
-     String((html.match(/class="nrow[ "]/g) || []).length));
+  /* كومةٌ من ثلاث بطاقات ظاهرة من عشرة — لا صفوف. عرضُ العشرة كلّها يجعل
+     تبويب «آخر الأخبار» بلا سبب لوجوده. */
+  ok('وكومةٌ بثلاث بطاقات ظاهرة',
+     (html.match(/class="scard"/g) || []).length === 3,
+     String((html.match(/class="scard"/g) || []).length));
   ok('وطريقٌ إلى القسم', /sec-more/.test(html));
   ok('وبقيّة «الرئيسية» تُبنى كالمعتاد', /hgreet/.test(html) && /sec-label/.test(html));
 
@@ -245,6 +247,65 @@ for (const n of [0, 1, 2, 7, 40]) {
   ok('وبلا أخبار يختفي القسم من الرئيسية بلا عنوانٍ يتيم',
      !/آخر الأخبار/.test(Screens.home().outerHTML));
 }
+
+
+// =============================================================================
+// ٩) كومة الأخبار في «الرئيسية»
+//
+// الفكرة من مكوّن React بـframer-motion، مُعادةٌ بفانيلا JS كسبينر القلم.
+// وحالاتها الحدّية هي التي تكسرها: خبرٌ واحد، وأقلّ من ثلاثة، وأكثر من عشرة،
+// ومن طلب تقليل الحركة.
+// =============================================================================
+{
+  const home = () => Screens.home().outerHTML;
+  const cards = (html) => (html.match(/class="scard"/g) || []).length;
+  const realInterval = global.setInterval;
+  const realMatch = global.matchMedia;
+  let armed = 0;
+  global.setInterval = (...a) => { armed++; return realInterval(...a); };
+
+  window.SEED.banners = mkB(14);
+  let html = home();
+  ok('١٤ خبرًا ⇒ ثلاث بطاقات ظاهرة', cards(html) === 3, String(cards(html)));
+  // عشرة لا أربعة عشر: المطلوب «أحدث عشرة»
+  ok('والعدّاد يقول عشرة', /١٠ أخبار/.test(html));
+
+  /* الأبعد أوّلًا في الـDOM فالأقرب يعلوه بلا z-index لكل بطاقة. والواجهة
+     هي **آخر عقدة** — وعليها يعتمد التبديل، فانقلاب الترتيب يجعل الكومة
+     تُخرج البطاقة الخطأ. */
+  const stack = html.slice(html.indexOf('nstack__w'));
+  const order = [...stack.matchAll(/--p:(\d)"/g)].map((m) => m[1]).slice(0, 3).join(',');
+  ok('وترتيبها من الأبعد إلى الأقرب', order === '2,1,0', order);
+
+  // الخلفيتان خارج مسار اللمس ولوحة المفاتيح: زخرفةٌ لا هدف
+  ok('والخلفيتان مخفيّتان عن قارئ الشاشة',
+     (html.match(/aria-hidden="true"/g) || []).length >= 2);
+
+  armed = 0; window.SEED.banners = mkB(5); home();
+  ok('وأكثر من خبر ⇒ مؤقّتٌ واحد', armed === 1, String(armed));
+
+  armed = 0; window.SEED.banners = mkB(1);
+  html = home();
+  ok('وخبرٌ واحد ⇒ بطاقة واحدة', cards(html) === 1, String(cards(html)));
+  ok('ولا مؤقّت له', armed === 0, String(armed));
+  ok('ولا زرّ تالٍ', !/nstack__b/.test(html));
+
+  armed = 0; window.SEED.banners = mkB(2);
+  ok('وخبران ⇒ بطاقتان', cards(home()) === 2);
+
+  /* من طلب تقليل الحركة: الكومة ساكنة ولا مؤقّت. تجاهلُ هذا الطلب ليس
+     تفصيلًا تجميليًّا — الحركة التلقائية تُدوّخ بعض المستخدمين فعلًا. */
+  armed = 0;
+  global.matchMedia = (q) => ({ matches: /prefers-reduced-motion/.test(q), addEventListener() {} });
+  window.SEED.banners = mkB(6); home();
+  ok('ومن طلب تقليل الحركة لا مؤقّت له', armed === 0, String(armed));
+
+  global.matchMedia = realMatch;
+  global.setInterval = realInterval;
+}
+
+console.log('\n' + (bad ? `${bad} فشل` : 'قسم الأخبار سليم'));
+process.exit(bad ? 1 : 0);
 
 console.log('\n' + (bad ? `${bad} فشل` : 'قسم الأخبار سليم'));
 process.exit(bad ? 1 : 0);

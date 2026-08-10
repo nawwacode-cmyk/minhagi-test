@@ -36,6 +36,117 @@ window.Screens = window.Screens || {};
     return null;
   }
 
+  /* ===========================================================================
+     كومة بطاقات الأخبار — أحدث عشرة
+
+     الفكرة من مكوّن React يعتمد framer-motion، وأُعيد بناؤها بفانيلا JS
+     وانتقالات CSS كما فُعل بسبينر القلم: المشروع بلا خطوة بناء، وإدخال مكتبة
+     رسوم لأجل كومةٍ واحدة كلفةٌ يحملها كل طالب في كل فتحة.
+
+     ثلاث بطاقات ظاهرة من عشرة. الموضع `--p` (٠·١·٢) هو كل شيء: CSS يترجمه
+     إلى إزاحةٍ ومقياسٍ وشفافية، وJS لا يفعل غير تغيير الرقم — فالحركة كلّها
+     على المُركِّب (transform/opacity) ولا تُعيد تخطيط الصفحة.
+
+     ثلاثة قيود تحكمها:
+     ١. النقر على الواجهة يفتح خبرها، ولا يُبدّل — التبديل زرٌّ مستقلّ.
+        بطاقةٌ تتحرّك تحت الإصبع تجعل الطالب يفتح خبرًا لم يقصده.
+     ٢. الدورة تقف عند مغادرة العقدة الصفحة، وعند `prefers-reduced-motion`.
+     ٣. بخبرٍ واحد لا دورة ولا زرّ: حركةٌ بلا وجهة ثانية تشويش.
+     ========================================================================= */
+  const STACK_MS = 5000;
+  const STACK_SHOWN = 3;
+
+  function newsStack(posts) {
+    if (!posts.length) return null;
+
+    const box = h('div.nstack');
+    const wrap = h('div.nstack__w');
+    let top = 0;
+    let timer = null;
+    let busy = false;
+
+    const calm = () => {
+      try { return matchMedia('(prefers-reduced-motion: reduce)').matches; }
+      catch { return false; }
+    };
+
+    const cardEl = (p, pos) => {
+      const img = p.image && Api.publicUrl(p.image);
+      return h('button.scard', {
+        style: `--p:${pos}`, 'aria-hidden': pos ? 'true' : null,
+        // الخلفية لا تُنقر: هي زخرفةٌ خلف الواجهة لا هدفٌ مستقلّ
+        tabIndex: pos ? -1 : 0,
+        onclick: () => { if (!pos) App.go('post', { id: p.id }); },
+      },
+        img ? h('img.scard__i', { src: img, alt: '', loading: 'lazy' })
+            : h('span.scard__i.scard__i--blank', icon.news(22)),
+        h('span.scard__b',
+          h('span.scard__t', p.title),
+          h('span.scard__m', [since(p.at), CATS[p.category]].filter(Boolean).join(' · '))));
+    };
+
+    function draw() {
+      const n = Math.min(STACK_SHOWN, posts.length);
+      // الأبعد أوّلًا في الـDOM: الأقرب يعلوه بلا z-index لكل بطاقة
+      const nodes = [];
+      for (let k = n - 1; k >= 0; k--) nodes.push(cardEl(posts[(top + k) % posts.length], k));
+      wrap.replaceChildren(...nodes);
+    }
+
+    function advance() {
+      if (busy || posts.length < 2) return;
+      busy = true;
+      /* الواجهة هي **آخر عقدة** لا نتيجةَ بحثٍ في سمة النمط: `draw` تضع
+         الأبعد أوّلًا، والبحث بـ`[style*="--p:0"]` يكسره أوّل تغييرٍ في
+         التنسيق (مسافة بعد النقطتين مثلًا) بلا أن يُخطئ أحد. */
+      const front = wrap.lastElementChild;
+      if (!front) { busy = false; return; }
+
+      /* الخروج ثم إعادة الرسم: البطاقة المغادِرة تُصنَّف `is-out` فتنزلق
+         وتتلاشى، والبقيّة تتقدّم بتغيّر `--p` وحده. وبعد انتهاء الحركة
+         يُعاد البناء — لا ننتظر `transitionend` وحده لأنه لا يُطلق إن كانت
+         الحركة معطَّلة، فيتجمّد التبديل إلى الأبد. */
+      front.classList.add('is-out');
+      [...wrap.children].forEach((el) => {
+        if (el === front) return;
+        const p = Number(el.style.getPropertyValue('--p')) - 1;
+        el.style.setProperty('--p', String(p));
+      });
+
+      setTimeout(() => {
+        top = (top + 1) % posts.length;
+        draw();
+        busy = false;
+      }, calm() ? 0 : 320);
+    }
+
+    function arm() {
+      clearInterval(timer);
+      if (posts.length < 2 || calm()) return;
+      timer = setInterval(() => {
+        // غادرت الصفحة: لا شيء ينظّف عند تبديل الشاشة، فبلا هذا يبقى مؤقّتٌ
+        // يعمل إلى الأبد لكل زيارةٍ للرئيسية.
+        if (!box.isConnected) { clearInterval(timer); return; }
+        advance();
+      }, STACK_MS);
+    }
+
+    draw();
+    box.append(wrap);
+
+    if (posts.length > 1) {
+      box.append(h('div.nstack__f',
+        h('span.nstack__n', `${ar(posts.length)} أخبار`),
+        h('button.nstack__b', {
+          'aria-label': 'الخبر التالي',
+          onclick: () => { advance(); arm(); },   // نقرةٌ يدوية تُعيد ضبط المؤقّت
+        }, icon.fwd(16))));
+    }
+
+    arm();
+    return box;
+  }
+
   // --- ٥. الرئيسية (اكتشاف) -----------------------------------------------------
   // «الرئيسية» واجهة تعريفية منفصلة عن «موادّي» (Screens.subjects أدناه) التي
   // تحمل لوحة الدراسة الفعلية. كل نصّ هنا دائم وصادق — لا عروض مؤقّتة.
@@ -162,14 +273,7 @@ window.Screens = window.Screens || {};
               h('div.sec-label.sec-label--row', { style: 'margin-top:20px' },
                 h('span', 'آخر الأخبار'),
                 h('button.sec-more', { onclick: () => App.go('news') }, 'الكل')),
-              ...posts.slice(0, 2).map((p) => {
-                const go = bannerGo(p);
-                const img = p.image && Api.publicUrl(p.image);
-                return h('div.nrow' + (go ? '.nrow--tap' : ''), go ? { onclick: go } : {},
-                  img ? h('img.nrow__i', { src: img, alt: '', loading: 'lazy' })
-                      : h('span.nrow__i.nrow__i--blank', icon.news(17)),
-                  h('div.grow', h('b', p.title), p.sub ? h('small', p.sub) : null));
-              }))
+              newsStack(posts.slice(0, 10)))
           : null,
 
         h('div', { style: 'height:20px' }),
