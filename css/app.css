@@ -1682,6 +1682,9 @@ img, svg { max-width: 100%; display: block; }
 .doc__bar {
   display: flex; align-items: center; gap: 4px; padding: 8px 10px;
   background: var(--surf2); border-bottom: 1px solid var(--line); flex: none;
+  /* يلتصق أعلى الشاشة ما دام الشرح معروضًا: بلا صندوق تمرير داخلي صار هو
+     ما يُبقي التكبير ورقم الصفحة في متناول اليد مهما طال الملفّ. */
+  position: sticky; top: 0; z-index: 2;
 }
 .doc__t { font-size: 12.5px; font-weight: 600; min-width: 0;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1694,24 +1697,26 @@ img, svg { max-width: 100%; display: block; }
 }
 .doc__b:hover { background: var(--acc-soft); }
 
-/* التمرير داخل العارض لا في الصفحة: الشرح قد يكون عشرين صفحة، فتركُه يمتدّ
-   في الصفحة يدفن التمارين والفيديو تحته بلا طريقة للوصول إليها. */
+/* الصفحات تتدفّق مع الصفحة لا في صندوقٍ يتمرّر داخلها.
+
+   كان الصندوق بارتفاع `78vh` وتمرير خاصّ به: تمريرٌ داخل تمرير على الهاتف —
+   يلتقط الإصبعُ أحدَهما بلا قصد، فتبدو الصفحات مقطوعة ويتعذّر بلوغ آخر
+   الملفّ. والشريط العلوي `sticky` يعوّض ما كان الصندوق يعطيه: أدوات التكبير
+   تبقى في متناول اليد مهما نزل الطالب. ومن أراد قراءةً مركّزة فملء الشاشة
+   موجود. */
 .doc__pages {
-  overflow: auto; max-height: 78vh; padding: 10px 4px;
-  background: var(--surf3); display: grid; gap: 10px; justify-items: center;
-  overscroll-behavior: contain;
+  padding: 10px 4px; background: var(--surf3);
+  display: grid; gap: 10px; justify-items: center; align-items: start;
 }
 .doc__p {
   /* حزامٌ ثانٍ مع `ctx.direction = 'ltr'`: بعض المتصفّحات تشتقّ اتجاه
      السياق من الاتجاه المحسوب للعنصر عند إنشائه، أي قبل أن نضبطه في JS.
      والصفحة كلّها `rtl`، فبلا هذا يُرسم كل نصّ في الملفّ منزاحًا. */
   direction: ltr;
-  display: block; max-width: 100%; border-radius: 6px;
+  display: block; max-width: 100%; width: 100%; border-radius: 6px;
   background: #fff; box-shadow: 0 2px 10px rgba(20,14,40,.18);
-  /* ارتفاعٌ مبدئي قبل الرسم: بدونه تكون كل الصفحات بارتفاع صفر فتتقاطع
-     كلّها مع الشاشة دفعةً واحدة — فيُرسم الملفّ كاملًا وينهار الغرض من
-     الرسم الكسول. */
-  min-height: 320px; width: 100%;
+  /* لا `min-height` مخمَّن: `aspect-ratio` تضبطه JS من مقاس الصفحة الحقيقي
+     قبل الرسم، فيُحجز الارتفاع الصحيح ولا تتزحزح الصفحات ولا تتداخل. */
 }
 .doc__state { padding: 34px 18px; display: grid; place-items: center; background: var(--surf3); }
 .doc__load, .doc__err { display: grid; gap: 10px; justify-items: center; text-align: center;
@@ -1724,8 +1729,11 @@ img, svg { max-width: 100%; display: block; }
 /* ملء الشاشة — الحقيقي والبديل. البديل لـiOS: `requestFullscreen` غير مدعومة
    للعناصر هناك، فبلا هذا يبقى الزرّ بلا أثر على نصف الأجهزة. */
 .doc:fullscreen, .doc.is-max { border-radius: 0; border: 0; }
-.doc:fullscreen .doc__pages { max-height: none; height: calc(100vh - 47px); }
-.doc.is-max {
-  position: fixed; inset: 0; z-index: 60; max-height: none;
+.doc.is-max { position: fixed; inset: 0; z-index: 60; }
+/* في ملء الشاشة الصفحةُ خلفها لا تتمرّر، فالتمرير هنا لازمٌ لا خيار —
+   بلا `overflow` يُقصّ الملفّ عند حدّ الشاشة ويتعذّر بلوغ بقيّته. */
+.doc:fullscreen .doc__pages,
+.doc.is-max .doc__pages {
+  overflow: auto; overscroll-behavior: contain;
+  height: calc(100dvh - 47px);
 }
-.doc.is-max .doc__pages { max-height: none; height: calc(100dvh - 47px); }

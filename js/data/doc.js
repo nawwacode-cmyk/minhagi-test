@@ -139,6 +139,16 @@ window.Doc = (function () {
         canvas.style.width = '100%';
         canvas.style.height = 'auto';
 
+        /* النسبة تُثبَّت من مقاس الصفحة نفسها.
+
+           كان لكل صفحة `min-height` مخمَّن في CSS قبل رسمها — رقمٌ لا علاقة
+           له بمقاس الملفّ، فتحجز الصفحة ارتفاعًا خاطئًا ثم تتغيّر عند الرسم:
+           تتزحزح الصفحات وتتداخل، ويبدو بعضها مقطوعًا.
+
+           `aspect-ratio` يحجز الارتفاع **الصحيح** قبل أن تُرسم بكسل واحد،
+           فلا قفزة ولا تداخل — وكل صفحة بنسبتها هي، لا بنسبة الأولى. */
+        canvas.style.aspectRatio = `${base.width} / ${base.height}`;
+
         const ctx = canvas.getContext('2d');
         /* **هذا السطر هو ما كان يكسر الشرح.**
 
@@ -186,8 +196,16 @@ window.Doc = (function () {
           standardFontDataUrl: 'js/vendor/standard_fonts/',
         }).promise;
 
+        /* نسبة الصفحة الأولى تُحجز لكل الصفحات قبل رسم أيٍّ منها: الملفّ
+           الواحد صفحاته بمقاسٍ واحد في الغالب الأعمّ، فهذا يعطي ارتفاعًا
+           صحيحًا فورًا بلا قراءة كل الصفحات (وقراءتها كلّها عند الفتح تُبطئ
+           الظهور على هاتفٍ بطيء). وما شذّ منها يُصحَّح عند رسمه. */
+        const first = (await pdf.getPage(1)).getViewport({ scale: 1 });
+        const ratio = `${first.width} / ${first.height}`;
+
         pages.replaceChildren(...Array.from({ length: pdf.numPages }, (_, i) =>
-          h('canvas.doc__p', { 'data-page': String(i + 1), 'aria-label': `صفحة ${ar(i + 1)}` })));
+          h('canvas.doc__p', { 'data-page': String(i + 1), 'aria-label': `صفحة ${ar(i + 1)}`,
+                               style: `aspect-ratio:${ratio}` })));
 
         box.replaceChildren(bar(), pages);
         pageLbl.textContent = `${ar(1)} / ${ar(pdf.numPages)}`;
