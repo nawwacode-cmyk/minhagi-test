@@ -81,14 +81,17 @@ window.Doc = (function () {
     let zoom = 1;                  // مضاعف فوق «ملء العرض»
     let io = null;                 // مراقب الاقتراب
     let rendering = new Set();
+    const visible = new Set();     // الصفحات القريبة من الشاشة — وحدها تُعاد بدقّة أعلى
 
     const status = (node) => box.replaceChildren(bar(), h('div.doc__state', node));
 
-    // --- الشريط العلوي -------------------------------------------------------
-    const zoomOut = h('button.doc__b', { 'aria-label': 'تصغير', onclick: () => setZoom(zoom / 1.25) },
-      UI.svg('<path d="M4.5 12h15"/>', 18));
-    const zoomIn = h('button.doc__b', { 'aria-label': 'تكبير', onclick: () => setZoom(zoom * 1.25) },
-      UI.svg('<path d="M12 4.5v15"/><path d="M4.5 12h15"/>', 18));
+    /* --- الشريط العلوي ---------------------------------------------------
+       بلا زرّي تكبير وتصغير: التكبير بالأصابع كما يتوقّعه كل من فتح ملفًّا
+       على هاتفه، وزرّان يشغلان مساحة الشريط ليؤدّيا ما تؤدّيه حركةٌ معروفة.
+
+       لكن حذفهما وحده لا يكفي: تكبيرُ المتصفّح يُمدّد صورةً منقّطة أصلًا
+       فيصير النصّ ضبابيًّا. لذلك نتتبّع `visualViewport.scale` ونعيد الرسم
+       بدقّةٍ أعلى — فالتكبير يزيد الوضوح لا الضبابية. */
     const full = h('button.doc__b', { 'aria-label': 'ملء الشاشة', onclick: toggleFull },
       UI.svg('<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/>'
            + '<path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>', 18));
@@ -97,7 +100,7 @@ window.Doc = (function () {
       return h('div.doc__bar',
         h('span.doc__t', title || 'شرح الدرس'),
         h('span.grow'),
-        pageLbl, zoomOut, zoomIn, full);
+        pageLbl, full);
     }
 
     function toggleFull() {
@@ -109,10 +112,20 @@ window.Doc = (function () {
       else box.classList.toggle('is-max');
     }
 
-    function setZoom(z) {
-      zoom = Math.min(4, Math.max(0.5, z));
+    /**
+     * يعيد الرسم بدقّة تناسب تكبير الأصابع الحالي.
+     *
+     * **الظاهر فقط** لا كل الصفحات: مسحُ العلامة عن الجميع ثم رسمهم يعني
+     * ملفًّا من عشرين صفحة يُرسم كاملًا بثلاثة أضعاف الدقّة — تجميدٌ مؤكّد
+     * على هاتفٍ اقتصادي. وما يخرج عن الشاشة يُرسم حين يقترب منها كالعادة.
+     */
+    function applyPinch() {
+      const s = Math.min(3, Math.max(1, window.visualViewport?.scale || 1));
+      // عتبةٌ ربعية: تغيّرٌ طفيف لا يستحقّ إعادة رسمٍ يراها المستخدم تلعثمًا
+      if (Math.abs(s - zoom) < 0.25) return;
+      zoom = s;
       box.querySelectorAll('.doc__p').forEach((c) => { c.dataset.done = ''; });
-      layout();
+      for (const c of visible) draw(c);
     }
 
     /** عرض الرسم بالبكسل — عرض الحاوية × التكبير × كثافة الشاشة. */
@@ -168,13 +181,6 @@ window.Doc = (function () {
       finally { rendering.delete(n); }
     }
 
-    /** يعيد ضبط النسب ثم يرسم ما هو قريب من الشاشة. */
-    function layout() {
-      box.querySelectorAll('.doc__p').forEach((c) => {
-        if (c.dataset.done !== String(zoom)) draw(c);
-      });
-    }
-
     async function start() {
       status(h('div.doc__load', UI.spinner ? UI.spinner() : null, h('span', 'جارٍ تجهيز الشرح…')));
       try {
@@ -215,7 +221,10 @@ window.Doc = (function () {
            التالية قبل وصولها يجعل التمرير متّصلًا بلا فراغ أبيض. */
         io = new IntersectionObserver((entries) => {
           for (const e of entries) {
-            if (!e.isIntersecting) continue;
+            // الخروج يُزال أيضًا: مجموعةٌ تنمو ولا تنقص تجعل التكبير يعيد رسم
+            // كل ما مرّ عليه الطالب منذ الفتح لا ما يراه الآن.
+            if (!e.isIntersecting) { visible.delete(e.target); continue; }
+            visible.add(e.target);
             draw(e.target);
             if (e.intersectionRatio > 0.5) {
               pageLbl.textContent = `${ar(Number(e.target.dataset.page))} / ${ar(pdf.numPages)}`;
@@ -233,15 +242,32 @@ window.Doc = (function () {
       }
     }
 
-    // تغيّر عرض النافذة يعيد الرسم — وإلّا بقي الشرح بعرض الشاشة السابق
-    const onResize = () => { clearTimeout(onResize._t); onResize._t = setTimeout(setZoom.bind(null, zoom), 200); };
-    window.addEventListener('resize', onResize);
+    /* تغيّر عرض النافذة (أو دوران الجهاز) يعيد الرسم — وإلّا بقي الشرح بعرض
+       الشاشة السابق. ومؤجَّلٌ ٢٠٠ مللي: الدوران يُطلق عشرات الأحداث. */
+    let t = null;
+    const redraw = () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        zoom = 0;                    // يُجبر `applyPinch` على تجاوز عتبة الربع
+        applyPinch();
+      }, 200);
+    };
+    window.addEventListener('resize', redraw);
+
+    /* تكبير الأصابع: `visualViewport` هو ما يعرف مقدار التكبير الحقيقي —
+       `window.resize` لا يُطلق عنده على أغلب الهواتف. وبلا هذا يبقى النصّ
+       صورةً ممدَّدة ضبابية مهما كبّر الطالب. */
+    const vv = window.visualViewport;
+    const onPinch = () => { clearTimeout(t); t = setTimeout(applyPinch, 250); };
+    vv?.addEventListener('resize', onPinch);
 
     box._dispose = () => {
       live.delete(box);
       try { io?.disconnect(); } catch { /* لا شيء */ }
-      window.removeEventListener('resize', onResize);
-      clearTimeout(onResize._t);
+      window.removeEventListener('resize', redraw);
+      vv?.removeEventListener('resize', onPinch);
+      clearTimeout(t);
+      visible.clear();
       try { pdf?.destroy?.(); } catch { /* لا شيء */ }
     };
 

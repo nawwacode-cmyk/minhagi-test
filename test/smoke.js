@@ -1142,6 +1142,33 @@ ok('البطاقة لا تترك السحب الأفقي للمتصفّح', /\.q
     ok('والشريط يبقى في متناول اليد',
        /\.doc__bar \{[^}]*position: sticky/.test(cssSrc));
   }
+
+  /* التكبير بالأصابع لا بزرّين.
+     وحذفُ الزرّين وحده لا يكفي: تكبيرُ المتصفّح يُمدّد صورةً منقّطة فيصير
+     النصّ ضبابيًّا. `visualViewport` هو ما يعرف مقدار التكبير — و`resize`
+     على النافذة لا يُطلق عنده على أغلب الهواتف. */
+  ok('لا زرّي تكبير وتصغير', !/aria-label': 'تكبير'/.test(docSrc)
+     && !/aria-label': 'تصغير'/.test(docSrc));
+  /* المستمع نفسه لا مجرّد ذكر `visualViewport`: قراءةُ `scale` باقيةٌ في
+     `applyPinch`، فتعبيرٌ يبحث عن الاسم وحده يمرّ ولو حُذف المستمع — ومعه
+     لا يُعاد الرسم أبدًا ويبقى النصّ ضبابيًّا عند التكبير. */
+  ok('والتكبير يُعيد الرسم بدقّة أعلى',
+     /vv\?\.addEventListener\('resize'/.test(docSrc));
+  ok('ويُنزع المستمع عند الإغلاق',
+     /vv\?\.removeEventListener\('resize'/.test(docSrc));
+  // مسحُ العلامة عن كل الصفحات ثم رسمها يجمّد هاتفًا اقتصاديًّا
+  ok('ويعيد رسم الظاهر فقط', /for \(const c of visible\) draw\(c\)/.test(docSrc));
+  ok('والخارج عن الشاشة يُزال من الظاهر',
+     /visible\.delete\(e\.target\)/.test(docSrc));
+  /* الصفحة نفسها يجب أن تسمح بالتكبير أصلًا: `user-scalable=no` أو
+     `maximum-scale=1` في وسم المنفذ يُبطل حركة الأصابع كلّها — فيصير حذف
+     الزرّين حذفًا للتكبير لا نقلًا له. */
+  {
+    const html = fs.readFileSync(require('node:path').join(ROOT, 'index.html'), 'utf8');
+    const vp = (html.match(/<meta name="viewport"[^>]*>/) || [''])[0];
+    ok('ومنفذ العرض لا يمنع التكبير',
+       !!vp && !/user-scalable\s*=\s*no/.test(vp) && !/maximum-scale/.test(vp), vp);
+  }
 }
 
 console.log('\n' + (fail.length ? `${fail.length} فشل` : 'كل الاختبارات نجحت'));
