@@ -40,12 +40,18 @@ window.C = (function () {
         kicker ? h('span.hgreet__k', kicker) : null,
         h('span.hgreet__n', title),
         sub ? h('span.hgreet__s', sub) : null),
+      /* الترتيب هنا يقرّر المواضع: الصفحة RTL، فأوّل عنصرٍ في الـDOM هو
+         **الأيمن**. الإشعارات أوّلًا (يمينًا) والقائمة ثانيًا (يسارًا).
+
+         وزرّ الإعدادات صار ثلاثة خطوط: الترس يُقرأ «ضبط تقني»، والقائمة
+         تحمل الحساب والاشتراك والمظهر والخروج — وهي أشياء يبحث عنها الطالب
+         تحت «القائمة» لا تحت «الإعدادات». */
       h('div.hacts',
-        h('button.hbtn', { onclick: () => App.go('account'), 'aria-label': 'الإعدادات' },
-          icon.settings(19)),
         h('button.hbtn', { onclick: () => showNotices(list), 'aria-label': 'الإشعارات' },
           icon.bell(19),
-          list.length ? h('span.hbtn__dot') : null)));
+          list.length ? h('span.hbtn__dot') : null),
+        h('button.hbtn', { onclick: () => Account.openMenu(), 'aria-label': 'القائمة' },
+          icon.menu(20))));
   }
 
   /* ---------------------------------------------------------------------------

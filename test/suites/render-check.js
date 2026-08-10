@@ -39,6 +39,12 @@ const cases = [
   ['آخر الأخبار — لا بانرات', () => { const full = window.SEED.banners; window.SEED.banners = [];
     const n = Screens.news(); window.SEED.banners = full; return n; }],
   ['auth', () => Screens.auth()],
+  ['حسابي (وضع التجربة)', () => { const a = Store.get().activated;
+    Store.set({ activated: false }); const n = Screens.account();
+    Store.set({ activated: a }); return n; }],
+  ['حسابي (الوضع الليلي)', () => { const t = Store.get().theme;
+    Store.set({ theme: 'dark' }); const n = Screens.account();
+    Store.set({ theme: t }); return n; }],
   /* درسٌ شرحه PDF — الفرع الجديد. والفرع المقابل (بلا اتصال) يظهر رسالةً
      صريحة لا فراغًا: الشرح خلف رابطٍ موقّع فلا يعمل أوفلاين بعد. */
   ['درس بشرح PDF', () => { const l = window.SEED.lessons['salutations'];

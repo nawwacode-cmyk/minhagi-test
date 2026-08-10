@@ -93,6 +93,7 @@ eval(fs.readFileSync(dir + 'screens/exam.js', 'utf8'));
 eval(fs.readFileSync(dir + 'screens/evicted.js', 'utf8'));
 eval(fs.readFileSync(dir + 'screens/halted.js', 'utf8'));
 eval(fs.readFileSync(dir + 'screens/plan.js', 'utf8'));
+eval(fs.readFileSync(dir + 'screens/account.js', 'utf8'));
 
 Store.set({ signedIn: true, activated: true, username: 'أحمد', grade: 'g9', daysLeft: 283 });
 

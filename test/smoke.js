@@ -105,6 +105,7 @@ bad.forEach((b) => console.log('   ← ' + b));
 const ROOT = require('node:path').join(__dirname, '..');
 const appSrc   = fs.readFileSync(dir + 'app.js', 'utf8');
 const mainSrc  = fs.readFileSync(dir + 'screens/main.js', 'utf8');
+const acctSrc  = fs.readFileSync(dir + 'screens/account.js', 'utf8');
 const cssSrc   = fs.readFileSync(require('node:path').join(ROOT, 'css/app.css'), 'utf8');
 const uiSrc = fs.readFileSync(dir + 'ui.js', 'utf8');
 /* عرض النصّ المختلط: السلوك نفسه يُفحص ببناء الناتج فعليًا في
@@ -248,9 +249,12 @@ ok('«موادّي» وجهة تنقّل مستقلّة الآن', /id:\s*'subje
 ok('الرابعة صارت «آخر الأخبار»', /id:\s*'news'/.test(appSrc)
    && (appSrc.match(/\{ id: '/g) || []).length === 4);
 ok('و«حسابي» لم تعد ضمن وجهات الشريط', !/RAIL_ITEMS = \[[\s\S]*?id:\s*'account'[\s\S]*?\];/.test(appSrc));
-// وما زالت شاشة قائمة — يفتحها زرّ الإعدادات بالترويسة لا الشريط
-ok('لكن Screens.account ما زالت موجودة (يفتحها زرّ الإعدادات)',
-   /Screens\.account = /.test(mainSrc));
+/* «حسابي» انتقلت إلى ملفّها: لوحةٌ **واحدة** تُعرض درجًا منزلقًا من زرّ
+   القائمة، وشاشةً كاملة عبر المسار. الحارس يتبع المحتوى لا مكانه القديم،
+   ويشترط وحدة اللوحة — نسختان تنحرفان عند أوّل تعديل يُنسى في إحداهما. */
+ok('«حسابي» شاشةٌ قائمة في ملفّها', /Screens\.account = /.test(acctSrc));
+ok('ولوحتها واحدة تُعرض بمكانين',
+   /function panel\(/.test(acctSrc) && /Account\.openMenu\(\)/.test(compSrc));
 
 // --- الشريط السفلي على نمط المرجع البصري -----------------------------------------
 // أيقونات ممتلئة لا خطّية: خطٌّ أبيض رفيع على أرضية بنفسجية عند ٢٣px يذوب
@@ -379,9 +383,13 @@ const nameCss = (cssSrc.match(/\.hgreet__n \{[^}]*\}/) || [''])[0];
 ok('سطر الاسم يتّسع لنزول الحروف', /line-height: 1\.4[0-9]?|line-height: 1\.5/.test(nameCss));
 ok('واسمٌ طويل يُقصّ بالنقاط لا يكسر الترويسة', /text-overflow: ellipsis/.test(nameCss));
 ok('لا تتبّع سالب على نصّ عربي', !/letter-spacing: *-/.test(cssSrc));
-// زرّان دائريان كما في المرجع: إشعارات وإعدادات
-ok('الترويسة فيها زرّا إشعارات وإعدادات',
-   /icon\.bell\(19\)/.test(compSrc) && /icon\.settings\(19\)/.test(compSrc));
+/* زرّان دائريان: الإشعارات والقائمة. والترتيب في الـDOM يقرّر الموضع —
+   الصفحة RTL فأوّل عنصرٍ هو **الأيمن**. الإشعارات يمينًا والقائمة يسارًا. */
+ok('الترويسة فيها زرّا إشعارات وقائمة',
+   /icon\.bell\(19\)/.test(compSrc) && /icon\.menu\(20\)/.test(compSrc));
+ok('والإشعارات قبل القائمة في الـDOM (أي يمينًا)',
+   compSrc.indexOf('icon.bell(19)') < compSrc.indexOf('icon.menu(20)'));
+ok('ولا ترس إعدادات في الترويسة', !/icon\.settings\(19\)/.test(compSrc));
 ok('وهما قرصان أبيضان بظلّ',
    /\.hbtn \{[^}]*border-radius: 50%[^}]*background: var\(--surf\)/.test(cssSrc)
    && /\.hbtn \{[^}]*box-shadow/.test(cssSrc));
@@ -430,7 +438,36 @@ ok('شريط البطاقة يعرض تقدّم المادة والنصّ يقو
 ok('ولا يُرسم شريطٌ بلا تقدّم', /pct > 0 \? h\('div\.cont__bar'/.test(compSrc));
 // الخروج وإعادة الضبط لازم يوديا لشاشة موجودة فعلًا لا لاسم محذوف
 ok('الخروج/إعادة الضبط يودّيان إلى auth',
-   !/App\.go\('welcome'\)/.test(mainSrc) && (mainSrc.match(/App\.go\('auth'\)/g) || []).length >= 2);
+   !/App\.go\('welcome'\)/.test(acctSrc) && (acctSrc.match(/App\.go\('auth'\)/g) || []).length >= 2);
+
+/* =============================================================================
+   قائمة «حسابي» — الدرج المنزلق
+   ============================================================================= */
+{
+  // لا رفع صورة: الحساب اسمٌ وكود، ولا نطلب من الطالب صورةً ولا نخزّنها
+  ok('لا حقل رفع صورة في الحساب',
+     !/type: 'file'/.test(acctSrc) && !/FileReader/.test(acctSrc));
+  ok('والأفاتار حرف الاسم', /ava__i/.test(acctSrc) && /name\.trim\(\)\[0\]/.test(acctSrc));
+
+  /* أي طبقةٍ تغطّي الشاشة يجب أن تلتقط زرّ رجوع الهاتف — وإلّا خرج الطالب من
+     الشاشة كلّها وهو يظنّ أنه يغلق القائمة. نفس قاعدة عارض الملفّات. */
+  ok('زرّ الرجوع يغلق الدرج لا الشاشة',
+     /pushState\(\{ drawer: true \}/.test(acctSrc)
+     && /addEventListener\('popstate', onPop\)/.test(acctSrc));
+  ok('ويُنزع المستمع عند الإغلاق', /removeEventListener\('popstate', onPop\)/.test(acctSrc));
+  // نقرتان سريعتان كانتا ستفتحان درجين فوق بعضهما
+  ok('ولا يُفتح درجان', /querySelector\('\.drawer'\)/.test(acctSrc));
+  /* إطارٌ واحد قبل إضافة الصنف: بدونه يقفز الدرج إلى مكانه بلا انزلاق —
+     العنصر يُضاف وهو في موضعه النهائي فلا انتقال. */
+  ok('والانزلاق يبدأ بعد إطار', /requestAnimationFrame\(\(\) => layer\.classList\.add/.test(acctSrc));
+
+  // الصفحات التعريفية بلا محتوى: تُعرض ساكنةً لا كأزرارٍ ميّتة تُنقر فلا تفعل
+  ok('الصفحات التعريفية ساكنة بعلامة قريبًا',
+     /row2__soon/.test(acctSrc) && /'من نحن', 'تواصل معنا', 'سياسة الخصوصية'/.test(acctSrc));
+
+  ok('والدرج يمنع تمرير الصفحة خلفه',
+     /documentElement\.style\.overflow = 'hidden'/.test(acctSrc));
+}
 // أصل صورة الترحيب ما عاد له مستهلك — بقاؤه بالتخزين المسبق تنزيل بلا فائدة
 const swSrc = fs.readFileSync(require('node:path').join(ROOT, 'sw.js'), 'utf8');
 ok('welcome.jpg خرج من التخزين المسبق', !/welcome\.jpg/.test(swSrc));
