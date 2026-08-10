@@ -204,6 +204,44 @@ window.Media = (function () {
       box.classList.toggle('is-playing', !el.paused);
     };
 
+    /* --- الاختفاء التلقائي ---------------------------------------------------
+       تختفي الأدوات بعد سكونٍ قصير أثناء التشغيل، وتعود عند أي لمسة. الشروط
+       الثلاثة التي تجعلها محتملة بدل مزعجة:
+
+       ١) لا اختفاء والفيديو متوقّف: المتوقّف يريد أزراره حاضرة.
+       ٢) لا اختفاء أثناء سحب المِزلاق: أن يختفي الشريط تحت إصبع الطالب عبث.
+       ٣) اللمسة التي تُعيدها **لا تشغّل ولا توقف**. بدون هذا يدفع الطالبُ ثمنَ
+          رؤية الشريط إيقافًا لم يطلبه — وهو أسوأ من بقائه ظاهرًا. */
+    const IDLE_MS = 3000;
+    let idleTimer = null;
+    let idle = false;
+    let lastWake = 0;
+
+    const arm = () => {
+      clearTimeout(idleTimer);
+      idleTimer = null;
+      if (el.paused || scrubbing) return;
+      idleTimer = setTimeout(() => { idle = true; box.classList.add('is-idle'); }, IDLE_MS);
+    };
+    const wake = () => { idle = false; box.classList.remove('is-idle'); arm(); };
+
+    // حركة الفأرة تُطلق عشرات الأحداث في الثانية؛ إعادة ضبط المؤقّت مع كلٍّ
+    // منها هدرٌ بلا أثر مرئي. اليقظة الفعلية تكفيها مرّة كل ربع ثانية.
+    const wakeThrottled = () => {
+      const now = Date.now();
+      if (!idle && now - lastWake < 250) return;
+      lastWake = now;
+      wake();
+    };
+
+    /* هل كانت مخفيّة لحظةَ بدء اللمسة؟ يُقرأ عند `pointerdown` لأن `click`
+       يأتي بعد أن توقظها اللمسة نفسها — فلو سُئلنا حينها لقلنا «كانت ظاهرة»
+       وشغّلنا الفيديو. */
+    let wasIdle = false;
+    box.addEventListener('pointerdown', () => { wasIdle = idle; wake(); });
+    box.addEventListener('pointermove', wakeThrottled);
+    box.addEventListener('focusin', wake);
+
     const toggle = () => (el.paused ? el.play().catch(() => {}) : el.pause());
     playBtn.addEventListener('click', toggle);
     back10.addEventListener('click', () => { el.currentTime = Math.max(0, el.currentTime - 10); });
@@ -224,6 +262,7 @@ window.Media = (function () {
 
     seek.addEventListener('input', () => {
       scrubbing = true;
+      wake();                    // `arm` تمتنع أثناء السحب، فيبقى الشريط ظاهرًا
       cur.textContent = clock((Number(seek.value) / 1000) * (el.duration || 0));
       seek.style.setProperty('--p', (Number(seek.value) / 10) + '%');
     });
@@ -231,6 +270,7 @@ window.Media = (function () {
       if (!scrubbing) return;
       scrubbing = false;
       if (el.duration) el.currentTime = (Number(seek.value) / 1000) * el.duration;
+      arm();                     // انتهى السحب: يُستأنف العدّ
     };
     seek.addEventListener('change', commitSeek);
 
@@ -241,13 +281,23 @@ window.Media = (function () {
     el.addEventListener('pause', setIcon);
     el.addEventListener('ended', setIcon);
 
-    // النقر على الفيديو نفسه يشغّل ويوقف — سلوك متوقّع لا يحتاج تعليمًا
-    el.addEventListener('click', toggle);
+    // التشغيل يبدأ العدّ، والتوقّف يُلغيه ويُظهر الأدوات فورًا
+    el.addEventListener('play', arm);
+    el.addEventListener('pause', wake);
+    el.addEventListener('ended', wake);
+
+    // النقر على الفيديو نفسه يشغّل ويوقف — سلوك متوقّع لا يحتاج تعليمًا.
+    // إلّا نقرةً جاءت والأدوات مخفيّة: مهمّتها إظهارها فحسب.
+    el.addEventListener('click', () => {
+      if (wasIdle) { wasIdle = false; return; }
+      toggle();
+    });
 
     /* لوحة المفاتيح على الحاسوب. `preventDefault` للمسافة تحديدًا: بدونه
        تُمرّر الصفحة تحت المشغّل بينما يظنّ المستخدم أنه أوقف الفيديو. */
     box.tabIndex = 0;
     box.addEventListener('keydown', (e) => {
+      wake();                    // مستخدم لوحة المفاتيح يحتاج أن يرى أثر ضغطته
       if (e.key === ' ' || e.key === 'k') { e.preventDefault(); toggle(); }
       // في RTL يبقى معنى السهمين زمنيًّا كما هو عالميًّا: يمين = تقدّم
       else if (e.key === 'ArrowRight') el.currentTime = Math.min(el.duration || 0, el.currentTime + 5);
@@ -257,6 +307,10 @@ window.Media = (function () {
 
     setIcon();
     paint();
+    /* يُستدعى من `box._dispose`: مؤقّتٌ معلَّق بعد إزالة المشغّل يوقظ عقدةً
+       خارج الصفحة — بلا ضرر مرئي، لكنه من نوع التسريب الذي كلّفنا مؤقّت
+       العلامة المائية من قبل. */
+    box._stopIdle = () => clearTimeout(idleTimer);
 
     return h('div.vc',
       h('div.vc__bar',
@@ -346,10 +400,11 @@ window.Media = (function () {
       watermarkLayer(meta?.watermark || Store.get().username || 'مشترك'),
       controls(el, box));
 
-    // تنظيف المؤقّت عند إزالة المشغّل من الصفحة
+    // تنظيف المؤقّتات عند إزالة المشغّل من الصفحة
     box._dispose = () => {
       const layer = box.querySelector('.wm');
       if (layer?._timer) clearInterval(layer._timer);
+      box._stopIdle?.();
       try { el.pause(); el.removeAttribute('src'); el.load(); } catch { /* لا شيء */ }
       secureScreen(false);
     };

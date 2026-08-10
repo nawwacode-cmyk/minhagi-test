@@ -37,27 +37,16 @@ window.Screens = window.Screens || {};
   }
 
   // --- ٥. الرئيسية (اكتشاف) -----------------------------------------------------
-  // «الرئيسية» هنا واجهة تعريفية/ترويجية (بانر، أساتذتنا، خدماتنا) منفصلة عن
-  // «موادّي» (Screens.subjects أدناه) التي تحمل لوحة الدراسة الفعلية. كل نصّ
-  // هنا دائم وصادق — لا عروض مؤقّتة ولا خدمات غير مطروحة فعليًا بعد.
+  // «الرئيسية» واجهة تعريفية منفصلة عن «موادّي» (Screens.subjects أدناه) التي
+  // تحمل لوحة الدراسة الفعلية. كل نصّ هنا دائم وصادق — لا عروض مؤقّتة.
+  //
+  // «خدماتنا» أُزيلت: أربع بطاقات تكرّر ما يبلغه الشريط السفلي أصلًا (المنهاج،
+  // الأسئلة، الامتحانات، التقدّم)، فتشغل الصفحة بطريقٍ ثانٍ إلى الوجهة نفسها.
 
   Screens.home = () => {
     const s = Store.get();
     const teachers = SEED.teachers || [];
-    const firstEntitled = (SEED.subjects || []).find((sub) => sub.entitled);
     const subjectName = (code) => (SEED.subjects || []).find((x) => x.id === code)?.name || code;
-
-    const goPractice = () => firstEntitled
-      ? App.go('course', { subject: firstEntitled.id, tab: 'practice' })
-      : App.go('subjects');
-    const goExams = () => firstEntitled
-      ? App.go('course', { subject: firstEntitled.id, tab: 'exams' })
-      : App.go('subjects');
-
-    const svc = (ico, title, sub, onclick) =>
-      h('button.card.svc-card', { onclick },
-        h('div.svc-ico', ico(19)),
-        h('b', title), h('span', sub));
 
     return h('div.screen',
       /* لا ترويسة: التحية والزرّان أوّلُ **محتوى الصفحة** داخل منطقة التمرير،
@@ -93,13 +82,6 @@ window.Screens = window.Screens || {};
               // غير صالح ويكسر التنقّل بلوحة المفاتيح.
               h('span.tcard__go', icon.fwd(19, { width: 2.6 }))))))
           : h('span'),
-
-        h('div.sec-label', { style: 'margin-top:14px' }, 'خدماتنا'),
-        h('div.svc-grid',
-          svc(icon.book,  'المنهاج الكامل', 'دروس مصوَّرة بالترتيب', () => App.go('subjects')),
-          svc(icon.help,  'بنك الأسئلة',    'تمارين حسب القسم',      goPractice),
-          svc(icon.exam,  'امتحانات',       'تجريبية ووزارية',       goExams),
-          svc(icon.chart, 'تقدّمك',          'مؤشّرك في كل مادة',      () => App.go('progress'))),
 
         h('div', { style: 'height:20px' }),
       ),

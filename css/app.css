@@ -675,18 +675,6 @@ img, svg { max-width: 100%; display: block; }
    الإطار، فالتمركز التام يقطع الجبهة ويترك فراغ الكتفين. */
 .teacher-av img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; border-radius: 50%; }
 
-/* --- شبكة خدماتنا ------------------------------------------------------------- */
-.svc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.svc-card { padding: 13px; text-align: center; cursor: pointer; font: inherit; color: inherit;
-            transition: transform var(--dur) var(--ease); }
-.svc-card:hover { transform: translateY(-2px); }
-.svc-ico {
-  width: 38px; height: 38px; border-radius: 12px; margin: 0 auto 8px;
-  display: grid; place-items: center; color: var(--acc); background: var(--acc-soft);
-}
-.svc-card b { display: block; font-size: 12.5px; }
-.svc-card span { font-size: 10.5px; color: var(--txf); }
-
 /* =============================================================================
    ملف الأستاذ
    الأفاتار يركب على حدّ الغلاف (margin-top سالب) بإطار بلون الخلفية — هذا ما
@@ -959,8 +947,12 @@ img, svg { max-width: 100%; display: block; }
    مبنيّة بدل المشغّل الافتراضي: ذاك يختلف شكلًا وسلوكًا بين كروم وسفاري
    وأندرويد، ولا يفهم RTL (شريط التقدّم يمتلئ من اليسار في واجهة عربية).
 
-   تبقى ظاهرة ما دام الفيديو متوقّفًا، وتختفي أثناء التشغيل حتى يلمس المستخدم
-   أو يمرّر الفأرة — الدرس مساحته الصورة لا الأزرار.
+   تبقى ظاهرة ما دام الفيديو متوقّفًا، وتختفي بعد ثوانٍ من السكون أثناء
+   التشغيل — الدرس مساحته الصورة لا الأزرار.
+
+   الإخفاء يقوده مؤقّت في JS (`is-idle`) لا `:hover`. الأخير يعمل على الفأرة
+   وحدها: على شاشة اللمس تُبقي المتصفّحاتُ حالةَ hover ملتصقةً بعد النقر، فتبقى
+   الأدوات ظاهرة إلى الأبد فوق فيديو يُشاهَد بالعرض — وهذا ما اشتُكي منه.
 --------------------------------------------------------------------------- */
 .vc {
   position: absolute; inset-inline: 0; bottom: 0; z-index: 3;
@@ -973,9 +965,11 @@ img, svg { max-width: 100%; display: block; }
 /* زرّ البثّ الذي يحقنه كروم داخل الفيديو — حزام فوق `disableremoteplayback` */
 .video video::-internal-media-controls-overlay-cast-button,
 .video video::-webkit-media-controls-overlay-cast-button { display: none !important; }
-.video.is-playing .vc { opacity: 0; }
-.video.is-playing:hover .vc,
-.video.is-playing:focus-within .vc { opacity: 1; }
+/* `pointer-events: none` جزءٌ من الإخفاء لا زينة: أدواتٌ شفّافة تبقى تلتقط
+   اللمس، فتقع الضغطة الأولى على زرٍّ لا يراه أحد. ومعها يمرّ اللمس إلى الفيديو
+   نفسه فيوقظها — وهو المطلوب. */
+.video.is-idle .vc { opacity: 0; pointer-events: none; }
+.video.is-idle { cursor: none; }
 
 .vc__bar { padding: 0 2px 8px; }
 /* الحاوية تحمل الشريط المخزَّن مؤقّتًا خلف مِزلاق الموضع */

@@ -484,10 +484,15 @@ ok('welcome.jpg خرج من التخزين المسبق', !/welcome\.jpg/.test(s
   ok('ويلوَّن ما قبل الإبهام يدويًا', /--p/.test(mediaSrc) && /--p, 0%/.test(cssSrc));
   // بلا preventDefault تُمرَّر الصفحة تحت المشغّل بينما يظنّ المستخدم أنه أوقفه
   ok('والمسافة لا تُمرّر الصفحة', /e\.key === ' '[\s\S]{0,40}preventDefault/.test(mediaSrc));
-  // الأدوات تحجب الصورة إن بقيت ظاهرة أثناء المشاهدة
-  ok('وتختفي أثناء التشغيل وتعود باللمس',
-     /\.video\.is-playing \.vc \{ opacity: 0; \}/.test(cssSrc)
-     && /is-playing:hover \.vc/.test(cssSrc));
+  /* الاختفاء يقوده مؤقّت في JS، وسلوكه كلّه في `suites/player-idle-check`.
+     هنا حارسٌ واحد لا يُغني عنه ذاك: ألّا يعود `:hover` وسيلةَ الإخفاء. هو
+     يعمل على الفأرة فيبدو سليمًا على حاسوب المطوّر، وعلى شاشة اللمس تلتصق
+     حالة hover بعد النقر فتبقى الأدوات ظاهرة أبدًا فوق الفيديو. */
+  ok('والإخفاء ليس بـ:hover', !/is-playing:hover \.vc/.test(cssSrc));
+  ok('بل بمؤقّت سكون', /\.video\.is-idle \.vc \{ opacity: 0/.test(cssSrc)
+     && /is-idle/.test(mediaSrc));
+  // أدواتٌ شفّافة تبقى تلتقط اللمس، فتقع الضغطة الأولى على زرّ لا يراه أحد
+  ok('والمخفيّة لا تلتقط اللمس', /\.video\.is-idle \.vc \{[^}]*pointer-events: none/.test(cssSrc));
   ok('والعلامة المائية فوقها لا تحتها',
      cssSrc.indexOf('.wm {') > 0 && /\.wm \{[^}]*z-index: 2/.test(cssSrc)
      && /\.vc \{[\s\S]{0,120}z-index: 3/.test(cssSrc));
