@@ -445,10 +445,14 @@ window.Screens = window.Screens || {};
      يُنشر لنملأ الفراغ.
   --------------------------------------------------------------------------- */
   const CATS = {
+    update:       'تحديثات التطبيق',
     announcement: 'إعلانات',
-    content:      'محتوى جديد',
-    update:       'تحديثات',
+    news:         'أخبار',
   };
+
+  /** كل مدّة يتبدّل المثبَّت المعروض. أربع ثوانٍ: تكفي لقراءة عنوانٍ قصير
+      ولا تجعل الصفحة تتحرّك تحت عين القارئ. */
+  const PIN_MS = 4000;
 
   /** «منذ ٣ ساعات» — التاريخ المطلق لا يقول للطالب أجديدٌ هو أم لا. */
   function since(iso) {
@@ -486,7 +490,8 @@ window.Screens = window.Screens || {};
 
     // المثبَّت يتصدّر بصورةٍ كبيرة. أوّلُ مثبَّت فقط: بطاقتان كبيرتان تُلغيان
     // معنى التصدير أصلًا.
-    const featured = all.find((p) => p.pinned) || null;
+    // كلّ المثبَّتات لا أوّلها: تتبادل تلقائيًّا في الشريط أعلى القسم
+    const pinned = all.filter((p) => p.pinned);
     let filter = 'all';
 
     const listBox = h('div.newsfeed');
@@ -497,9 +502,11 @@ window.Screens = window.Screens || {};
        كان الكلّ من تصنيف واحد — لا معنى لمصفاةٍ بخيار واحد. */
     const present = [...new Set(all.map((p) => p.category).filter((c) => CATS[c]))];
 
+    /* المثبَّت يبقى في القائمة أيضًا — لا يختفي منها لأنه صُدِّر.
+       كان يُستبعَد، فيبدو للطالب أن الخبر «ذهب» حين يُثبَّت، ويتعذّر إيجاده
+       بالتصنيف. التصدير إبرازٌ لا نقل. */
     function drawList() {
-      const rows = all.filter((p) => (filter === 'all' || p.category === filter)
-                                     && p !== featured);
+      const rows = all.filter((p) => filter === 'all' || p.category === filter);
       listBox.replaceChildren(...(rows.length
         ? rows.map(newsRow)
         : [C.empty({ title: 'لا شيء في هذا التصنيف', text: 'جرّب تصنيفًا آخر.' })]));
@@ -535,23 +542,70 @@ window.Screens = window.Screens || {};
     const newest = all.map((p) => p.at).filter(Boolean).sort().pop();
     if (newest && newest !== seenAt) setTimeout(() => Store.set({ newsSeenAt: newest }), 0);
 
-    return h('div.screen',
+    const wrap = h('div.screen');
+    wrap.append(
       C.appbar({ title: 'آخر الأخبار', onBack: () => App.back() }),
       h('div.screen__body', { style: 'padding:14px 16px 20px' },
-        featured
-          ? h('button.feat', { onclick: () => App.go('post', { id: featured.id }) },
-              featured.image
-                ? h('img.feat__i', { src: Api.publicUrl(featured.image), alt: '', loading: 'lazy' })
-                : h('span.feat__i.feat__i--blank'),
-              h('span.feat__tag', 'مثبَّت'),
-              h('span.feat__b',
-                h('span.feat__t', featured.title),
-                h('span.feat__s', [since(featured.at), CATS[featured.category]]
-                  .filter(Boolean).join(' · '))))
-          : null,
-        chipsBox,
-        listBox));
+        featuredBox(pinned, wrap), chipsBox, listBox));
+    return wrap;
   };
+
+  /**
+   * شريط المثبَّتات — يتبدّل تلقائيًّا كل بضع ثوانٍ.
+   *
+   * بمثبَّتٍ واحد لا دورة ولا نقاط: حركةٌ بلا وجهة ثانية تشويش. وبأكثر من
+   * واحد تظهر نقاطٌ تُنقر أيضًا — الدورة التلقائية لا تكفي وحدها، فمن رأى
+   * خبرًا ومرّ عليه يحتاج طريقة للعودة إليه بلا انتظار دورةٍ كاملة.
+   */
+  function featuredBox(pinned, screen) {
+    if (!pinned.length) return null;
+
+    const box = h('div.feats');
+    const dots = h('div.feats__d');
+    let i = 0;
+    let timer = null;
+
+    const draw = () => {
+      const p = pinned[i];
+      box.replaceChildren(...[
+        h('button.feat', { onclick: () => App.go('post', { id: p.id }) },
+          p.image
+            ? h('img.feat__i', { src: Api.publicUrl(p.image), alt: '', loading: 'lazy' })
+            : h('span.feat__i.feat__i--blank'),
+          h('span.feat__tag', 'مثبَّت'),
+          h('span.feat__b',
+            h('span.feat__t', p.title),
+            h('span.feat__s', [since(p.at), CATS[p.category]].filter(Boolean).join(' · ')))),
+        pinned.length > 1 ? dots : null,
+      ].filter(Boolean));
+
+      if (pinned.length > 1) {
+        dots.replaceChildren(...pinned.map((_, n) => h('button.feats__dot', {
+          class: n === i ? 'is-on' : '',
+          'aria-label': `المثبَّت ${ar(n + 1)}`,
+          // نقرةٌ يدوية تُعيد ضبط المؤقّت: قفزةٌ بعد جزء من الثانية تُربك
+          onclick: () => { i = n; draw(); arm(); },
+        })));
+      }
+    };
+
+    /* المؤقّت يتوقّف حين تغادر العقدة الصفحة. لا شيء في التطبيق يستدعي
+       تنظيفًا عند تبديل الشاشة، فبلا هذا يبقى مؤقّتٌ يعمل إلى الأبد لكل
+       زيارةٍ للقسم — نفس علّة مؤقّت الامتحان. */
+    function arm() {
+      clearInterval(timer);
+      if (pinned.length < 2) return;
+      timer = setInterval(() => {
+        if (!screen.isConnected) { clearInterval(timer); return; }
+        i = (i + 1) % pinned.length;
+        draw();
+      }, PIN_MS);
+    }
+
+    draw();
+    arm();
+    return box;
+  }
 
   /**
    * صفحة الخبر — عنوانٌ وسطرٌ لا يكفيان لخبرٍ يستحقّ النشر.
@@ -563,18 +617,57 @@ window.Screens = window.Screens || {};
     if (!p) return Screens.news();
 
     const go = bannerGo(p);
-    const img = p.image && Api.publicUrl(p.image);
+    const imgs = (p.images || (p.image ? [p.image] : [])).map(Api.publicUrl).filter(Boolean);
 
     return h('div.screen',
       C.appbar({ title: CATS[p.category] || 'خبر', onBack: () => App.back() }),
       h('div.screen__body', { style: 'padding:0 0 24px' },
-        img ? h('img.post__i', { src: img, alt: '' }) : null,
+        gallery(imgs),
         h('div', { style: 'padding:16px' },
           h('div.post__m', since(p.at) || ''),
           h('h1.post__t', p.title),
           p.sub ? h('div.post__s', p.sub) : null,
           p.body ? h('div.card.card--pad', { style: 'margin-top:14px' }, UI.prose(p.body)) : null,
-          go ? h('button.btn.btn--primary.btn--block', { style: 'margin-top:16px', onclick: go },
+
+          /* المصدر سطرٌ لا زرّ: خبرٌ منقول بلا مصدرٍ ادّعاء، لكنه معلومةٌ
+             تُقرأ لا وجهةٌ تُقصد. والرابط زرٌّ صريح يقول أنه يغادر التطبيق —
+             رابطٌ يفتح تبويبًا بلا سابق إنذار يبدو للطالب أن التطبيق خرج عن
+             سيطرته. */
+          p.source ? h('div.post__src', icon.about(15), h('span', `المصدر: ${p.source}`)) : null,
+          p.link
+            ? h('a.btn.btn--secondary.btn--block', {
+                style: 'margin-top:12px', href: p.link,
+                target: '_blank', rel: 'noopener noreferrer',
+              }, 'فتح الرابط') : null,
+
+          go ? h('button.btn.btn--primary.btn--block', { style: 'margin-top:12px', onclick: go },
                  'اذهب إلى الوجهة') : null)));
   };
+
+  /**
+   * معرض صور الخبر.
+   *
+   * صورةٌ واحدة تُعرض كما هي؛ وأكثر تُعرض شريطًا يُسحب بالإصبع مع نقاط.
+   * لا شبكةَ مصغّرات: الخبر يُقرأ لا يُتصفَّح، وشبكةٌ فوق النصّ تدفعه خارج
+   * الشاشة قبل أن تُقرأ كلمة.
+   */
+  function gallery(imgs) {
+    if (!imgs.length) return null;
+    if (imgs.length === 1) return h('img.post__i', { src: imgs[0], alt: '' });
+
+    const strip = h('div.gal', ...imgs.map((src, n) =>
+      h('img.gal__i', { src, alt: '', loading: n ? 'lazy' : null })));
+    const dots = h('div.gal__d', ...imgs.map((_, n) =>
+      h('i', { class: n === 0 ? 'is-on' : '' })));
+
+    /* النقاط تتبع التمرير لا العكس: السحب هو الحركة الطبيعية هنا، والنقاط
+       مؤشّرٌ عليها. `scrollLeft` سالبٌ في RTL على أغلب المتصفّحات، فالقيمة
+       المطلقة تجعل الحساب صحيحًا في الاتجاهين. */
+    strip.addEventListener('scroll', () => {
+      const n = Math.round(Math.abs(strip.scrollLeft) / (strip.clientWidth || 1));
+      [...dots.children].forEach((d, k) => d.classList.toggle('is-on', k === n));
+    }, { passive: true });
+
+    return h('div', strip, dots);
+  }
 })();

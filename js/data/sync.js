@@ -127,7 +127,8 @@ window.Sync = (function () {
       // بالضبط ما يجوز عرضه — لا تصفية تواريخ في العميل.
       Api.from('banners', {
         select: 'id,title_ar,subtitle_ar,image_path,target_type,target_value,sort_order'
-              + ',published_at,category,pinned,body_ar,show_on_home',
+              + ',published_at,category,pinned,body_ar,show_on_home'
+              + ',source,link_url,image_paths',
         // ترتيب القسم: المثبَّت أوّلًا ثم الأحدث — و`sort_order` يفصل التعادل
         order: 'pinned.desc,published_at.desc,sort_order',
       }).catch(() => []),
@@ -297,7 +298,14 @@ window.Sync = (function () {
          يزامن بعد — أي على كل الأجهزة لحظة النشر. */
       banners: (banners || []).map((b) => ({
         id: b.id, title: b.title_ar, sub: b.subtitle_ar || '',
-        image: b.image_path || null,
+        /* المصفوفة أوّلًا والمفرد احتياطًا: جهازٌ زامن قبل الهجرة يحمل
+           `image_path` وحده. `images` هي المصدر في الواجهة، و`image` تبقى
+           للصورة الأولى لأن مقتطف الرئيسية وبطاقة القائمة يحتاجان واحدة. */
+        images: (b.image_paths && b.image_paths.length ? b.image_paths
+                 : (b.image_path ? [b.image_path] : [])),
+        image: (b.image_paths && b.image_paths[0]) || b.image_path || null,
+        source: b.source || '',
+        link: b.link_url || null,
         target: b.target_type === 'none' ? null : { type: b.target_type, value: b.target_value },
         at: b.published_at || null,
         category: b.category || 'announcement',

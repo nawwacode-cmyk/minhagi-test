@@ -506,9 +506,11 @@ ok('الخروج/إعادة الضبط يودّيان إلى auth',
         if (src[end] === '(') depth++;
         else if (src[end] === ')' && --depth === 0) break;
       }
+      const raw = src.slice(open + 1, end);
+      // مصفوفةٌ مرشَّحة صراحةً آمنة — وهي الصياغة التي نوصي بها أصلًا
+      if (/\.filter\(Boolean\)/.test(raw)) continue;
       // ما داخل أقواسٍ متداخلة يخصّ `h(...)` وهي ترشّح — نُزيله
-      let args = src.slice(open + 1, end);
-      let prev;
+      let args = raw, prev;
       do { prev = args; args = args.replace(/\([^()]*\)/g, ''); } while (args !== prev);
       if (/(^|[,\s?:])null([,\s)]|$)/.test(args)) bad.push(`${f} @${src.slice(0, i).split('\n').length}`);
     }

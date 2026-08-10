@@ -53,17 +53,46 @@ for (const n of [0, 1, 2, 7, 40]) {
   const html = Screens.news().outerHTML;
   ok('المثبَّت يظهر ببطاقة كبيرة', /class="feat"/.test(html));
   ok('وعليه وسم «مثبَّت»', /feat__tag/.test(html) && /مثبَّت/.test(html));
-  ok('ولا يتكرّر في القائمة تحته', (html.match(/خبر 2/g) || []).length === 1,
-     String((html.match(/خبر 2/g) || []).length));
-  ok('وبقيّة الأخبار صفوف', rows(html) === 3, String(rows(html)));
 
-  /* مثبَّتان: واحدٌ يتصدّر لا اثنان. بطاقتان كبيرتان تُلغيان معنى التصدير،
-     والمدير قد ينسى إلغاء تثبيت السابق. */
+  /* **يبقى في القائمة أيضًا.** كان يُستبعَد منها، فيبدو للطالب أن الخبر
+     «ذهب» حين يُثبَّت ويتعذّر إيجاده بالتصنيف. التصدير إبرازٌ لا نقل. */
+  ok('ويبقى في القائمة تحته أيضًا', rows(html) === 4, String(rows(html)));
+  ok('فيظهر مرّتين: مصدَّرًا وفي مكانه', (html.match(/خبر 2/g) || []).length === 2,
+     String((html.match(/خبر 2/g) || []).length));
+
+  /* مثبَّتان: بطاقةٌ واحدة معروضة في كل لحظة تتبادل بينهما، ومعها نقاط.
+     بطاقتان معًا تُلغيان معنى التصدير. */
   window.SEED.banners = mkB(4).map((b, i) => (i < 2 ? { ...b, pinned: true } : b));
   const two = Screens.news().outerHTML;
-  ok('ومثبَّتان ⇒ بطاقة كبيرة واحدة', (two.match(/class="feat"/g) || []).length === 1,
+  ok('ومثبَّتان ⇒ بطاقة واحدة معروضة', (two.match(/class="feat"/g) || []).length === 1,
      String((two.match(/class="feat"/g) || []).length));
-  ok('والثاني ينزل إلى القائمة', rows(two) === 3, String(rows(two)));
+  ok('ومعها نقاط للتنقّل بينهما',
+     (two.match(/feats__dot/g) || []).length === 2,
+     String((two.match(/feats__dot/g) || []).length));
+  ok('والقائمة تحتها كاملة', rows(two) === 4, String(rows(two)));
+
+  // مثبَّتٌ واحد: لا نقاط — حركةٌ بلا وجهة ثانية تشويش
+  window.SEED.banners = mkB(3).map((b, i) => (i === 0 ? { ...b, pinned: true } : b));
+  ok('ومثبَّتٌ واحد بلا نقاط', !/feats__dot/.test(Screens.news().outerHTML));
+
+  /* والمؤقّت نفسه: مثبَّتٌ واحد لا يستحقّ دورةً تعمل إلى الأبد بلا أثر.
+     هذا لا يظهر في HTML، فيُقاس بعدّ النداءات — وحارسٌ يقرأ الرسم وحده كان
+     يمرّ على مؤقّتٍ زائد لا يراه أحد. */
+  const realInterval = global.setInterval;
+  let armed = 0;
+  global.setInterval = (...a) => { armed++; return realInterval(...a); };
+
+  armed = 0;
+  window.SEED.banners = mkB(3).map((b, i) => (i === 0 ? { ...b, pinned: true } : b));
+  Screens.news();
+  ok('ولا مؤقّت يعمل لمثبَّتٍ واحد', armed === 0, String(armed));
+
+  armed = 0;
+  window.SEED.banners = mkB(3).map((b, i) => (i < 2 ? { ...b, pinned: true } : b));
+  Screens.news();
+  ok('ومؤقّتٌ واحد لمثبَّتين', armed === 1, String(armed));
+
+  global.setInterval = realInterval;
 }
 
 // =============================================================================
@@ -77,13 +106,13 @@ for (const n of [0, 1, 2, 7, 40]) {
 
   window.SEED.banners = [
     ...mkB(2),
-    ...mkB(2, { category: 'content' }).map((b) => ({ ...b, id: b.id + 'c' })),
+    ...mkB(2, { category: 'news' }).map((b) => ({ ...b, id: b.id + 'c' })),
   ];
   const html = Screens.news().outerHTML;
   ok('وتصنيفان ⇒ شرائح تظهر', /class="nchip[ "]/.test(html));
   ok('ومعها «الكل»', /الكل/.test(html));
-  ok('و«إعلانات» و«محتوى جديد»', /إعلانات/.test(html) && /محتوى جديد/.test(html));
-  ok('ولا شريحة لتصنيفٍ غائب', !/تحديثات/.test(html));
+  ok('و«إعلانات» و«أخبار»', /إعلانات/.test(html) && /أخبار/.test(html));
+  ok('ولا شريحة لتصنيفٍ غائب', !/تحديثات التطبيق/.test(html));
   ok('و«الكل» مختارة ابتداءً', /class="nchip is-on"/.test(html));
 
   // تصنيفٌ مجهول من خادمٍ أحدث لا يُنتج شريحةً بلا اسم
@@ -141,6 +170,40 @@ for (const n of [0, 1, 2, 7, 40]) {
   ok('صورة الخبر من المسار', /public-media\/banners\/x\.png/.test(html));
   ok('وبلا صورة يظهر بديلٌ لا مستطيلٌ مكسور',
      (() => { window.SEED.banners = mkB(1); return /item__i--blank/.test(Screens.news().outerHTML); })());
+
+  /* صورٌ متعدّدة: شريطٌ يُسحب مع نقاط. وصورةٌ واحدة تبقى صورةً واحدة — شريطٌ
+     بنقطةٍ واحدة يوحي بوجود ما ليس موجودًا. */
+  window.SEED.banners = mkB(1, { images: ['banners/a.png', 'banners/b.png', 'banners/c.png'] });
+  let g = Screens.post({ id: 'b0' }).outerHTML;
+  ok('ثلاث صور ⇒ معرضٌ بثلاث', (g.match(/class="gal__i"/g) || []).length === 3);
+  ok('ومعه ثلاث نقاط', (g.match(/<i/g) || []).length >= 3);
+
+  window.SEED.banners = mkB(1, { images: ['banners/a.png'] });
+  g = Screens.post({ id: 'b0' }).outerHTML;
+  ok('وصورةٌ واحدة بلا معرض', !/class="gal/.test(g) && /post__i/.test(g));
+
+  window.SEED.banners = mkB(1, { images: [] });
+  ok('وبلا صور لا معرض ولا صورة مكسورة',
+     !/class="gal/.test(Screens.post({ id: 'b0' }).outerHTML));
+}
+
+// =============================================================================
+// ٧٫٥) المصدر والرابط
+// =============================================================================
+{
+  window.SEED.banners = mkB(1, { source: 'وزارة التربية', link: 'https://moed.gov.sy/x' });
+  const html = Screens.post({ id: 'b0' }).outerHTML;
+  ok('المصدر يظهر سطرًا', /post__src/.test(html) && /وزارة التربية/.test(html));
+  /* الرابط `<a>` لا `<button>`: الطالب يريد أحيانًا نسخه أو فتحه في تبويب،
+     وزرٌّ يُنفّذ `window.open` يمنع الاثنين. و`noopener` شرطُ أمان لا تجميل. */
+  ok('والرابط وسم <a> يفتح خارج التطبيق',
+     /<a[^>]*href="https:\/\/moed\.gov\.sy\/x"/.test(html) && /target="_blank"/.test(html));
+  ok('ومعه noopener', /rel="noopener noreferrer"/.test(html));
+
+  window.SEED.banners = mkB(1);
+  const bare = Screens.post({ id: 'b0' }).outerHTML;
+  ok('وبلا مصدر ولا رابط لا يظهر أيّهما',
+     !/post__src/.test(bare) && !/فتح الرابط/.test(bare));
 }
 
 // =============================================================================

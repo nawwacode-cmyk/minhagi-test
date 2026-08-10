@@ -233,8 +233,10 @@ function ok2(n, c, x = '') { if (c) console.log('ok   ' + n); else { bad++; cons
   window.SEED.banners = pin.map((p, i) => (i === 1 ? { ...p, pinned: true } : p));
   const pinnedHtml = Screens.news().outerHTML;
   ok2('والمثبَّت يتصدّر ببطاقة كبيرة', /class="feat"/.test(pinnedHtml));
-  ok2('ولا يتكرّر في القائمة تحتها',
-      (pinnedHtml.match(new RegExp(pin[1].title, 'g')) || []).length === 1);
+  /* يبقى في القائمة أيضًا: التصدير إبرازٌ لا نقل. كان يُستبعَد فيبدو أن
+     الخبر «ذهب» حين يُثبَّت. */
+  ok2('ويبقى في القائمة تحتها أيضًا',
+      (pinnedHtml.match(new RegExp(pin[1].title, 'g')) || []).length === 2);
   window.SEED.banners = pin;
 }
 
