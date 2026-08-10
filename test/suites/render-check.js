@@ -198,6 +198,23 @@ function ok2(n, c, x = '') { if (c) console.log('ok   ' + n); else { bad++; cons
 
     r = draw('pdf', 'doc-1', false);
     ok2('ووضع pdf دون اتصال ⇒ رسالة صريحة لا فراغ', r.off && !r.pdf);
+
+    /* «الاثنان معًا»: النصّ **ثم** الملفّات. الترتيب جزءٌ من العقد لا تفصيل —
+       الطالب يقرأ بلا نقرة، والملفّ للمراجعة أو الطباعة بعده. */
+    r = draw('both', 'doc-1');
+    ok2('ووضع both ⇒ النصّ والملفّات معًا', r.text && r.pdf);
+    {
+      const lesson2 = window.SEED.lessons['salutations'];
+      lesson2.mode = 'both';
+      lesson2.docs = [{ id: 'doc-1', title: 'شرح', pages: 3, size: 92000 }];
+      const html = Screens.lesson({ id: 'salutations', subject: 'fr' }).outerHTML;
+      delete lesson2.mode; delete lesson2.docs;
+      ok2('والنصّ يسبق الملفّات لا العكس',
+          html.indexOf('class="prose') < html.indexOf('class="files"'));
+    }
+
+    r = draw('both', null);
+    ok2('و«both» بلا ملفّ ⇒ النصّ وحده بلا عنوان يتيم', r.text && !r.pdf);
   }
 
   const newsHtml = Screens.news().outerHTML;

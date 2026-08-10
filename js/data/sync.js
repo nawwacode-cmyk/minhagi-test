@@ -268,7 +268,7 @@ window.Sync = (function () {
         /* أيّ شرحٍ يُعرض — قرار المحرِّر لا استنتاج من وجود الملفّ. القيمة
            الاحتياطية 'text': جهازٌ زامن قبل الهجرة لا يحمل الحقل، والنصّ هو
            ما كان يراه أصلًا. */
-        mode: l.body_mode === 'pdf' ? 'pdf' : 'text',
+        mode: ['pdf', 'both'].includes(l.body_mode) ? l.body_mode : 'text',
         exercises: lessonQuestions[l.code] || [],
       }])),
 

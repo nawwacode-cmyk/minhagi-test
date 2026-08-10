@@ -296,7 +296,7 @@ window.Doc = (function () {
             meta ? h('small.file__m', meta) : null),
           h('button.btn.btn--primary.btn--sm', {
             onclick: () => (onFull || openFull)(d),
-          }, 'افتح الملف'),
+          }, 'فتح'),
           h('button.file__b', { onclick: toggle, 'aria-label': 'عرض الصفحات هنا' }, chev)),
         body);
 

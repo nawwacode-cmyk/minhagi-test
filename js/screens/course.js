@@ -494,20 +494,33 @@ window.Screens = window.Screens || {};
              و`l.doc` شرطٌ ثانٍ لا زائد: وضعُ `pdf` بلا ملفٍّ مربوط (سهوٌ في
              اللوحة، أو ملفٌّ حُذف) يجب أن يُظهر النصّ لا شاشةً فارغة — الطالب
              لا يدفع ثمن خطأ إدخال. */
+          /* ثلاثة أوضاع، والقرار للمحرِّر لا للاستنتاج:
+               text → النصّ وحده
+               pdf  → الملفّات وحدها
+               both → النصّ مفتوحًا **ثم** الملفّات تحته
+
+             والملفّات شرطُها وجودها فعلًا: وضعٌ يطلبها بلا ملفّ (سهوٌ في
+             اللوحة أو ملفٌّ حُذف) يسقط إلى النصّ — الطالب لا يدفع ثمن خطأ
+             إدخال بشاشةٍ فارغة. */
           (() => {
             const files = l.docs || [];
-            const wantsPdf = l.mode === 'pdf' && files.length;
-            if (!wantsPdf) return h('div.card', UI.prose(l.body));
-            if (!s.online) {
-              return h('div.card.card--pad.doc__off',
-                icon.wifiOff(20),
-                h('div', h('b', 'ملفّات الدرس تحتاج اتصالًا'),
-                  h('span', 'افتح الدرس وأنت متصل لتُحمَّل ملفّاته.')));
-            }
+            const showFiles = (l.mode === 'pdf' || l.mode === 'both') && files.length;
+            const showText = !showFiles || l.mode === 'both';
+
+            const filesBlock = !showFiles ? null
+              : !s.online
+                ? h('div.card.card--pad.doc__off',
+                    icon.wifiOff(20),
+                    h('div', h('b', 'ملفّات الدرس تحتاج اتصالًا'),
+                      h('span', 'افتح الدرس وأنت متصل لتُحمَّل ملفّاته.')))
+                : h('div',
+                    h('div.sec-label', { style: 'margin:16px 0 8px' },
+                      `ملفّات الدرس (${ar(files.length)})`),
+                    Doc.fileList(files));
+
             return h('div',
-              h('div.sec-label', { style: 'margin-bottom:8px' },
-                `ملفّات الدرس (${ar(files.length)})`),
-              Doc.fileList(files));
+              showText ? h('div.card', UI.prose(l.body)) : null,
+              filesBlock);
           })()),
 
         h('aside.dash__side',
