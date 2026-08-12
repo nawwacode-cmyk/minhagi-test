@@ -177,20 +177,22 @@ window.Screens = window.Screens || {};
       : 0;
     const bestExam = Math.max(0, ...Object.values(s.exams || {}).map((e) => e.best || 0));
 
-    /* قائمة «موادّي»: صفٌّ لكل مادة، وسهمٌ يفتح صفّ أستاذها تحته — بدل شريط
-       حلقات أفقي ما كان يتّسع لصورة الأستاذ أصلًا. حالة «أيّ مادة مفتوحة»
-       محلّية للشاشة لا `Store`: عرضٌ مؤقّت لا يستحقّ حفظًا ولا مزامنة.
+    /* قائمة «موادّي»: صفٌّ لكل مادة، وسهمٌ يطوي/يفتح صفّ أستاذها تحته — بدل
+       شريط حلقات أفقي ما كان يتّسع لصورة الأستاذ أصلًا. صفّ الأستاذ **مفتوح
+       افتراضيًا** لكل مادة لها أستاذ مطابق — الطالب يرى أستاذه فور فتح
+       التطبيق بلا نقرة إضافية؛ السهم يطويه لمن لا يريده لا يفتحه.
 
-       الضغط على أي مكان بالصفّ (رأسه أو صفّ الأستاذ المفتوح تحته) يفتح
-       المادة — لا صفحة الأستاذ المستقلّة؛ هذه البطاقة اعتمادٌ على الأستاذ لا
-       تصفّحًا له. السهم وحده يبدّل الفتح/الطيّ، بمعزلٍ عن ذلك تمامًا. */
-    let openSubject = null;
+       حالة الطيّ محلّية للشاشة لا `Store`: عرضٌ مؤقّت لا يستحقّ حفظًا ولا
+       مزامنة. الضغط على أي مكان بالصفّ (رأسه أو صفّ الأستاذ) يفتح المادة —
+       لا صفحة الأستاذ المستقلّة؛ هذه البطاقة اعتمادٌ على الأستاذ لا تصفّحًا
+       له. السهم وحده يبدّل الطيّ/الفتح، بمعزلٍ عن ذلك تمامًا. */
+    const closedSubjects = new Set();
     const subjList = h('div.slist');
     function drawSubjList() {
       subjList.replaceChildren(...subjects.map((sub, i) => {
         const p = Store.subjectProgress(sub.id);
         const t = teachers.find((x) => (x.subjects || []).includes(sub.id));
-        const open = openSubject === sub.id;
+        const open = !!t && !closedSubjects.has(sub.id);
         const photo = t && Api.publicUrl(t.photo);
 
         return h('div.srow' + (open ? '.is-open' : ''),
@@ -202,9 +204,13 @@ window.Screens = window.Screens || {};
               h('small', `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا · ${ar(p.percent)}٪`)),
             t ? h('button.srow__chev', {
                   'aria-label': open ? 'إخفاء الأستاذ' : 'عرض الأستاذ',
-                  onclick: (e) => { e.stopPropagation(); openSubject = open ? null : sub.id; drawSubjList(); },
+                  onclick: (e) => {
+                    e.stopPropagation();
+                    if (open) closedSubjects.add(sub.id); else closedSubjects.delete(sub.id);
+                    drawSubjList();
+                  },
                 }, icon.chevron(16)) : null),
-          open && t ? h('div.steach',
+          open ? h('div.steach',
             photo
               ? h('img.steach__av', { src: photo, alt: '', loading: 'lazy' })
               : h('span.steach__av', t.name[0]),

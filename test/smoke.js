@@ -927,10 +927,12 @@ ok('صفّ الأستاذ بلا معالج نقر مستقلّ (يرث نقرة
    !/h\('div\.steach',\s*\{\s*onclick/.test(mainSrc));
 // السهم يبدّل الفتح/الطيّ فقط — يمنع وصول النقرة لصفّ المادة كي لا يُفتح
 // بالخطأ عند مجرّد استكشاف من هو الأستاذ.
-ok('السهم يمنع وصول النقرة لصفّ المادة',
-   /onclick: \(e\) => \{ e\.stopPropagation\(\); openSubject/.test(mainSrc));
-ok('والسهم لا يفتح المادة بنفسه (لا App\\.go داخل معالجه)',
-   /openSubject = open \? null : sub\.id; drawSubjList\(\); \}/.test(mainSrc));
+{
+  const chevBlock = (mainSrc.match(/h\('button\.srow__chev', \{[\s\S]*?\}, icon\.chevron\(16\)\) : null\)/) || [''])[0];
+  ok('السهم يمنع وصول النقرة لصفّ المادة', /e\.stopPropagation\(\);/.test(chevBlock));
+  ok('والسهم لا يفتح المادة بنفسه (لا App.go داخل معالجه)', !/App\.go/.test(chevBlock));
+  ok('ويطوي/يفتح حالة الطيّ المحلّية فقط', /closedSubjects\.(add|delete)\(sub\.id\)/.test(chevBlock));
+}
 
 // --- مجموعة الأيقونات: نمط متّسق -------------------------------------------------
 // وزن ٢ يبدو غليظًا بجانب خطّ عربي رفيع؛ ١٫٧٥ وزن أيقونات iOS تقريبًا.
