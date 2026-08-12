@@ -177,6 +177,42 @@ window.Screens = window.Screens || {};
       : 0;
     const bestExam = Math.max(0, ...Object.values(s.exams || {}).map((e) => e.best || 0));
 
+    /* قائمة «موادّي»: صفٌّ لكل مادة، وسهمٌ يفتح صفّ أستاذها تحته — بدل شريط
+       حلقات أفقي ما كان يتّسع لصورة الأستاذ أصلًا. حالة «أيّ مادة مفتوحة»
+       محلّية للشاشة لا `Store`: عرضٌ مؤقّت لا يستحقّ حفظًا ولا مزامنة.
+
+       الضغط على أي مكان بالصفّ (رأسه أو صفّ الأستاذ المفتوح تحته) يفتح
+       المادة — لا صفحة الأستاذ المستقلّة؛ هذه البطاقة اعتمادٌ على الأستاذ لا
+       تصفّحًا له. السهم وحده يبدّل الفتح/الطيّ، بمعزلٍ عن ذلك تمامًا. */
+    let openSubject = null;
+    const subjList = h('div.slist');
+    function drawSubjList() {
+      subjList.replaceChildren(...subjects.map((sub, i) => {
+        const p = Store.subjectProgress(sub.id);
+        const t = teachers.find((x) => (x.subjects || []).includes(sub.id));
+        const open = openSubject === sub.id;
+        const photo = t && Api.publicUrl(t.photo);
+
+        return h('div.srow' + (open ? '.is-open' : ''),
+          { onclick: () => App.go('course', { subject: sub.id }) },
+          h('div.srow__head',
+            h('span.simg.subj--c' + (i % 4), subjectIconEl(sub.id, 22)),
+            h('div.srow__b',
+              h('b', sub.name),
+              h('small', `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا · ${ar(p.percent)}٪`)),
+            t ? h('button.srow__chev', {
+                  'aria-label': open ? 'إخفاء الأستاذ' : 'عرض الأستاذ',
+                  onclick: (e) => { e.stopPropagation(); openSubject = open ? null : sub.id; drawSubjList(); },
+                }, icon.chevron(16)) : null),
+          open && t ? h('div.steach',
+            photo
+              ? h('img.steach__av', { src: photo, alt: '', loading: 'lazy' })
+              : h('span.steach__av', t.name[0]),
+            h('div.steach__b', h('i', 'الأستاذ'), h('b', t.name))) : null);
+      }));
+    }
+    drawSubjList();
+
     return h('div.screen',
       /* لا ترويسة: التحية والزرّان أوّلُ **محتوى الصفحة** داخل منطقة التمرير،
          فيمضيان معه كأي عنصر. هذا يلغي منطق الإخفاء كلّه — لا قياس ارتفاع
@@ -220,22 +256,13 @@ window.Screens = window.Screens || {};
                 h('b.trio--gold', ar(s.daysLeft || 0)), h('small', 'يومًا متبقّيًا')))
           : null,
 
-        // موادّي بحلقات تقدّم — الحلقة تُقرأ بلمحة والرقم يؤكّدها
+        // موادّي: قائمة عمودية، صورة المادة بدل حلقة تقدّم، وسهم يفتح أستاذها
         subjects.length
           ? h('div',
               h('div.sec-label.sec-label--row', { style: 'margin-top:20px' },
                 h('span', 'موادّي'),
                 h('button.sec-more', { onclick: () => App.go('subjects') }, 'الكل')),
-              h('div.hrail',
-                ...subjects.map((sub) => {
-                  const p = Store.subjectProgress(sub.id);
-                  return h('button.mini', { onclick: () => App.go('course', { subject: sub.id }),
-                                            'aria-label': sub.name },
-                    h('span.mring', { style: `--p:${p.percent}%` },
-                      h('em', ar(p.percent) + '٪')),
-                    h('b', sub.name),
-                    h('small', `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا`));
-                })))
+              subjList)
           : null,
 
         // بطاقة الأستاذ = صورة واحدة مصمَّمة كاملةً باللوحة (الاسم والمادة

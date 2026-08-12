@@ -342,31 +342,50 @@ img, svg { max-width: 100%; display: block; }
 .trio--ok { color: var(--ok) !important; }
 .trio--gold { color: var(--gold) !important; }
 
-/* شريط أفقي: المواد بحلقات تقدّم. الحلقة تُقرأ بلمحة والرقم يؤكّدها. */
-.hrail { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
-.hrail::-webkit-scrollbar { display: none; }
-.mini {
-  flex: none; width: 108px; background: var(--surf); border-radius: 16px;
-  padding: 11px 9px; box-shadow: var(--sh-2); text-align: center;
-  border: 0; cursor: pointer; font: inherit; color: inherit;
-  transition: transform var(--dur) var(--ease);
+/* =============================================================================
+   قائمة «موادّي» بالرئيسية — صفٌّ لكل مادة بدل شريط حلقات أفقي: صورة/أيقونة
+   المادة تحلّ محلّ حلقة التقدّم (النسبة تبقى رقمًا بالسطر الفرعي)، وسهمٌ
+   يفتح صفّ أستاذ المادة تحته. راجع المعاينة المعتمدة بملف الخطة قبل أي
+   تعديل على الألوان أو الأحجام هنا.
+   ============================================================================= */
+.slist { display: flex; flex-direction: column; gap: 8px; }
+.srow {
+  background: var(--surf); border: 1px solid var(--brd); border-radius: 14px;
+  overflow: hidden; cursor: pointer;
 }
-.mini:hover { transform: translateY(-2px); }
-.mini b { font-size: 11.5px; font-weight: 600; display: block; }
-.mini small { font-size: 9.5px; color: var(--txf); }
-/* `conic-gradient` لا صورة ولا SVG: حلقةٌ بسطر واحد تتبع اللون الحالي وتتكيّف
-   مع الوضع الليلي بلا أصلٍ ثانٍ يُحمَّل. */
-.mring {
-  width: 42px; height: 42px; border-radius: 50%; margin: 0 auto 7px;
-  display: grid; place-items: center;
-  background: conic-gradient(var(--acc) var(--p, 0%), var(--surf3) 0);
+.srow__head { display: flex; align-items: center; gap: 10px; padding: 11px 12px; }
+.simg {
+  flex: 0 0 44px; width: 44px; height: 44px; border-radius: 13px;
+  display: grid; place-items: center; color: #FFF;
 }
-.mring em {
-  width: 31px; height: 31px; border-radius: 50%; background: var(--surf);
-  display: grid; place-items: center; font-style: normal;
-  font-size: 10px; font-weight: 600; color: var(--acc-tx);
+.srow__b { flex: 1; min-width: 0; }
+.srow__b b { display: block; font-size: 13.5px; font-weight: 600; }
+.srow__b small {
+  display: block; font-size: 10.5px; color: var(--txf); margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
+.srow__chev {
+  flex: none; display: grid; place-items: center; width: 30px; height: 30px;
+  border: 0; border-radius: 50%; background: transparent; color: var(--txf);
+  transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.srow__chev:hover { background: var(--surf2); }
+.srow.is-open .srow__chev { transform: rotate(180deg); color: var(--acc); }
+
+/* صفّ الأستاذ: يظهر عند فتح السهم، ويرث نقرة الصفّ كلّه (يفتح المادة) —
+   بلا أي معالج نقر خاصّ به ولا وجهة مستقلّة (صفحة الأستاذ بره هذه البطاقة). */
+.steach {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px 13px; border-top: 1px solid var(--brd); background: var(--surf2);
+}
+.steach__av {
+  flex: 0 0 42px; width: 42px; height: 42px; border-radius: 50%; object-fit: cover;
+  background: var(--acc-soft); color: var(--acc-tx);
+  display: grid; place-items: center; font-size: 15px; font-weight: 600;
+}
+.steach__b { min-width: 0; line-height: 1.3; }
+.steach__b i { display: block; font-style: normal; font-size: 10px; color: var(--txf); }
+.steach__b b { display: block; font-size: 12.5px; font-weight: 600; }
 
 /* صفّ خبر مختصر على الرئيسية — مدخلٌ إلى القسم لا نسخةٌ منه */
 .nrow {
