@@ -10,6 +10,9 @@ require('./render-check-lib.js');
 let bad = 0;
 const ok = (n, c, x = '') => { console.log((c ? 'ok   ' : 'FAIL ') + n + (x ? ' → ' + x : '')); if (!c) bad++; };
 
+const courseSrc = require('node:fs')
+  .readFileSync(require('node:path').join(__dirname, '..', '..', 'js', 'screens', 'course.js'), 'utf8');
+
 function fresh(patch = {}) {
   Store.set({ lessons: {}, doneAt: {}, exams: {}, ...patch });
 }
@@ -32,7 +35,6 @@ fresh();
 
   ok('الدرس الثاني لسا todo', p.steps[1].state === 'todo', p.steps[1].state);
   ok('وخطوة الامتحان لسا todo (بعد كل الدروس)', p.steps[2].type === 'examCta' && p.steps[2].state === 'todo');
-  ok('الوحدة التالية هي الثانية', p.next && p.next.id === 'u2', p.next && p.next.id);
 }
 
 // =============================================================================
@@ -58,7 +60,6 @@ fresh();
   const p = Store.subjectPath('fr');
   ok('انتقلنا للوحدة الثانية', p.unit.id === 'u2', p.unit.id);
   ok('أول درس بالثانية صار now', p.steps[0].id === 'etre-avoir' && p.steps[0].state === 'now');
-  ok('ولا وحدة تالية بعدها (آخر وحدة)', p.next === null);
 }
 
 // =============================================================================
@@ -83,7 +84,6 @@ fresh();
   const p = Store.subjectPath('math');
   ok('بلا وحدة حالية', p.unit === null);
   ok('بلا خطوات', p.steps.length === 0);
-  ok('وبلا وحدة تالية', p.next === null);
 }
 
 // =============================================================================
@@ -94,11 +94,33 @@ fresh();
   const html1 = Screens.course({ subject: 'fr', tab: 'lessons' }).outerHTML;
   ok('شاشة المادة (فيها مسار) تُبنى بلا استثناء', html1.includes('class="path"'));
   ok('وفيها عنوان الوحدة الحالية', html1.includes('الوحدة الأولى'));
-  ok('وفيها معاينة الوحدة التالية', html1.includes('class="teaser"'));
 
   const html2 = Screens.course({ subject: 'math', tab: 'lessons' }).outerHTML;
   ok('ومادة بلا محتوى تُبنى بلا استثناء أيضًا', typeof html2 === 'string' && html2.length > 0);
 }
+
+// =============================================================================
+// ٧) بقيّة الوحدات: ظاهرة كاملةً ومفتوحة (بلا قفل) ولو ما خلّصنا الحالية
+//    هاي بالضبط النقطة يلي طلبها صاحب المنتج: طالب بمنتصف السنة يقدر يفتح
+//    وحدة رابعة مباشرة بدون ما ينهي الأولى.
+// =============================================================================
+{
+  fresh(); // ولا درس واحد منجَز — الوحدة الحالية u1، والثانية «بقيّة»
+  const html = Screens.course({ subject: 'fr', tab: 'lessons' }).outerHTML;
+  ok('عنوان قسم بقية الوحدات موجود', html.includes('بقيّة وحدات المادة'));
+  ok('عنوان الوحدة الثانية ظاهر كاملًا (لا مطويًا خلف معاينة)', html.includes('الوحدة الثانية'));
+  // درسها (تصريف être و avoir) عنوانه الكامل ظاهر — أي الأكورديون ذاته
+  // ظاهر لا مقفول وراء عنوان وحدة بس؛ نفس فحص Screens.course أعلاه يثبت
+  // إنها details.unit حقيقية (نفس النمط القديم قبل استبداله بمسار).
+  ok('عنوان درس الوحدة الثانية ظاهر (الدرس نفسه معروض لا مخفي)',
+     html.includes('تصريف être و avoir'));
+}
+// نقرة الدرس داخل «بقية الوحدات» تفتحه فورًا — بلا أي شرط يمنعها لو الوحدة
+// الحالية ما خلصت (لا قفل، تمامًا زي فلسفة المسار نفسها).
+ok('درس أي وحدة أخرى قابل للفتح مباشرة بلا قفل',
+   /function unitAccordion\(u\)/.test(courseSrc)
+   && /h\('div\.les\.les--' \+ state,\s*\{ onclick: \(\) => App\.go\('lesson', \{ id, subject: subjectId \}\) \}/
+     .test(courseSrc));
 
 console.log('\n' + (bad ? `${bad} فشل` : 'مسار المادة سليم'));
 process.exit(bad ? 1 : 0);

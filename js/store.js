@@ -310,7 +310,7 @@ window.Store = (function () {
     // كلّه، ما تبقّى فعلًا هو امتحان آخر وحدة لا دروس أوّل وحدة من جديد.
     const current = units.find((u) => (u.lessons || []).some((id) => state.lessons[id] !== 'done'))
       || units[units.length - 1] || null;
-    if (!current) return { unit: null, steps: [], next: null };
+    if (!current) return { unit: null, steps: [] };
 
     let placedNow = false;
     const steps = (current.lessons || []).map((id) => {
@@ -322,8 +322,7 @@ window.Store = (function () {
     });
     steps.push({ type: 'examCta', id: null, state: placedNow ? 'todo' : 'now' });
 
-    const next = units[units.indexOf(current) + 1] || null;
-    return { unit: current, steps, next };
+    return { unit: current, steps };
   }
 
   /* =========================================================================

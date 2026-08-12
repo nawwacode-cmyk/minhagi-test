@@ -53,15 +53,45 @@ window.Screens = window.Screens || {};
       body.scrollTop = 0;
     }
 
-    // --- تبويب الدروس: مسار الوحدة الحالية، لا قائمة وحدات مطوية ----------------
+    // --- تبويب الدروس: مسار الوحدة الحالية + بقية الوحدات مفتوحة دون قفل -------
     // كانت كل الوحدات تُعرض مغلقة بنفس الوزن، وبطاقة «أكمل من هون» جانبية
-    // تكرّر نفس المعنى بشكل منفصل. المسار يدمج الاثنين: خطوة واحدة مكبّرة
-    // «الآن» داخل الوحدة الحالية فقط، والوحدة التالية معاينة مطوية تحته —
-    // إفصاح تدريجي لا إخفاء كامل ولا جدار دروس. راجع المعاينة المعتمدة
-    // (رابطها بملف الخطة) قبل أي تعديل على شكل الحالات هنا.
+    // تكرّر نفس المعنى بشكل منفصل. المسار يحلّ محلّها للوحدة الحالية: خطوة
+    // واحدة مكبّرة «الآن». وتحته **كل** الوحدات الأخرى بنفس الأكورديون
+    // القديم — الطالب يقدر يفتح أي وحدة ويبدأ أي درس فيها ولو ما خلّص
+    // الوحدة الحالية؛ لا قفل هنا ولا كان قبلها (`git log` قبل هذا الملف).
+    function unitAccordion(u) {
+      const s = Store.get();
+      const up = Store.unitProgress(u);
+      const det = h('details.unit');
+      det.appendChild(h('summary.unit__head',
+        h('div.grow',
+          h('div.unit__title', u.title),
+          h('div.row', { style: 'gap:8px' },
+            bar(up.pct),
+            h('span.faint', { style: 'font-size:11px' }, `${ar(up.done)}/${ar(up.total)}`))),
+        h('span.unit__chev', icon.chevron(16))));
+
+      (u.lessons || []).forEach((id, n) => {
+        const l = SEED.lessons[id];
+        const st = s.lessons[id];
+        const state = st === 'done' ? 'done' : st ? 'now' : 'todo';
+        det.appendChild(h('div.les.les--' + state,
+          { onclick: () => App.go('lesson', { id, subject: subjectId }) },
+          h('span.les__s',
+            state === 'done' ? icon.check(15)
+            : state === 'now' ? icon.play(14)
+            : ar(n + 1)),
+          h('div.les__b',
+            h('div.les__t', l.title),
+            h('div.les__m', h('span', `${l.video.length} دقيقة`))),
+          h('span.les__go', icon.fwd(17))));
+      });
+      return det;
+    }
+
     function tabLessons() {
       const s = Store.get();
-      const { unit, steps, next } = Store.subjectPath(subjectId);
+      const { unit, steps } = Store.subjectPath(subjectId);
 
       if (!unit) {
         return h('div.dash', h('div.dash__main',
@@ -83,13 +113,6 @@ window.Screens = window.Screens || {};
               meta: 'اختر نموذجًا من تبويب الامتحانات بعد ما تخلّص دروس الوحدة',
               onclick: () => { tab = 'exams'; drawSeg(); drawBody(); },
             })),
-        next
-          ? h('div.teaser',
-              h('span.teaser__ico', icon.chevron(16)),
-              h('div',
-                h('b', next.title),
-                h('span', `${ar((next.lessons || []).length)} دروس قادمة`)))
-          : h('div.endcap', 'خلّصت كل وحدات هذي المادة'),
         h('div', { style: 'padding-top:12px' },
           h('button.btn.btn--secondary.btn--sm.btn--block', {
             onclick: () => {
@@ -102,11 +125,18 @@ window.Screens = window.Screens || {};
           }, allDown ? null : icon.down(18),
              allDown ? 'حذف تنزيل الوحدة' : 'تنزيل الوحدة للاستخدام دون إنترنت')));
 
+      const otherUnits = subjectUnits.filter((u) => u.id !== unit.id);
+      const otherList = otherUnits.length
+        ? h('div', { style: 'margin-top:18px' },
+            h('div.sec-label', { style: 'margin:0 4px 8px' }, 'بقيّة وحدات المادة'),
+            ...otherUnits.map((u) => unitAccordion(u)))
+        : null;
+
       const savedCount = subjectLessonIds.filter((id) => s.downloaded.includes(id)).length;
       const totalLessons = subjectLessonIds.length;
 
       return h('div.dash',
-        h('div.dash__main', path),
+        h('div.dash__main', path, otherList),
         h('aside.dash__side',
           h('div.card.card--pad',
             h('div.row', { style: 'margin-bottom:8px' },
