@@ -705,65 +705,10 @@ img, svg { max-width: 100%; display: block; }
 .newsfeed__s { font-size: 13.5px; opacity: .92; line-height: 1.6; }
 @media (min-width: 700px) { .newsfeed__card { min-height: 240px; padding: 22px; } }
 
-/* --- بطاقة الأستاذ الغنيّة ضمن شريط أفقي --------------------------------------
-   بديل الصورة الفوتوغرافية: تدرّج لوني + أيقونة موضوعية باهتة + الحرف الأول،
-   فتبدو البطاقة مكتملة حتى قبل توفّر صور حقيقية للأساتذة. */
-/* الحشوة الجانبية 4px لا 2: ظلّ البطاقة يمتدّ خارج حدّها، وبحشوة أضيق
-   يُقصّ عند حافة منطقة التمرير فيبدو الظلّ مقطوعًا. */
-.teacher-scroll {
-  display: flex; gap: 14px; overflow-x: auto; padding: 4px 4px 12px;
-  scrollbar-width: none; -ms-overflow-style: none;
-  scroll-snap-type: x proximity;
-}
-.teacher-scroll > * { scroll-snap-align: start; }
-.teacher-scroll::-webkit-scrollbar { display: none; }
-/* بطاقة الأستاذ = صورة مصمَّمة كاملةً باللوحة (الاسم والمادة والخبرة مرسومة
-   داخلها). لا نصّ من التطبيق فوقها: أي نصّ نضيفه سيصطدم بنصّ الصورة ويتكرّر.
-   البطاقة عريضة تكاد تملأ العرض، ويظهر طرف التالية ليُفهم أن الصفّ يُمرَّر. */
-.tcard {
-  flex: none; width: min(84vw, 400px); position: relative;
-  border: 1px solid var(--brd); border-radius: 22px; overflow: hidden;
-  background: var(--surf); box-shadow: var(--sh-2); cursor: pointer;
-  padding: 0; font: inherit; color: inherit;
-  transition: transform var(--dur) var(--ease);
-}
-.tcard:hover { transform: translateY(-2px); }
-
-/* سهم الدخول — الزاوية السفلى اليسرى. في RTL تبدأ المحاور من اليمين،
-   فاليسار هو inset-inline-end لا start. */
-/* دائرة أصغر وسهم أعرض وأشدّ إشباعًا: العلامة الوحيدة في زاوية بيضاء واسعة،
-   فالسماكة هي ما يجعلها تُقرأ لا الحجم. الحدّ أُزيل — خطّ رمادي حول قرص أبيض
-   على أرضية بيضاء يُظهره كقرص مقصوص بدل أن يطفو بظلّه. */
-.tcard__go {
-  position: absolute; bottom: 14px; inset-inline-end: 14px;
-  width: 34px; height: 34px; border-radius: 50%;
-  display: grid; place-items: center;
-  background: var(--surf); color: var(--acc);
-  box-shadow: var(--sh-2);
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
-}
-.tcard:hover .tcard__go { background: var(--acc); color: #FFF; }
-
-/* contain لا cover: الصورة مصمَّمة بنسبة يختارها المصمّم، والقصّ يقطع اسم
-   الأستاذ أو وجهه. هامش صغير أهون من اسم مقطوع. */
-.tcard__img {
-  display: block; width: 100%; aspect-ratio: 3 / 2;
-  object-fit: contain; background: var(--surf);
-}
-
-/* بديل ريثما تُرفع الصورة — لا يحاكي التصميم، فقط يمنع بطاقة فارغة تبدو عطلًا */
-.tcard__blank {
-  aspect-ratio: 3 / 2; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 8px; padding: 18px;
-  background: linear-gradient(135deg, var(--acc-soft), var(--surf));
-}
-.tcard__init {
-  width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center;
-  background: linear-gradient(145deg, var(--acc), var(--acc-deep));
-  color: #fff; font-size: 26px; font-weight: 600;
-}
-.tcard__name { font-weight: 600; font-size: 16px; }
-.tcard__sub { font-size: 13px; color: var(--txm); }
+/* شريط بطاقات «معلمونا المميزون» الأفقي انشال من الرئيسية — الأستاذ صار
+   ظاهرًا مباشرة تحت مادته بقائمة «موادّي» (راجع .srow/.steach أعلاه).
+   شاشة ملف الأستاذ نفسها (.teacher-cover/.teacher-av تحت) باقية — تبقى
+   تُفتح من وجهة بانر بنوع «teacher» (main.js سطر ~34). */
 
 /* التمركز على 30٪ رأسيًا لا 50٪: الوجه في صور البورتريه أعلى من مركز
    الإطار، فالتمركز التام يقطع الجبهة ويترك فراغ الكتفين. */
