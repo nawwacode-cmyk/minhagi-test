@@ -294,6 +294,38 @@ window.Store = (function () {
              pct: unit.lessons.length ? (done / unit.lessons.length) * 100 : 0 };
   }
 
+  /**
+   * مسار مادة واحدة: خطوات الوحدة **الحالية** بترتيب المنهاج، بدل قائمة
+   * وحدات مطوية متطابقة الوزن. الوحدة الحالية = أول وحدة فيها درس غير
+   * منجَز (أو الأولى إن أنجز الطالب كل شيء).
+   *
+   * خطوة أخيرة تدعو لامتحان الوحدة **بدون ربط بامتحان محدَّد**: كائن
+   * الامتحان لا يحمل أي إشارة لأي وحدة يخصّ (`SEED.exams` مربوط بالمادة
+   * فقط)، وبعض الوحدات لها أكثر من نموذج امتحان أصلًا — فربطٌ آليّ هنا
+   * سيكون تخمينًا. البطاقة تنقل لتبويب الامتحانات ليختار الطالب بنفسه.
+   */
+  function subjectPath(subjectId) {
+    const units = (SEED.units || []).filter((u) => u.subject === subjectId);
+    // كل الوحدات منجَزة ⇒ نعرض آخر وحدة (لا أول واحدة): بعد إنهاء المنهاج
+    // كلّه، ما تبقّى فعلًا هو امتحان آخر وحدة لا دروس أوّل وحدة من جديد.
+    const current = units.find((u) => (u.lessons || []).some((id) => state.lessons[id] !== 'done'))
+      || units[units.length - 1] || null;
+    if (!current) return { unit: null, steps: [], next: null };
+
+    let placedNow = false;
+    const steps = (current.lessons || []).map((id) => {
+      const done = state.lessons[id] === 'done';
+      let st = 'todo';
+      if (done) st = 'done';
+      else if (!placedNow) { st = 'now'; placedNow = true; }
+      return { type: 'lesson', id, state: st };
+    });
+    steps.push({ type: 'examCta', id: null, state: placedNow ? 'todo' : 'now' });
+
+    const next = units[units.indexOf(current) + 1] || null;
+    return { unit: current, steps, next };
+  }
+
   /* =========================================================================
      الخطّة
 
@@ -417,7 +449,7 @@ window.Store = (function () {
     enqueue, clearOutbox, pending,
     completeLesson, startLesson, recordAttempt, recordExam,
     toggleDownload, setTheme, toggleOnline,
-    subjectProgress, unitProgress,
+    subjectProgress, unitProgress, subjectPath,
     dayKey, markActive, recordFocus, setPace, plan, week, month, PACE,
   };
 })();

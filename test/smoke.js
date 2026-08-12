@@ -136,6 +136,7 @@ ok('sync يحوّل passage_md إلى passage', /passage:\s*q\.passage_md/.test(
 // القرار: أسئلة كثيرة (comprehension/expression/الملحق الأدبي) بلا section
 // معروف ستختفي من تمارين الطالب دون أي خطأ ظاهر.
 const courseSrc = fs.readFileSync(dir + 'screens/course.js', 'utf8');
+const storeSrc = fs.readFileSync(dir + 'store.js', 'utf8');
 ok('شاشة التمارين تصفّي بحقل section', /q\.section === id/.test(courseSrc));
 ok('الجلسة الشاملة تستثني غير المصنَّف', /params\.section === 'any'.*q\.section\)/.test(courseSrc));
 ok('Screens.practice يقبل section محدَّدًا', /q\.section === params\.section/.test(courseSrc));
@@ -422,15 +423,20 @@ ok('ترويسة مشتركة لا منسوخة', (mainSrc.match(/C\.homeHeader\
 // «موادّي» عنوانُ الصفحة نفسه، فلا تحيةَ فوقه — عنوانان متراكمان في أعلى شاشة
 ok('«موادّي» بلا سطر تحية فوقه', /C\.homeHeader\(null, 'موادّي'/.test(mainSrc));
 
-// --- الدروس عادت قائمةً + بطاقة متابعة موحّدة -----------------------------------
-ok('الدروس قائمة لا بطاقات', /h\('div\.les\.les--'/.test(courseSrc) && !/lgrid|lcard/.test(courseSrc));
+// --- الدروس: مسار الوحدة الحالية لا أكورديون + بطاقة متابعة مكرّرة --------------
+// تبويب الدروس عاد قائمةً ثم صار مسارًا: الأكورديون المقفول كان يخفي البنية
+// كلّها، والمسار يُظهر خطوة واحدة مكبّرة «الآن» بدل وحدات متطابقة الوزن.
+ok('الدروس مسارٌ من خطوات لا بطاقات', /C\.pathNode\(/.test(courseSrc) && !/lgrid|lcard/.test(courseSrc));
 ok('والفاصل بين الدروس لا حولها', /\.les \{[^}]*border-top: 1px solid var\(--brd\)/.test(cssSrc));
-ok('حالة الدرس في قرص البداية',
-   /\.les--done \.les__s/.test(cssSrc) && /\.les--now  \.les__s/.test(cssSrc));
-// بطاقة واحدة للمعنى الواحد: شكلان لنفس الفكرة يجعل الطالب يقرؤها بلغتين
-ok('بطاقة المتابعة مكوّن مشترك',
-   /function continueCard\(/.test(compSrc)
-   && /C\.continueCard\(/.test(mainSrc) && /C\.continueCard\(/.test(courseSrc));
+ok('حالة الخطوة في قرص البداية',
+   /\.node--done \.node__dot/.test(cssSrc) && /\.node--now \.node__dot/.test(cssSrc));
+// بطاقة المتابعة تخدم الرئيسية وموادّي؛ داخل شاشة المادة نفسها المسار هو
+// نقطة المتابعة الوحيدة الآن — بطاقة ثانية بجانبه كانت تكرار نفس المعنى
+// بشكلين، وهو ما نبّه له صاحب المنتج أصلًا.
+ok('بطاقة المتابعة مكوّن مشترك بين الرئيسية وموادّي',
+   /function continueCard\(/.test(compSrc) && /C\.continueCard\(/.test(mainSrc));
+ok('وداخل شاشة المادة المسار هو نقطة المتابعة، لا بطاقة منفصلة',
+   !/C\.continueCard\(/.test(courseSrc) && /C\.pathNode\(/.test(courseSrc));
 // المتجر لا يخزّن نسبةً داخل الدرس، فشريطٌ يوحي بها رقمٌ مُختلَق
 ok('شريط البطاقة يعرض تقدّم المادة والنصّ يقوله',
    /Store\.subjectProgress\(nextSubjectId\)\.percent/.test(mainSrc)
@@ -806,12 +812,15 @@ ok('زرّ الرجوع يبقى ثابتًا', /\.teacher-back \{[^}]*position:
 ok('لا بقايا للخطّ الزمني ولا للبطاقات',
    !/\.tl-row|\.tl-dot|\.tl-act|\.lcard|\.lgrid/.test(cssSrc)
    && !/lgrid|lcard|h\('div\.tl'\)/.test(courseSrc));
-ok('ثلاث حالات للدرس', ['done', 'now', 'todo'].every((x) => courseSrc.includes(`'${x}'`)));
-/* الوحدات مغلقة عند الدخول: الشرط السابق كان يفتح كلَّ وحدة غير مكتملة — أي
-   كلَّها في بداية المنهاج — فتصير الشاشة جدارَ دروسٍ لا فهرسًا. */
-ok('الوحدات مغلقة عند الدخول',
-   /const det = h\('details\.unit'\);/.test(courseSrc)
-   && !/details\.unit', i === 0 \|\| up\.done/.test(courseSrc));
+// الحسابُ (أي خطوة done/now/todo) انتقل إلى Store.subjectPath — الرسمُ في
+// course.js يقرأ الحالة الجاهزة بدل أن يشتقّها، فالحارس يتبع الحساب لا الرسم.
+ok('ثلاث حالات للخطوة', ['done', 'now', 'todo'].every((x) => storeSrc.includes(`'${x}'`))
+   && /function subjectPath\(/.test(storeSrc));
+/* الأكورديون المقفول ألغي كليًا لصالح المسار: لا وحدات تُطوى وتُفتح بعد
+   الآن — خطوات الوحدة الحالية ظاهرة دائمًا، والوحدة التالية معاينة مطوية
+   واحدة لا قائمة دروس كاملة. هذا يمنع رجوع «جدار الدروس» بشكل مختلف. */
+ok('الوحدة التالية معاينة مطوية لا قائمة دروس كاملة',
+   /h\('div\.teaser'/.test(courseSrc) && !/next\.lessons[\s\S]{0,12}\.map\(/.test(courseSrc));
 // عنصرٌ بلا محتوى داخل صفٍّ مرن ينكمش إلى عرض صفر فيختفي الشريط تمامًا
 ok('شريط التقدّم يأخذ عرضًا داخل الصفّ', /\.row > \.bar \{[^}]*flex: 1/.test(cssSrc));
 
@@ -855,9 +864,11 @@ ok('واسمٌ طويل يُقصّ لا يمطّ البطاقة',
 ok('قصّة الحافّة بسهم', /subj__notch/.test(mainSrc)
    && /\.subj__notch \{[^}]*background: var\(--bg\)/.test(cssSrc));
 ok('والفجوة تتّسع لبروزها', /\.subj-grid \{[^}]*gap: 16px/.test(cssSrc));
-// الحالة في قرص البداية: صحٌّ أخضر للمكتمل، تشغيلٌ للجاري، رقمٌ لما لم يُبدأ
-ok('المكتمل يحمل علامة صحّ', /state === 'done' \? icon\.check\(15\)/.test(courseSrc)
-   && /\.les--done \.les__s \{[^}]*color: var\(--ok\)/.test(cssSrc));
+// الحالة في قرص البداية: صحّ للمكتمل، تشغيلٌ للجاري. المكتمل ذهبي لا أخضر
+// هنا — نفس منطق .lesson__ico--done: الذهبي لون الإنجاز في الهوية،
+// والأخضر محجوز لتغذية «إجابة صحيحة» الراجعة، فلا يُستهلك معناه في مكانين.
+ok('المكتمل يحمل علامة صحّ', /state === 'done' \? icon\.check\(15\)/.test(compSrc)
+   && /\.node--done \.node__dot \{[^}]*color: var\(--gold\)/.test(cssSrc));
 ok('والجاري يحمل تشغيلًا بلون الهوية',
    /\.les--now  \.les__s \{[^}]*background: var\(--acc\)/.test(cssSrc));
 

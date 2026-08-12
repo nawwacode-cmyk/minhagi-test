@@ -159,6 +159,27 @@ window.C = (function () {
     return null;
   }
 
+  /* ---------------------------------------------------------------------------
+     خطوة على مسار مادة واحدة (`Store.subjectPath`) — نفس مفردات
+     done/now/todo الموجودة أصلًا بصفوف الدروس، بشكل عمودي متّصل بدل صفّ
+     أفقي داخل أكورديون. بلا قفل: كل خطوة قابلة للضغط بصرف النظر عن حالتها.
+  --------------------------------------------------------------------------- */
+  function pathNode({ type, title, meta, state, onclick }) {
+    const dot = type === 'examCta' ? icon.exam(state === 'now' ? 17 : 14)
+      : state === 'done' ? icon.check(15)
+      : state === 'now' ? icon.play(14)
+      : null;
+
+    return h('div.node.node--' + state + (type === 'examCta' ? '.node--exam' : ''),
+      { onclick },
+      h('div.node__rail', h('div.node__dot', dot), h('div.node__line')),
+      h('div.node__body',
+        h('div.node__t', title),
+        meta ? h('div.node__m', meta) : null,
+        state === 'now' ? h('div.node__go', icon.fwd(13),
+          type === 'examCta' ? 'جرّب الامتحان' : 'تابع') : null));
+  }
+
   // --- حالة فارغة --------------------------------------------------------------
   function empty({ img, title, text, action }) {
     return h('div.empty',
@@ -384,5 +405,5 @@ window.C = (function () {
     return card;
   }
 
-  return { appbar, homeHeader, greeting, continueCard, syncBanner, empty, questionCard };
+  return { appbar, homeHeader, greeting, continueCard, syncBanner, empty, questionCard, pathNode };
 })();

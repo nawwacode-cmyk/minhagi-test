@@ -53,62 +53,47 @@ window.Screens = window.Screens || {};
       body.scrollTop = 0;
     }
 
-    // --- تبويب الدروس ---------------------------------------------------------
+    // --- تبويب الدروس: مسار الوحدة الحالية، لا قائمة وحدات مطوية ----------------
+    // كانت كل الوحدات تُعرض مغلقة بنفس الوزن، وبطاقة «أكمل من هون» جانبية
+    // تكرّر نفس المعنى بشكل منفصل. المسار يدمج الاثنين: خطوة واحدة مكبّرة
+    // «الآن» داخل الوحدة الحالية فقط، والوحدة التالية معاينة مطوية تحته —
+    // إفصاح تدريجي لا إخفاء كامل ولا جدار دروس. راجع المعاينة المعتمدة
+    // (رابطها بملف الخطة) قبل أي تعديل على شكل الحالات هنا.
     function tabLessons() {
       const s = Store.get();
+      const { unit, steps, next } = Store.subjectPath(subjectId);
 
-      // كل وحدة بطاقتها الخاصة (.unit) لا صفوف داخل بطاقة واحدة — الحاوية هنا
-      // مجرّد مكدّس بلا مظهر، وإلّا ظهرت بطاقة داخل بطاقة.
-      const list = h('div');
-      subjectUnits.forEach((u, i) => {
-        const up = Store.unitProgress(u);
-        const allDown = u.lessons.every((id) => s.downloaded.includes(id));
+      if (!unit) {
+        return h('div.dash', h('div.dash__main',
+          C.empty({ title: 'لا دروس بعد', text: 'لسا ما وصل محتوى لهذي المادة.' })));
+      }
 
-        /* كل الوحدات **مغلقة** عند الدخول. كان الشرط يفتح الأولى وكلَّ وحدة غير
-           مكتملة — أي كلَّها فعليًا في بداية المنهاج، فتصير الشاشة جدارَ دروسٍ
-           لا فهرسًا. والمغلقة تُظهر المنهاج كلّه في شاشة واحدة، ومن أراد موضعه
-           فبطاقة «أكمل من حيث توقفت» تأخذه إليه مباشرةً. */
-        const det = h('details.unit');
-        det.appendChild(h('summary.unit__head',
-          h('div.grow',
-            h('div.unit__title', u.title),
-            h('div.row', { style: 'gap:8px' },
-              bar(up.pct),
-              h('span.faint', { style: 'font-size:11px' }, `${ar(up.done)}/${ar(up.total)}`))),
-          h('span.unit__chev', icon.chevron(16))));
+      const allDown = (unit.lessons || []).every((id) => s.downloaded.includes(id));
 
-        /* الدروس قائمةٌ لا بطاقاتٍ كبيرة: البطاقات الملوّنة جميلة بأربعٍ منها،
-           وبعشرين درسًا تصير لوحةً صاخبة تُخفي «أين وصلت». والصفّ يقول الحالة
-           في قرص البداية (صحّ · تشغيل · رقم) ويقرأ أسرع بكثير.
-
-           الفاصل **بين** الدروس لا حولها: إطارٌ داخل إطار يضاعف الخطوط بلا
-           معنى، وقد كان هذا أوضح خلل في الشكل السابق. */
-        u.lessons.forEach((id, n) => {
-          const l = SEED.lessons[id];
-          const st = s.lessons[id];
-          const state = st === 'done' ? 'done' : st ? 'now' : 'todo';
-
-          det.appendChild(h('div.les.les--' + state,
-            { onclick: () => App.go('lesson', { id, subject: subjectId }) },
-            h('span.les__s',
-              state === 'done' ? icon.check(15)
-              : state === 'now' ? icon.play(14)
-              : ar(n + 1)),
-            h('div.les__b',
-              h('div.les__t', l.title),
-              h('div.les__m',
-                h('span', `${l.video.length} دقيقة`),
-                l.free ? h('span.tag.tag--free', 'مجاني') : null,
-                s.downloaded.includes(id) ? h('span.tag.tag--off', 'محفوظ') : null)),
-            h('span.les__go', icon.fwd(17))));
-        });
-
-        // زر تنزيل على مستوى الوحدة — الفجوة التي كانت غائبة في الموكأپ
-        det.appendChild(h('div', { style: 'padding:10px 16px 14px;border-top:1px solid var(--brd)' },
+      const path = h('div.path',
+        h('div.unithead', unit.title),
+        ...steps.map((st) => st.type === 'lesson'
+          ? C.pathNode({
+              type: 'lesson', state: st.state, title: SEED.lessons[st.id].title,
+              meta: `${SEED.lessons[st.id].video.length} دقيقة`,
+              onclick: () => App.go('lesson', { id: st.id, subject: subjectId }),
+            })
+          : C.pathNode({
+              type: 'examCta', state: st.state, title: 'امتحان الوحدة',
+              meta: 'اختر نموذجًا من تبويب الامتحانات بعد ما تخلّص دروس الوحدة',
+              onclick: () => { tab = 'exams'; drawSeg(); drawBody(); },
+            })),
+        next
+          ? h('div.teaser',
+              h('span.teaser__ico', icon.chevron(16)),
+              h('div',
+                h('b', next.title),
+                h('span', `${ar((next.lessons || []).length)} دروس قادمة`)))
+          : h('div.endcap', 'خلّصت كل وحدات هذي المادة'),
+        h('div', { style: 'padding-top:12px' },
           h('button.btn.btn--secondary.btn--sm.btn--block', {
-            onclick: (e) => {
-              e.stopPropagation();
-              u.lessons.forEach((id) => {
+            onclick: () => {
+              unit.lessons.forEach((id) => {
                 const has = Store.get().downloaded.includes(id);
                 if (allDown ? has : !has) Store.toggleDownload(id);
               });
@@ -117,35 +102,12 @@ window.Screens = window.Screens || {};
           }, allDown ? null : icon.down(18),
              allDown ? 'حذف تنزيل الوحدة' : 'تنزيل الوحدة للاستخدام دون إنترنت')));
 
-        list.appendChild(det);
-      });
-
-      const nextId = subjectLessonIds.find((id) => s.lessons[id] !== 'done');
-      const next = nextId && SEED.lessons[nextId];
       const savedCount = subjectLessonIds.filter((id) => s.downloaded.includes(id)).length;
       const totalLessons = subjectLessonIds.length;
 
       return h('div.dash',
-        h('div.dash__main', list),
+        h('div.dash__main', path),
         h('aside.dash__side',
-          // نفس بطاقة «موادّي»: فكرةٌ واحدة بلغةٍ واحدة، لا شكلان لمعنًى واحد
-          next
-            ? C.continueCard({
-                eyebrow: 'الدرس التالي',
-                title: next.title,
-                meta: `فيديو ${next.video.length} · ${ar(next.exercises.length)} تمارين`,
-                pct: Store.subjectProgress(subjectId).percent,
-                label: 'ابدأ الدرس',
-                onclick: () => App.go('lesson', { id: nextId, subject: subjectId }),
-              })
-            : h('div.card.card--pad',
-                h('div', { style: 'font-weight:600;margin-bottom:6px' }, 'أنهيت كل الدروس'),
-                h('div.muted.small', { style: 'margin-bottom:12px' },
-                  'جرّب امتحانًا تجريبيًا لتقيس ما ثبت فعلًا.'),
-                h('button.btn.btn--primary.btn--block', {
-                  onclick: () => { tab = 'exams'; drawSeg(); drawBody(); },
-                }, 'إلى الامتحانات')),
-
           h('div.card.card--pad',
             h('div.row', { style: 'margin-bottom:8px' },
               h('span', { style: 'color:var(--info)' }, icon.down(20)),
@@ -153,7 +115,7 @@ window.Screens = window.Screens || {};
             h('div.muted.small',
               savedCount
                 ? `${ar(savedCount)} من ${ar(totalLessons)} دروس محفوظة على جهازك.`
-                : 'لا دروس محفوظة بعد. نزّل وحدة كاملة بزر واحد أسفل كل وحدة.'),
+                : 'لا دروس محفوظة بعد. نزّل الوحدة الحالية بزرّ واحد.'),
             savedCount > 0 && h('div', { style: 'margin-top:10px' },
               bar((savedCount / totalLessons) * 100, 'bar--thin')))),
       );

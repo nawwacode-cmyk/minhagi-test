@@ -920,6 +920,67 @@ img, svg { max-width: 100%; display: block; }
 .tag--off  { background: var(--acc-soft); color: var(--acc-tx); }
 
 /* =============================================================================
+   مسار المادة (تبويب الدروس) — خطوة واحدة مكبّرة «الآن» بدل وحدات مطوية
+   متطابقة الوزن، وخط يصل الخطوات ببعضها. راجع المعاينة المعتمدة بملف
+   الخطة قبل أي تعديل على شكل الحالات هنا.
+   ============================================================================= */
+.path {
+  border: 1px solid var(--brd); border-radius: 16px; background: var(--surf);
+  padding: 16px;
+}
+.unithead {
+  font-size: 12px; font-weight: 600; color: var(--txf);
+  letter-spacing: .02em; margin: 0 4px 14px;
+}
+
+.node { display: flex; gap: 12px; cursor: pointer; }
+.node__rail { width: 32px; flex: 0 0 32px; display: flex; flex-direction: column; align-items: center; }
+.node__dot {
+  width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%;
+  display: grid; place-items: center; color: var(--txf);
+  background: var(--surf2); border: 1.5px solid var(--brd2);
+}
+.node__line { width: 2px; flex: 1; min-height: 18px; background: var(--brd); margin-top: 2px; }
+.node:last-child .node__line { display: none; }
+
+.node__body { flex: 1; min-width: 0; padding-bottom: 18px; }
+.node__t { font-size: 13.5px; font-weight: 600; margin-top: 4px; }
+.node__m { font-size: 11px; color: var(--txf); margin-top: 3px; }
+.node__go {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
+  font-size: 12.5px; font-weight: 600; color: var(--acc-tx);
+}
+
+/* المكتمل ذهبي لا أخضر — نفس منطق .lesson__ico--done: الذهبي لون الإنجاز
+   في الهوية، والأخضر محجوز لتغذية «إجابة صحيحة» الراجعة. */
+.node--done .node__dot { background: var(--gold-soft); color: var(--gold); border-color: transparent; }
+.node--done .node__line { background: var(--gold-soft); }
+.node--done .node__t { color: var(--txm); }
+
+.node--now .node__dot {
+  width: 40px; height: 40px; flex-basis: 40px; margin-top: -5px;
+  background: var(--acc); color: var(--on-acc); border-color: transparent;
+  box-shadow: 0 0 0 5px var(--acc-soft);
+}
+.node--now .node__t { font-size: 14.5px; }
+
+.node--exam .node__dot { border-radius: var(--r-sm); }
+.node--exam.node--now .node__dot { background: var(--gold); color: #FFF; box-shadow: 0 0 0 5px var(--gold-soft); }
+.node--exam .node__t { font-weight: 600; }
+
+/* معاينة الوحدة التالية — عنوان مطوي لا تفاصيل: الطالب يعرف إن في شي بعده
+   بدون ما يغرق فيه، وبلا أكورديون يفتحه ليكتشف المحتوى. */
+.teaser {
+  display: flex; align-items: center; gap: 10px; margin-top: 4px;
+  padding: 12px 13px; background: var(--surf2); border: 1px dashed var(--brd2);
+  border-radius: 12px;
+}
+.teaser__ico { color: var(--txf); flex: none; }
+.teaser b { display: block; font-size: 12.5px; font-weight: 600; color: var(--txm); }
+.teaser span { display: block; font-size: 11px; color: var(--txf); margin-top: 2px; }
+.endcap { text-align: center; font-size: 11px; color: var(--txf); padding: 10px 0 2px; }
+
+/* =============================================================================
    بطاقة «أكمل من حيث توقفت» — لوح مصمت
 
    أهمّ بطاقة في الشاشة: تختصر «شو أعمل الآن» إلى نقرة، فتستحقّ أن تكون الأبرز
