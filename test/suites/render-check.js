@@ -151,6 +151,15 @@ window.SEED = full;
   const noImg = UI.subjectIconEl('biology', 20);
   ok2('مادة بلا صورة بعد ⇒ SVG لا <img> مكسور', noImg.tagName === 'svg');
 
+  // صورة يرفعها الطاقم من اللوحة (subjects.icon) لها الأولوية على WebP
+  // الجاهزة وعلى SVG معًا — حتى لمادة عندها الاثنان أصلًا (fr).
+  const withRemote = UI.subjectIconEl('fr', 20, 'https://x.test/public-media/subjects/1.png');
+  ok2('رابط بعيد محلول ⇒ <img> به لا صورة WebP المحلية',
+      withRemote.tagName === 'img' && withRemote.attrs.src === 'https://x.test/public-media/subjects/1.png');
+  // بلا ضمان أن الصورة المرفوعة مربّعة مسبقًا مثل أصول SUBJECT_IMG المعالَجة
+  ok2('والرابط البعيد لا يُقصّ (object-fit: contain)',
+      /object-fit:contain/.test(withRemote.attrs.style || ''));
+
   // كل معرّف بصورة مذكور فعليًا في SHELL — وإلّا غاب أوفلاين رغم أنه يعمل أونلاين
   const swSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'sw.js'), 'utf8');
   const codes2 = ['french', 'english', 'arabic', 'math', 'physics', 'chemistry',

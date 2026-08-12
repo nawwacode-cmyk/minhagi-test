@@ -103,7 +103,7 @@ window.Sync = (function () {
     const [subjects, grades, units, lessons,
            questions, options, exams, examQuestions, videos,
            lessonDocs, teachers, teacherCourses, banners] = await Promise.all([
-      Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order' }),
+      Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order,icon' }),
       Api.from('grades',    { select: 'id,code,name_ar,sort_order' }),
       Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order,courses(subject_id,grade_id)', order: 'sort_order' }),
       Api.from('lessons',   { select: 'id,code,title_ar,body_html,est_minutes,is_free,unit_id,video_id,doc_id,body_mode,sort_order', order: 'sort_order' }),
@@ -233,6 +233,10 @@ window.Sync = (function () {
       subjects: subjects.map((s) => ({
         id: s.code, name: s.name_ar, native: s.name_native,
         cover: s.code === 'fr' ? 'assets/img/cover-fr.jpg' : null,
+        // مسار خام لا رابط — يُحوَّل عبر Api.publicUrl() عند العرض، نفس
+        // معاملة صورة الأستاذ (teacher.photo). غياب صورة مرفوعة يدويًا من
+        // اللوحة يعني الاعتماد على SUBJECT_IMG/subjectIcon المحليّة كما اليوم.
+        icon: s.icon || null,
         entitled: entitledSubjectCodes.has(s.code),
       })),
       grades: grades.sort((a, b) => a.sort_order - b.sort_order)

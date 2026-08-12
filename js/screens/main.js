@@ -198,7 +198,7 @@ window.Screens = window.Screens || {};
         return h('div.srow' + (open ? '.is-open' : ''),
           { onclick: () => App.go('course', { subject: sub.id }) },
           h('div.srow__head',
-            h('span.simg.subj--c' + (i % 4), subjectIconEl(sub.id, 22)),
+            h('span.simg.subj--c' + (i % 4), subjectIconEl(sub.id, 22, Api.publicUrl(sub.icon))),
             h('div.srow__b',
               h('b', sub.name),
               h('small', `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا · ${ar(p.percent)}٪`)),
@@ -365,7 +365,7 @@ window.Screens = window.Screens || {};
                     'aria-label': subject.name,
                   },
                     h('span.subj__top',
-                      h('span.subj__ico', subjectIconEl(subject.id, 20)),
+                      h('span.subj__ico', subjectIconEl(subject.id, 20, Api.publicUrl(subject.icon))),
                       /* موضع «علامة الحفظ» في المرجع — شغلناه بالتقدّم بدل
                          أيقونة زخرفية: نفس التوازن البصري، ومعلومةٌ يقصدها
                          الطالب فعلًا. (وقد سبق أن رُفضت علامة الحفظ.) */

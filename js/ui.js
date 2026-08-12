@@ -423,8 +423,16 @@ window.UI = (function () {
     religion: 'religion',
     national_edu: 'national_edu', natedu: 'national_edu',
   };
-  /** عنصر أيقونة المادة: صورة WebP إن وُجدت، وإلّا خطوط SVG. */
-  function subjectIconEl(code, s = 20) {
+  /**
+   * عنصر أيقونة المادة: صورة يرفعها الطاقم من اللوحة إن وُجدت (`remoteUrl`،
+   * رابطٌ محلولٌ مسبقًا عبر `Api.publicUrl` — هذا الملف لا يعرف Supabase)،
+   * وإلّا صورة WebP جاهزة إن وُجدت لهذا الرمز، وإلّا خطوط SVG أخيرًا.
+   */
+  function subjectIconEl(code, s = 20, remoteUrl) {
+    // object-fit: contain — الصورة المرفوعة يدويًا بلا ضمان أنها مربّعة
+    // مسبقًا مثل أصول SUBJECT_IMG المعالَجة؛ القصّ يشوّه أيقونة غير متوقَّعة.
+    if (remoteUrl) return h('img',
+      { src: remoteUrl, alt: '', width: s, height: s, loading: 'lazy', style: 'object-fit:contain' });
     const file = SUBJECT_IMG[code];
     return file
       ? h('img', { src: `assets/img/subjects/${file}.webp`, alt: '', width: s, height: s, loading: 'lazy' })
