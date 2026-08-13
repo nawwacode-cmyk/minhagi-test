@@ -47,7 +47,7 @@ window.Screens = window.Screens || {};
        وزرّ رجوعٍ فيه: زرّ الغلاف يُغطَّى مع الغلاف، فبلا هذا يفقد الطالب
        مسار الرجوع بمجرّد أن يمرّر. */
     const nameBar = h('div.chero__bar',
-      h('button.chero__bb', { onclick: () => App.back(), 'aria-label': 'رجوع' }, icon.back(19)),
+      h('button.chero__bb', { onclick: () => App.back(), 'aria-label': 'رجوع' }, icon.back(22)),
       h('span', subject?.name || 'مادتي'));
     const tabs = h('div.chero__tabs', nameBar, seg);
     // خروجه من أعلى منطقة التمرير = لحظة التصاق شريط التبويبات بالضبط

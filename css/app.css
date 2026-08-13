@@ -351,16 +351,23 @@ img, svg { max-width: 100%; display: block; }
    التصميم ليصلحه. وفي أعلى الصفحة يعمل حجزُه كمسافةٍ بين الأستاذ
    والتبويبات، فلا يضيع البكسل هدرًا. */
 .chero__bar {
-  height: 36px; opacity: 0; visibility: hidden; pointer-events: none;
+  height: 48px; opacity: 0; visibility: hidden; pointer-events: none;
   transition: opacity var(--dur) var(--ease), visibility var(--dur);
-  display: flex; align-items: center; gap: 4px;
-  font-size: 14px; font-weight: 600;
+  /* شبكةٌ لا صفٌّ مرن: العمودان الجانبيان متساويان فيبقى الاسم في وسط الشاشة
+     البصري مهما طال أو تغيّر الزرّ. `text-align: center` داخل صفٍّ مرن يوسّطه
+     في المساحة **الباقية** بعد الزرّ — أي يزيحه عن المركز بنصف عرضه. */
+  display: grid; grid-template-columns: 44px 1fr 44px; align-items: stretch;
+  font-size: 15px; font-weight: 600;
 }
+.chero__bar > span { align-self: center; text-align: center; }
 .chero__bar.is-on { opacity: 1; visibility: visible; pointer-events: auto; }
 /* زرّ رجوعٍ يخلف زرّ الغلاف بعد أن تغطّيه الورقة — مسطَّحٌ لأنه على سطحٍ
-   مصمَت لا فوق صورة، فلا يحتاج قرصًا أبيض يفصله. */
+   مصمَت لا فوق صورة، فلا يحتاج قرصًا أبيض يفصله.
+
+   ٤٤ عرضًا وكامل الشريط ارتفاعًا: الحدّ الأدنى لهدفٍ يُنقر بالإبهام، وهذا
+   زرُّ الرجوع **الوحيد** الظاهر بعد التمرير — إخطاؤه خروجٌ من الشاشة كلّها. */
 .chero__bb {
-  flex: none; width: 34px; height: 34px; margin-inline-start: -8px;
+  width: 44px; height: 100%;
   border: 0; background: none; color: var(--tx);
   display: grid; place-items: center; cursor: pointer;
 }
