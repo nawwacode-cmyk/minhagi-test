@@ -4,7 +4,7 @@
 window.Screens = window.Screens || {};
 
 (function () {
-  const { h, fr, ar, icon, ring, bar } = UI;
+  const { h, fr, ar, icon, ring, bar, subjectIconEl } = UI;
 
   // ===========================================================================
   // ٦. شاشة الكورس — الدروس · تمارين · تقدّمي
@@ -101,7 +101,7 @@ window.Screens = window.Screens || {};
       const allDown = (unit.lessons || []).every((id) => s.downloaded.includes(id));
 
       const path = h('div.path',
-        h('div.unithead', unit.title),
+        h('div.pill-lbl', h('span', unit.title)),
         ...steps.map((st) => st.type === 'lesson'
           ? C.pathNode({
               type: 'lesson', state: st.state, title: SEED.lessons[st.id].title,
@@ -159,28 +159,33 @@ window.Screens = window.Screens || {};
 
       const subjectExams = SEED.exams.filter((e) => e.subject === subjectId);
 
+      // كل امتحان كرت مستقلّ بحدوده — لا صفّ متلاصق بخطّ فاصل — وحالته
+      // (لم تُجرَّب/نجحت/أعد المحاولة) أيقونة+كلمة+لون مع بعض لا نسبة
+      // مئوية بلونها بس (WCAG: لا تُنقل معلومة بلون وحده).
       const group = (kind, title, note) => {
         const items = subjectExams.filter((e) => e.kind === kind);
         if (!items.length) return null;
 
-        const card = h('div.card.list-sep', { style: 'overflow:hidden' });
+        const list = h('div');
         items.forEach((e) => {
           const rec = s.exams[e.id];
           const passed = rec && rec.best >= e.pass;
-          card.appendChild(h('button.rowlink', { onclick: () => App.go('exam', { id: e.id, subject: subjectId }) },
-            h('div.rowlink__b',
-              h('div', { style: 'font-weight:600' }, e.title),
-              h('div.rowlink__s',
+          const statusCls = !rec ? 'st-new' : passed ? 'st-ok' : 'st-warn';
+          const statusTxt = !rec ? 'لم تُجرَّب' : (passed ? '✓ ' : '↻ ') + ar(rec.best) + '٪';
+
+          list.appendChild(h('button.excard', { onclick: () => App.go('exam', { id: e.id, subject: subjectId }) },
+            h('div.excard__b',
+              h('div.excard__t', e.title),
+              h('div.excard__m',
                 `${ar(e.questions.length)} أسئلة · ${ar(e.minutes)} دقيقة`
-                + (rec ? ` · حاولت ${ar(rec.taken)} مرة` : ' · لم تجرّبه بعد'))),
-            rec && h('span.badge.' + (passed ? 'badge--ok' : 'badge--acc'), ar(rec.best) + '٪'),
-            h('span.faint', icon.back(18))));
+                + (rec ? ` · حاولت ${ar(rec.taken)} مرة` : ''))),
+            h('span.excard__status.' + statusCls, statusTxt)));
         });
 
-        return h('div',
-          h('div.section-label', { style: 'padding:0 0 8px' }, title),
-          card,
-          note && h('div.hint', { style: 'margin-top:8px' }, note));
+        return h('div', { style: 'margin-bottom:20px' },
+          h('div.section-label', { style: 'padding:0 0 10px' }, title),
+          list,
+          note && h('div.hint', { style: 'margin-top:4px' }, note));
       };
 
       // s.exams مسطّح بمعرّفات كل امتحانات التطبيق — نحصره بامتحانات هذه
@@ -344,17 +349,41 @@ window.Screens = window.Screens || {};
     }
 
 
-    drawSeg();
-    drawBody();
     // صفّ هذه المادة من وحداتها هي، لا صفّ الطالب العام: كان الأخير قيمة
     // مثبَّتة ('g9') فكانت شاشة كورس البكالوريا تحمل عنوان «الصف التاسع».
     const unitGrades = [...new Set(subjectUnits.map((u) => u.grade).filter(Boolean))];
     const gradeName = unitGrades.length === 1
       ? (SEED.grades.find((g) => g.id === unitGrades[0])?.name || '')
       : '';
-    wrap.append(
-      C.appbar({ title: subject?.name || 'مادتي', sub: gradeName, onBack: () => App.back() }),
-      seg, body);
+
+    /* غلاف ملوّن + ورقة بيضاء تعلوه بدل ترويسة مسطّحة: نفس تدرّج بطاقة
+       «ابدأ من هنا» بالرئيسية، وأستاذ المادة (أول تطابق بـ teachers[].subjects
+       — نفس منطق main.js) ظاهر مباشرة تحت اسمها، لا تصفّحًا منفصلًا له. */
+    function courseHero() {
+      const teacher = (SEED.teachers || []).find((t) => (t.subjects || []).includes(subjectId));
+      const photo = teacher && Api.publicUrl(teacher.photo);
+      const unitCount = subjectUnits.length;
+      const pillParts = [gradeName, unitCount ? `${ar(unitCount)} ${unitCount === 1 ? 'وحدة' : 'وحدات'}` : null]
+        .filter(Boolean).join(' · ');
+
+      return h('div.chero',
+        h('div.chero__band',
+          h('button.chero__back', { onclick: () => App.back(), 'aria-label': 'رجوع' }, icon.back(20)),
+          h('span.chero__badge', subjectIconEl(subjectId, 26))),
+        h('div.chero__sheet',
+          h('div.chero__title', subject?.name || 'مادتي'),
+          pillParts ? h('span.chero__pill', pillParts) : null,
+          teacher ? h('div.chero__teacher',
+            photo
+              ? h('img.chero__av', { src: photo, alt: '', loading: 'lazy' })
+              : h('span.chero__av', teacher.name[0]),
+            h('div.chero__tb', h('i', 'الأستاذ'), h('b', teacher.name))) : null,
+          seg));
+    }
+
+    drawSeg();
+    drawBody();
+    wrap.append(courseHero(), body);
     return wrap;
   };
 

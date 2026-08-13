@@ -66,7 +66,9 @@ window.Screens = window.Screens || {};
                    onclick: () => App.go('plan'), 'aria-label': 'خطّتي',
                  }, icon.clock(20)) }),
       h('div.screen__body', { style: 'padding:16px' },
-        h('div.wide', ...entitledSubjects.map(subjectCard)),
+        h('div.wide',
+          h('div.pill-lbl', h('span', `تقدّمك عبر ${ar(entitledSubjects.length)} ${entitledSubjects.length === 1 ? 'مادة' : 'مواد'}`)),
+          ...entitledSubjects.map(subjectCard)),
       ),
     );
   };

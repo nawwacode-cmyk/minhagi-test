@@ -262,6 +262,50 @@ img, svg { max-width: 100%; display: block; }
 .appbar__back { width: 32px; height: 32px; flex: 0 0 32px; border-radius: 10px;
                 background: var(--surf2); color: var(--txm); }
 
+/* --- غلاف المادة + الورقة البيضاء (شاشة المادة وحدها — appbar المسطّح
+   يبقى لكل شاشة أخرى) --------------------------------------------------------
+   نفس تدرّج بطاقة «ابدأ من هنا» بالرئيسية (.cont)، وأستاذ المادة ظاهر
+   مباشرة تحت اسمها بدل تصفّح منفصل — نفس منطق صفّ «موادّي» بالرئيسية. */
+.chero { display: flex; flex-direction: column; flex: 0 0 auto; }
+.chero__band {
+  position: relative; height: 116px; flex: none;
+  background: linear-gradient(140deg, var(--acc-hi), var(--acc-tx));
+}
+.chero__back {
+  position: absolute; top: calc(14px + env(safe-area-inset-top)); inset-inline-start: 14px;
+  width: 32px; height: 32px; border-radius: 50%; border: 0;
+  background: rgba(255, 255, 255, .18); color: #FFF; display: grid; place-items: center;
+}
+.chero__badge {
+  position: absolute; bottom: 20px; inset-inline-start: 16px;
+  width: 46px; height: 46px; border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, .16); color: #FFF; display: grid; place-items: center;
+}
+.chero__sheet {
+  position: relative; margin-top: -20px; flex: none;
+  background: var(--surf); border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  padding: 18px 18px 4px; box-shadow: 0 -12px 20px -18px rgba(30, 24, 50, .18);
+}
+.chero__title { font-size: 17px; font-weight: 600; }
+.chero__pill {
+  display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 600;
+  color: var(--acc-tx); background: var(--acc-soft); padding: 5px 13px; border-radius: var(--r-full);
+}
+.chero__teacher {
+  display: flex; align-items: center; gap: 10px; margin-top: 12px;
+  padding: 10px 12px; background: var(--surf2); border-radius: var(--r-lg);
+}
+.chero__av {
+  flex: 0 0 38px; width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
+  background: var(--acc-soft); color: var(--acc-tx); display: grid; place-items: center;
+  font-size: 14px; font-weight: 600;
+}
+.chero__tb i { display: block; font-style: normal; font-size: 10px; color: var(--txf); }
+.chero__tb b { display: block; font-size: 12.5px; font-weight: 600; }
+/* .seg يحمل margin خاص بسياقه المعتاد (تحت appbar مباشرة) — هنا داخل
+   حشوة الورقة أصلًا، فنصفّره ونضيف مسافة علوية بس. */
+.chero__sheet .seg { margin: 16px 0 0; }
+
 .avatar {
   width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%;
   background: linear-gradient(145deg, var(--acc), var(--acc-deep)); color: var(--on-acc);
@@ -310,6 +354,13 @@ img, svg { max-width: 100%; display: block; }
   background: none; border: 0; cursor: pointer; padding: 2px 4px; border-radius: 8px;
 }
 .sec-more:hover { background: var(--acc-soft); }
+
+/* تسمية قسم كشارة محاذية للوسط — لعناوين مقدّمة لا تحتاج زرّ «الكل» بجانبها */
+.pill-lbl { display: flex; justify-content: center; margin-bottom: 16px; }
+.pill-lbl span {
+  font-size: 11.5px; font-weight: 600; color: var(--gold); background: var(--gold-soft);
+  padding: 6px 18px; border-radius: var(--r-full);
+}
 
 /* =============================================================================
    الرئيسية — الشريط الثلاثي وحلقات المواد وتنبيه الاشتراك
@@ -364,8 +415,9 @@ img, svg { max-width: 100%; display: block; }
   display: block; font-size: 10.5px; color: var(--txf); margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
+/* ٤٤×٤٤ لا ٣٠ — منطقة لمس حقيقية (Fitts/إتاحة الموبايل)، لا مجرّد شكل مرئي */
 .srow__chev {
-  flex: none; display: grid; place-items: center; width: 30px; height: 30px;
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px;
   border: 0; border-radius: 50%; background: transparent; color: var(--txf);
   transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
 }
@@ -904,10 +956,10 @@ img, svg { max-width: 100%; display: block; }
   display: grid; place-items: center; color: var(--txf);
   background: var(--surf2); border: 1.5px solid var(--brd2);
 }
-.node__line { width: 2px; flex: 1; min-height: 18px; background: var(--brd); margin-top: 2px; }
+.node__line { width: 1.5px; flex: 1; min-height: 22px; background: var(--brd2); margin-top: 4px; }
 .node:last-child .node__line { display: none; }
 
-.node__body { flex: 1; min-width: 0; padding-bottom: 18px; }
+.node__body { flex: 1; min-width: 0; padding-bottom: 22px; }
 .node__t { font-size: 13.5px; font-weight: 600; margin-top: 4px; }
 .node__m { font-size: 11px; color: var(--txf); margin-top: 3px; }
 .node__go {
@@ -1421,6 +1473,27 @@ img, svg { max-width: 100%; display: block; }
 .rowlink__s { font-size: 12px; color: var(--txm); margin-top: 2px; }
 
 .list-sep > * + * { border-top: 1px solid var(--brd); }
+
+/* --- كرت الامتحان — مستقلّ بحدوده لا صفّ متلاصق، وحالته أيقونة+كلمة+لون
+   مع بعض (WCAG: لا تُنقل معلومة بلون وحده) ---------------------------------- */
+.excard {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  font: inherit; color: inherit; text-align: start; cursor: pointer;
+  background: var(--surf); border: 1px solid var(--brd); border-radius: var(--r-lg);
+  padding: 13px 15px; margin-bottom: 8px;
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.excard:hover { transform: translateY(-1px); box-shadow: var(--sh-1); }
+.excard__b { flex: 1; min-width: 0; }
+.excard__t { font-size: 13.5px; font-weight: 600; }
+.excard__m { font-size: 11px; color: var(--txf); margin-top: 3px; }
+.excard__status {
+  flex: none; display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; padding: 5px 11px; border-radius: var(--r-full);
+}
+.excard .st-new  { background: var(--surf2);  color: var(--txf); }
+.excard .st-ok   { background: var(--ok-soft); color: var(--ok); }
+.excard .st-warn { background: var(--err-soft); color: var(--err); }
 
 .stack { display: flex; flex-direction: column; }
 .gap-8  { gap: 8px; }  .gap-10 { gap: 10px; } .gap-14 { gap: 14px; }
