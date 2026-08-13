@@ -356,9 +356,13 @@ window.Screens = window.Screens || {};
       ? (SEED.grades.find((g) => g.id === unitGrades[0])?.name || '')
       : '';
 
-    /* غلاف ملوّن + ورقة بيضاء تعلوه بدل ترويسة مسطّحة: نفس تدرّج بطاقة
-       «ابدأ من هنا» بالرئيسية، وأستاذ المادة (أول تطابق بـ teachers[].subjects
-       — نفس منطق main.js) ظاهر مباشرة تحت اسمها، لا تصفّحًا منفصلًا له. */
+    /* غلاف صورة الأستاذ كاملةً (لا تدرّج مسطّح) + ورقة بيضاء تعلوه — شكلٌ
+       مستوحًى من مرجع تصميم خارجي طلبه صاحب المنتج صراحةً (راجع
+       design-library بجذر المشروع). التبويبات صعدت لتصير مباشرة تحت وسم
+       عدد الوحدات (بطلب صريح)، لا بعد صفّ الأستاذ كما كانت.
+
+       بلا صورة أستاذ (أو بلا أستاذ مطابق أصلًا): يبقى الغلاف تدرّجًا
+       ملوّنًا بأيقونة المادة كبيرة في وسطه — لا غلاف فارغ يبدو عطلًا. */
     function courseHero() {
       const teacher = (SEED.teachers || []).find((t) => (t.subjects || []).includes(subjectId));
       const photo = teacher && Api.publicUrl(teacher.photo);
@@ -369,16 +373,18 @@ window.Screens = window.Screens || {};
       return h('div.chero',
         h('div.chero__band',
           h('button.chero__back', { onclick: () => App.back(), 'aria-label': 'رجوع' }, icon.back(20)),
-          h('span.chero__badge', subjectIconEl(subjectId, 26))),
+          photo
+            ? h('img.chero__photo', { src: photo, alt: '', loading: 'lazy' })
+            : h('span.chero__badge', subjectIconEl(subjectId, 34))),
         h('div.chero__sheet',
           h('div.chero__title', subject?.name || 'مادتي'),
           pillParts ? h('span.chero__pill', pillParts) : null,
+          seg,
           teacher ? h('div.chero__teacher',
             photo
               ? h('img.chero__av', { src: photo, alt: '', loading: 'lazy' })
               : h('span.chero__av', teacher.name[0]),
-            h('div.chero__tb', h('i', 'الأستاذ'), h('b', teacher.name))) : null,
-          seg));
+            h('div.chero__tb', h('i', 'الأستاذ'), h('b', teacher.name))) : null));
     }
 
     drawSeg();

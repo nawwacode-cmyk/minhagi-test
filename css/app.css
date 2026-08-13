@@ -264,22 +264,23 @@ img, svg { max-width: 100%; display: block; }
 
 /* --- غلاف المادة + الورقة البيضاء (شاشة المادة وحدها — appbar المسطّح
    يبقى لكل شاشة أخرى) --------------------------------------------------------
-   نفس تدرّج بطاقة «ابدأ من هنا» بالرئيسية (.cont)، وأستاذ المادة ظاهر
-   مباشرة تحت اسمها بدل تصفّح منفصل — نفس منطق صفّ «موادّي» بالرئيسية. */
+   صورة الأستاذ كاملةً تملأ الغلاف (لا تدرّج مسطّح رفيع) — وأستاذ المادة
+   ظاهر مباشرة تحت اسمها بدل تصفّح منفصل، نفس منطق صفّ «موادّي» بالرئيسية.
+   بلا صورة: يبقى تدرّج بطاقة «ابدأ من هنا» (.cont) بأيقونة المادة وسطه. */
 .chero { display: flex; flex-direction: column; flex: 0 0 auto; }
 .chero__band {
-  position: relative; height: 116px; flex: none;
+  position: relative; height: 240px; flex: none; overflow: hidden;
   background: linear-gradient(140deg, var(--acc-hi), var(--acc-tx));
 }
+.chero__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .chero__back {
   position: absolute; top: calc(14px + env(safe-area-inset-top)); inset-inline-start: 14px;
-  width: 32px; height: 32px; border-radius: 50%; border: 0;
-  background: rgba(255, 255, 255, .18); color: #FFF; display: grid; place-items: center;
+  width: 36px; height: 36px; border-radius: 50%; border: 0; z-index: 1;
+  background: rgba(255, 255, 255, .92); color: var(--acc-tx); display: grid; place-items: center;
+  box-shadow: var(--sh-1);
 }
 .chero__badge {
-  position: absolute; bottom: 20px; inset-inline-start: 16px;
-  width: 46px; height: 46px; border-radius: var(--r-lg);
-  background: rgba(255, 255, 255, .16); color: #FFF; display: grid; place-items: center;
+  position: absolute; inset: 0; display: grid; place-items: center; color: #FFF; opacity: .85;
 }
 .chero__sheet {
   position: relative; margin-top: -20px; flex: none;
