@@ -269,28 +269,41 @@ img, svg { max-width: 100%; display: block; }
    ظاهر مباشرة تحت اسمها بدل تصفّح منفصل، نفس منطق صفّ «موادّي» بالرئيسية.
    بلا صورة: يبقى تدرّج بطاقة «ابدأ من هنا» (.cont) بأيقونة المادة وسطه. */
 .chero { display: flex; flex-direction: column; flex: 0 0 auto; }
+/* الغلاف **لا يتحرّك**: يلتصق في مكانه والمحتوى ينزلق فوقه، فيبدو منكمشًا من
+   تحت ويبقى وجه الأستاذ ظاهرًا حتى آخر لحظة.
+
+   ⚠️ لا تُحوّل هذا إلى حسابٍ بجافاسكربت. جُرّب: كان موضع الصورة يُحسب من
+   `scrollTop` في كل إطار، والمتصفّح يمرّر على خيطٍ منفصل — فبالتمرير السريع
+   تتأخّر جافاسكربت وراءه وتبقى الصورة على موضعٍ قديم. `sticky` يفعلها
+   المتصفّح نفسه: لا تأخّر مهما كانت السرعة، ولا شغل على الخيط الرئيسي. */
 .chero__band {
-  position: relative; height: 240px; flex: none; overflow: hidden;
+  position: sticky; top: 0; z-index: 0;
+  height: 240px; flex: none; overflow: hidden;
   background: linear-gradient(140deg, var(--acc-hi), var(--acc-tx));
 }
 .chero__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-/* `fixed` لا `absolute`: الغلاف صار داخل منطقة التمرير فيمرّ مع المحتوى،
-   ولو مرّ زرّ الرجوع معه لضاع مسار الرجوع الوحيد من الشاشة. نفس علاج
-   `.teacher-back` — وقد وقع الخلل هناك أوّلًا. */
+/* داخل الغلاف لا عائمًا فوق كل شيء. جُرّب `fixed` فاصطدم بشريط التبويبات
+   وطفا فوق قائمة الدروس كرمزٍ شارد. والغلاف ملتصق فلا يمرّ، وحين تغطّيه
+   الورقة يُغطَّى الزرّ معها — ويخلفه `.chero__bb` في شريط الاسم. */
 .chero__back {
-  position: fixed; top: calc(14px + env(safe-area-inset-top)); inset-inline-start: 14px;
-  width: 36px; height: 36px; border-radius: 50%; border: 0; z-index: 6;
+  position: absolute; top: calc(14px + env(safe-area-inset-top)); inset-inline-start: 14px;
+  width: 36px; height: 36px; border-radius: 50%; border: 0; z-index: 1;
   background: rgba(255, 255, 255, .92); color: var(--acc-tx); display: grid; place-items: center;
   box-shadow: var(--sh-1); backdrop-filter: blur(8px);
 }
 .chero__badge {
   position: absolute; inset: 0; display: grid; place-items: center; color: #FFF; opacity: .85;
 }
+/* تنزلق **فوق** الغلاف الملتصق، فخلفيتها الصلبة وطبقتها ليستا زينة: بدونهما
+   تظهر الصورة من خلف نصّ الوصف. */
 .chero__sheet {
-  position: relative; margin-top: -20px; flex: none;
+  position: relative; z-index: 1; margin-top: -20px; flex: none;
   background: var(--surf); border-radius: var(--r-2xl) var(--r-2xl) 0 0;
   padding: 18px 18px 2px; box-shadow: 0 -12px 20px -18px rgba(30, 24, 50, .18);
 }
+/* حارسٌ نقطي في نهاية الورقة: خروجه من أعلى منطقة التمرير هو **بالضبط**
+   لحظة التصاق شريط التبويبات، فيُظهر اسم المادة بلا حسابٍ ولا حدود يدوية. */
+.chero__sentinel { height: 1px; }
 .chero__title { font-size: 17px; font-weight: 600; }
 .chero__pill {
   display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 600;
@@ -306,22 +319,29 @@ img, svg { max-width: 100%; display: block; }
    خلفيةٌ صلبة إلزامية: بدونها تمرّ عناوين الدروس مرئيّةً خلف الأزرار. */
 .chero__tabs {
   position: sticky; top: 0; z-index: 3;
-  background: var(--surf); padding: 14px 18px 10px;
+  background: var(--surf); padding: 0 18px 10px;
 }
 .chero__tabs .seg { margin: 0; }
 
-/* اسم المادة حين ينكمش الغلاف — الهويّة لا تضيع داخل قائمة الدروس.
-   `padding-inline-start` يُفرغ موضع زرّ الرجوع العائم: في RTL يقع يمينًا،
-   أي فوق أوّل حرفٍ من الاسم بالضبط. */
+/* اسم المادة حين تُغطّى الصورة — الهويّة لا تضيع داخل قائمة الدروس.
+
+   ⚠️ يحجز مكانه **دائمًا** ويتغيّر بالشفافية وحدها. ارتفاعٌ يتغيّر أثناء
+   الاندفاع يدفع المحتوى ٣٦ بكسل فجأةً — وهو بالضبط شكل العطل الذي جاء هذا
+   التصميم ليصلحه. وفي أعلى الصفحة يعمل حجزُه كمسافةٍ بين الأستاذ
+   والتبويبات، فلا يضيع البكسل هدرًا. */
 .chero__bar {
-  height: 0; overflow: hidden; transition: height var(--dur) var(--ease);
-  display: flex; align-items: center; padding-inline-start: 44px;
+  height: 36px; opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity var(--dur) var(--ease), visibility var(--dur);
+  display: flex; align-items: center; gap: 4px;
   font-size: 14px; font-weight: 600;
 }
-.chero__bar.is-on { height: 36px; }
-/* والزرّ يُسطَّح فيندمج بالشريط: دائرةٌ بيضاء بظلّ فوق شريطٍ أبيض تبدو غلطة */
-.is-collapsed .chero__back {
-  background: transparent; box-shadow: none; backdrop-filter: none; color: var(--tx);
+.chero__bar.is-on { opacity: 1; visibility: visible; pointer-events: auto; }
+/* زرّ رجوعٍ يخلف زرّ الغلاف بعد أن تغطّيه الورقة — مسطَّحٌ لأنه على سطحٍ
+   مصمَت لا فوق صورة، فلا يحتاج قرصًا أبيض يفصله. */
+.chero__bb {
+  flex: none; width: 34px; height: 34px; margin-inline-start: -8px;
+  border: 0; background: none; color: var(--tx);
+  display: grid; place-items: center; cursor: pointer;
 }
 @media (prefers-reduced-motion: reduce) { .chero__bar { transition: none; } }
 
