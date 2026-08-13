@@ -1,9 +1,9 @@
 /* =============================================================================
-   قائمة «موادّي» بالرئيسية — صفّ لكل مادة، سهم يطوي/يفتح أستاذها.
+   قائمة «موادّي» بالرئيسية — بطاقة لكل مادة، رأس قابل للطيّ يفتح صفّ تفاصيل.
 
    الرسم الفعلي هو ما يُفحص هنا (بعكس smoke.js الذي يفحص نصّ المصدر فقط):
-   أي مادة يظهر سهمها (عندها أستاذ مطابق فعلًا) وأيّها لا، وأن صفّ الأستاذ
-   **مفتوح افتراضيًا** لكل مادة لها أستاذ — لا يحتاج نقرة ليظهر.
+   أي مادة يظهر صفّ تفاصيلها (عندها أستاذ مطابق فعلًا) وأيّها لا، وأن صفّ
+   التفاصيل **مفتوح افتراضيًا** لكل مادة لها أستاذ — لا يحتاج نقرة ليظهر.
    ============================================================================= */
 require('./render-check-lib.js');
 
@@ -13,28 +13,27 @@ const ok = (n, c, x = '') => { console.log((c ? 'ok   ' : 'FAIL ') + n + (x ? ' 
 // مادة التجهيزات المشترَك بها (fr) عندها أستاذ مطابق (ustaz-sami، subjects:['fr'])
 {
   const html = Screens.home().outerHTML;
-  ok('صفّ المادة المشترَك بها يظهر بالقائمة', /class="srow(?: is-open)?"/.test(html));
-  ok('وفيه سهم لأن عندها أستاذ مطابق', /srow__chev/.test(html));
-  ok('وصفّ الأستاذ مفتوح افتراضيًا (بلا نقرة)', /class="steach"/.test(html));
-  ok('والصفّ نفسه يحمل is-open افتراضيًا', /class="srow is-open"/.test(html));
-  ok('اسم المادة ظاهر بالصفّ', html.includes('اللغة الفرنسية'));
-  ok('اسم الأستاذ ظاهر بصفّه المفتوح', html.includes('أستاذ تجريبي'));
+  ok('بطاقة المادة المشترَك بها تظهر بالقائمة', /class="subjcard"/.test(html));
+  ok('وفيها صفّ تفاصيل لأن عندها أستاذ مطابق', /class="subjcard__row"/.test(html));
+  ok('ورابط «تفاصيل المادة» ظاهر', /class="subjcard__foot"/.test(html));
+  ok('واسم الأستاذ ظاهر بصفّ التفاصيل المفتوح بلا نقرة', html.includes('أستاذ تجريبي'));
+  ok('اسم المادة ظاهر بالبطاقة', html.includes('اللغة الفرنسية'));
 }
 
 // مادة إضافية مشترَك بها بلا أستاذ مطابق — بره التجهيزات، مؤقّتًا. لازم تظهر
-// مطويّة دائمًا (بلا أستاذ لتعرضه، فلا معنى لفتحها).
+// مطويّة دائمًا (بلا أستاذ لتعرضه، فلا معنى لفتحها تلقائيًا).
 {
   const realSubjects = SEED.subjects;
   SEED.subjects = [...realSubjects, { id: 'zz', name: 'مادة بلا أستاذ', native: null, entitled: true }];
   const html = Screens.home().outerHTML;
   ok('المادة الجديدة تظهر بالقائمة', html.includes('مادة بلا أستاذ'));
 
-  const rows = (html.match(/class="srow(?: is-open)?"/g) || []).length;
-  const openRows = (html.match(/class="srow is-open"/g) || []).length;
-  const chevs = (html.match(/srow__chev/g) || []).length;
-  ok('صفّان بالضبط (فرنسي + المادة الجديدة)', rows === 2, String(rows));
-  ok('صفّ واحد بس مفتوح (يلي عندها أستاذ)', openRows === 1, String(openRows));
-  ok('سهم واحد بس (مادة بلا أستاذ بلا سهم)', chevs === 1, String(chevs));
+  const cards = (html.match(/class="subjcard"/g) || []).length;
+  const openRows = (html.match(/class="subjcard__row"/g) || []).length;
+  const feet = (html.match(/class="subjcard__foot"/g) || []).length;
+  ok('بطاقتان بالضبط (فرنسي + المادة الجديدة)', cards === 2, String(cards));
+  ok('صفّ تفاصيل واحد بس مفتوح (يلي عندها أستاذ)', openRows === 1, String(openRows));
+  ok('رابط «تفاصيل المادة» واحد بس (يتبع الصفّ المفتوح)', feet === 1, String(feet));
 
   SEED.subjects = realSubjects;
 }
@@ -47,7 +46,7 @@ const ok = (n, c, x = '') => { console.log((c ? 'ok   ' : 'FAIL ') + n + (x ? ' 
   let html = '';
   try { html = Screens.home().outerHTML; } catch { threw = true; }
   ok('شاشة الرئيسية بلا أي مادة مشترَك بها تُبنى بلا استثناء', !threw);
-  ok('ولا صفّ واحد يُرسم', !/class="srow/.test(html));
+  ok('ولا بطاقة واحدة تُرسم', !/class="subjcard/.test(html));
   SEED.subjects = realSubjects;
 }
 

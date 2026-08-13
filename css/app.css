@@ -407,68 +407,58 @@ img, svg { max-width: 100%; display: block; }
 }
 
 /* =============================================================================
-   قائمة «موادّي» بالرئيسية — صفٌّ لكل مادة بدل شريط حلقات أفقي: صورة/أيقونة
-   المادة تحلّ محلّ حلقة التقدّم (النسبة تبقى رقمًا بالسطر الفرعي)، وسهمٌ
-   يفتح صفّ أستاذ المادة تحته. راجع المعاينة المعتمدة بملف الخطة قبل أي
-   تعديل على الألوان أو الأحجام هنا.
+   قائمة «موادّي» بالرئيسية — بطاقة لكل مادة: رأس قابل للطيّ، وصفّ تفاصيل
+   بصورة كبيرة عند الفتح (شكلٌ مستوحًى من مرجع تصميم خارجي طلبه صاحب المنتج
+   صراحةً — راجع المعاينة المعتمدة، مجلّد design-library بجذر المشروع).
+   البنية تبقى بمنطق المشروع: أستاذ واحد لكل مادة، صفّ تفاصيل واحد لا عدّة
+   كورسات تحت رأسٍ واحد. راجع المعاينة قبل أي تعديل على الألوان أو الأحجام.
    ============================================================================= */
 .slist { display: flex; flex-direction: column; gap: 10px; }
-.srow {
-  background: var(--surf); border: 1px solid var(--brd); border-radius: 18px;
-  overflow: hidden; cursor: pointer;
+.subjcard {
+  background: var(--surf); border: 1px solid var(--brd); border-radius: 20px;
+  overflow: hidden; box-shadow: var(--sh-1);
 }
-.srow.is-open { box-shadow: var(--sh-1); }
-.srow__head { display: flex; align-items: center; gap: 13px; padding: 13px; }
-/* ٥٨×٥٨ لا ٤٤: البلاطة القديمة كانت تعرض الأيقونة بحجم ٢٢px في وسطها —
-   نصف المساحة فاضية حول أيقونةٍ تايهة. أصول SUBJECT_IMG (راجع ui.js) رسومٌ
-   مقصوصة بإحكام أصلًا، مصمَّمة لتملأ لا لتصغَّر لنصفها.
-
-   دائرة بيضاء بحلقة رفيعة لا بلاطة بتدرّج ملوّن قوي — كانت تبان "ملصقًا"
-   بجانب صورة الأستاذ الفوتوغرافية الهادئة تحتها. لون الحلقة/الأيقونة
-   (لا الخلفية) هو ما يميّز المواد عن بعضها الآن — نفس تدوير subj--c0…3
-   المستخدَم لبطاقات «موادّي» المستقلّة، بس كتلوينٍ خفيف لا خلفية صارخة. */
-.simg {
-  flex: 0 0 58px; width: 58px; height: 58px; border-radius: 50%;
-  background: var(--surf); border: 2px solid var(--brd);
-  display: grid; place-items: center; box-shadow: var(--sh-1);
-}
-.simg.subj--c0 { border-color: var(--acc-soft); color: var(--acc); }
-.simg.subj--c1 { border-color: var(--err-soft); color: var(--err); }
-.simg.subj--c2 { border-color: var(--gold-soft); color: var(--gold); }
-.simg.subj--c3 { border-color: var(--ok-soft); color: var(--ok); }
-.srow__b { flex: 1; min-width: 0; }
-.srow__b b { display: block; font-size: 14.5px; font-weight: 600; }
-.srow__b small {
-  display: block; font-size: 11px; color: var(--txf); margin-top: 4px;
-  font-variant-numeric: tabular-nums;
-}
-.srow__prog { height: 4px; border-radius: var(--r-full); background: var(--surf3); margin-top: 8px; max-width: 160px; overflow: hidden; }
-.srow__prog i { display: block; height: 100%; background: var(--acc); border-radius: var(--r-full); }
-/* ٤٤×٤٤ لا ٣٠ — منطقة لمس حقيقية (Fitts/إتاحة الموبايل)، لا مجرّد شكل مرئي.
-   خلفيةٌ ثابتة اللون (لا شفّافة إلّا بالتحويم) — كانت تبدو زخرفةً بلا وظيفة
-   قبل النقر، فصار وضوح قابليتها للضغط جزءًا من الشكل نفسه لا حالة تحويم فقط. */
-.srow__chev {
-  flex: none; display: grid; place-items: center; width: 44px; height: 44px;
-  border: 0; border-radius: 50%; background: var(--acc-soft); color: var(--acc);
+.subjcard__head { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; cursor: pointer; }
+.subjcard__head .grow { font-size: 15px; font-weight: 600; }
+/* ٤٤×٤٤ — منطقة لمس حقيقية (Fitts/إتاحة الموبايل) رغم الحجم المرئي الأصغر */
+.ghost-btn {
+  flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0;
+  background: var(--surf2); color: var(--txm); display: grid; place-items: center;
   transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
 }
-.srow__chev:hover { background: var(--surf3); }
-.srow.is-open .srow__chev { transform: rotate(180deg); }
+.ghost-btn.chev.is-open { transform: rotate(180deg); }
+.subjcard__badge {
+  flex: none; width: 42px; height: 42px; border-radius: 12px;
+  display: grid; place-items: center; color: #FFF; box-shadow: var(--sh-1);
+}
 
-/* صفّ الأستاذ: يظهر عند فتح السهم، ويرث نقرة الصفّ كلّه (يفتح المادة) —
-   بلا أي معالج نقر خاصّ به ولا وجهة مستقلّة (صفحة الأستاذ بره هذه البطاقة). */
-.steach {
-  display: flex; align-items: center; gap: 11px;
-  padding: 12px 13px 14px; border-top: 1px solid var(--brd); background: var(--surf2);
+/* صفّ التفاصيل: يظهر عند فتح الرأس، ويحمل نقرة مستقلّة تفتح المادة —
+   بلا وجهة صفحة أستاذ مستقلّة (البطاقة اعتماد على الأستاذ لا تصفّح له). */
+.subjcard__row { display: flex; align-items: stretch; gap: 13px; padding: 6px 14px 12px; cursor: pointer; }
+.subjcard__ph {
+  flex: 0 0 92px; width: 92px; height: 92px; border-radius: 16px; overflow: hidden;
+  display: grid; place-items: center; color: #FFF;
 }
-.steach__av {
-  flex: 0 0 46px; width: 46px; height: 46px; border-radius: 50%; object-fit: cover;
+.subjcard__ph img { width: 100%; height: 100%; object-fit: cover; }
+.subjcard__b { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.subjcard__t { font-size: 15px; font-weight: 600; }
+.subjcard__teacher { display: flex; align-items: center; gap: 6px; }
+.subjcard__tav {
+  flex: none; width: 20px; height: 20px; border-radius: 50%;
   background: var(--acc-soft); color: var(--acc-tx);
-  display: grid; place-items: center; font-size: 16px; font-weight: 600; box-shadow: var(--sh-1);
+  display: grid; place-items: center; font-size: 10px; font-weight: 600;
 }
-.steach__b { min-width: 0; line-height: 1.3; }
-.steach__b i { display: block; font-style: normal; font-size: 10.5px; color: var(--txf); }
-.steach__b b { display: block; font-size: 13px; font-weight: 600; }
+.subjcard__tn { font-size: 12px; color: var(--txm); }
+.subjcard__pill {
+  align-self: flex-start; font-size: 10.5px; font-weight: 600;
+  background: var(--surf2); color: var(--txm); padding: 4px 11px; border-radius: var(--r-full);
+  font-variant-numeric: tabular-nums;
+}
+
+.subjcard__foot {
+  border-top: 1px solid var(--brd); text-align: center; padding: 11px;
+  font-size: 12px; font-weight: 600; color: var(--gold); cursor: pointer;
+}
 
 /* صفّ خبر مختصر على الرئيسية — مدخلٌ إلى القسم لا نسخةٌ منه */
 .nrow {

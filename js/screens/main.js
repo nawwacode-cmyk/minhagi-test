@@ -166,45 +166,50 @@ window.Screens = window.Screens || {};
     const subjects = (SEED.subjects || []).filter((x) => x.entitled);
     const posts = SEED.banners || [];
 
-    /* قائمة «موادّي»: صفٌّ لكل مادة، وسهمٌ يطوي/يفتح صفّ أستاذها تحته — بدل
-       شريط حلقات أفقي ما كان يتّسع لصورة الأستاذ أصلًا. صفّ الأستاذ **مفتوح
+    /* قائمة «موادّي»: بطاقة لكل مادة، مستوحاة تصميمًا (شكلًا لا بنية) من
+       تركيب رأسٍ قابل للطيّ + صفّ تفاصيل بصورة كبيرة — بمنطق المشروع
+       الحالي: أستاذ واحد لكل مادة (لا كورسات متعدّدة تحت رأسٍ واحد، ذاك
+       قرارٌ معماريٌّ مرفوض عمدًا — راجع CLAUDE.md). صفّ التفاصيل **مفتوح
        افتراضيًا** لكل مادة لها أستاذ مطابق — الطالب يرى أستاذه فور فتح
-       التطبيق بلا نقرة إضافية؛ السهم يطويه لمن لا يريده لا يفتحه.
+       التطبيق بلا نقرة إضافية؛ رأس المادة يطويه لمن لا يريده لا يفتحه.
+       المواد بلا أستاذ تبدأ مطويّة (لا شيء إضافي يستحقّ عرضًا تلقائيًا).
 
        حالة الطيّ محلّية للشاشة لا `Store`: عرضٌ مؤقّت لا يستحقّ حفظًا ولا
-       مزامنة. الضغط على أي مكان بالصفّ (رأسه أو صفّ الأستاذ) يفتح المادة —
-       لا صفحة الأستاذ المستقلّة؛ هذه البطاقة اعتمادٌ على الأستاذ لا تصفّحًا
-       له. السهم وحده يبدّل الطيّ/الفتح، بمعزلٍ عن ذلك تمامًا. */
-    const closedSubjects = new Set();
+       مزامنة. الضغط على الرأس يطوي/يفتح فقط؛ الضغط على صفّ التفاصيل أو
+       رابط «تفاصيل المادة» يفتح المادة — لا صفحة الأستاذ المستقلّة. */
+    const closedSubjects = new Set(subjects
+      .filter((sub) => !teachers.some((t) => (t.subjects || []).includes(sub.id)))
+      .map((sub) => sub.id));
     const subjList = h('div.slist');
     function drawSubjList() {
       subjList.replaceChildren(...subjects.map((sub, i) => {
         const p = Store.subjectProgress(sub.id);
         const t = teachers.find((x) => (x.subjects || []).includes(sub.id));
-        const open = !!t && !closedSubjects.has(sub.id);
+        const open = !closedSubjects.has(sub.id);
         const photo = t && Api.publicUrl(t.photo);
+        const goSubject = () => App.go('course', { subject: sub.id });
 
-        return h('div.srow' + (open ? '.is-open' : ''),
-          { onclick: () => App.go('course', { subject: sub.id }) },
-          h('div.srow__head',
-            h('span.simg.subj--c' + (i % 4), subjectIconEl(sub.id, 36, Api.publicUrl(sub.icon))),
-            h('div.srow__b',
-              h('b', sub.name),
-              h('small', `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا · ${ar(p.percent)}٪`),
-              h('div.srow__prog', h('i', { style: `width:${p.percent}%` }))),
-            t ? h('button.srow__chev', {
-                  'aria-label': open ? 'إخفاء الأستاذ' : 'عرض الأستاذ',
-                  onclick: (e) => {
-                    e.stopPropagation();
-                    if (open) closedSubjects.add(sub.id); else closedSubjects.delete(sub.id);
-                    drawSubjList();
-                  },
-                }, icon.chevron(16)) : null),
-          open ? h('div.steach',
-            photo
-              ? h('img.steach__av', { src: photo, alt: '', loading: 'lazy' })
-              : h('span.steach__av', t.name[0]),
-            h('div.steach__b', h('i', 'الأستاذ'), h('b', t.name))) : null);
+        return h('div.subjcard',
+          h('div.subjcard__head', {
+            onclick: () => {
+              if (open) closedSubjects.add(sub.id); else closedSubjects.delete(sub.id);
+              drawSubjList();
+            },
+          },
+            h('span.ghost-btn.chev' + (open ? '.is-open' : ''), icon.chevron(16)),
+            h('span.grow', sub.name),
+            h('span.subjcard__badge.subj--c' + (i % 4), subjectIconEl(sub.id, 22, Api.publicUrl(sub.icon)))),
+          open ? h('div.subjcard__row', { onclick: goSubject },
+            h('div.subjcard__ph.subj--c' + (i % 4),
+              photo ? h('img', { src: photo, alt: '', loading: 'lazy' })
+                    : subjectIconEl(sub.id, 40, Api.publicUrl(sub.icon))),
+            h('div.subjcard__b',
+              h('div.subjcard__t', sub.name),
+              t ? h('div.subjcard__teacher',
+                    h('span.subjcard__tav', t.name[0]),
+                    h('span.subjcard__tn', `أ. ${t.name}`)) : null,
+              h('span.subjcard__pill', `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا · ${ar(p.percent)}٪`))) : null,
+          open ? h('div.subjcard__foot', { onclick: goSubject }, 'تفاصيل المادة ‹') : null);
       }));
     }
     drawSubjList();
