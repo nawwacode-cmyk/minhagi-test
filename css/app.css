@@ -317,11 +317,32 @@ img, svg { max-width: 100%; display: block; }
 
 /* شريط التبويبات — أخٌ مباشر لمنطقة التمرير كي يلتصق طوال قائمة الدروس.
    خلفيةٌ صلبة إلزامية: بدونها تمرّ عناوين الدروس مرئيّةً خلف الأزرار. */
+/* ⚠️ الإزاحة تحسب شريط حالة النظام. التطبيق `standalone` مع `viewport-fit=cover`
+   فمنطقة العرض تمتدّ **تحت** الشريط، و`sticky` تلتصق بحافّتها — أي تحته.
+   بـ`top: 0` كان النصف العلوي من الأزرار مقصوصًا بعد أوّل تمرير، ولا يظهر
+   العطل عند الوقوف على القمّة فيبدو خللًا في التمرير لا في الإزاحة. */
 .chero__tabs {
-  position: sticky; top: 0; z-index: 3;
+  position: sticky; top: env(safe-area-inset-top); z-index: 3;
   background: var(--surf); padding: 0 18px 10px;
 }
 .chero__tabs .seg { margin: 0; }
+
+/* ساتر الحاشية — يملأ ما تحت شريط الحالة حين يلتصق شريط التبويبات.
+
+   لماذا عنصرٌ بشفافيةٍ مشروطة بدل حشوةٍ في الشريط نفسه: الحشوة تكلّف الحاشية
+   كاملةً (~٤٤ بكسل) بياضًا **دائمًا**، حتى على القمّة حيث لا شيء يُستر. وهنا
+   يبقى الغلاف مبلَّغًا تحت الشريط كما في التصميم المرجعي.
+
+   والهامش السالب يجعله بلا مساحة في التدفّق: يلتصق من أوّل بكسل ولا يزيح شيئًا. */
+.chero__scrim {
+  position: sticky; top: 0; z-index: 4;
+  height: env(safe-area-inset-top);
+  margin-bottom: calc(-1 * env(safe-area-inset-top));
+  background: var(--surf); opacity: 0; pointer-events: none;
+  transition: opacity var(--dur) var(--ease);
+}
+.chero__scrim.is-on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .chero__scrim { transition: none; } }
 
 /* اسم المادة حين تُغطّى الصورة — الهويّة لا تضيع داخل قائمة الدروس.
 

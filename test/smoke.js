@@ -974,7 +974,7 @@ ok('ولا بطاقة رماديّة حوله',
    الثابتة تأكل ~٤٧٠ بكسل — على هاتفٍ بارتفاع ٦٤٠ يبقى ١٧٠ للدروس.
    نفس العلاج المطبَّق على شاشة الأستاذ سابقًا: الغلاف داخل منطقة التمرير. */
 ok('الغلاف داخل منطقة التمرير لا معلّقًا فوقها',
-   /body\.append\(courseHero\(\)/.test(courseSrc) && /wrap\.append\(body\)/.test(courseSrc));
+   /body\.append\(scrim, courseHero\(\)/.test(courseSrc) && /wrap\.append\(body\)/.test(courseSrc));
 ok('وشريط التبويبات خارج الورقة كي يلتصق طوال التمرير',
    /h\('div\.chero__tabs', nameBar, seg\)/.test(courseSrc)
    && /\.chero__tabs \{[^}]*position: sticky/.test(cssSrc));
@@ -991,6 +991,64 @@ ok('ولا يُعاد التمرير إلى الغلاف عند تبديل ال�
    المتصفّح يمرّر على خيطٍ منفصل، فبالتمرير السريع تتأخّر جافاسكربت وراءه
    وتبقى الصورة على موضعٍ قديم — عطلٌ مرئيّ أبلغ عنه صاحب المنتج بلقطة.
    `position: sticky` يفعلها المتصفّح نفسه: لا تأخّر مهما كانت السرعة. */
+/* --- شريط حالة النظام: كل عنصر لاصق بالأعلى يحسب حسابه ----------------------
+   التطبيق `standalone` مع `viewport-fit=cover`، فمنطقة العرض تمتدّ **تحت**
+   شريط حالة النظام و`env(safe-area-inset-top)` ≈ ٤٤ بكسل على هاتفٍ نموذجي.
+   و`sticky` تلتصق بحافّة منطقة التمرير — أي تحت الشريط — فعنصرٌ بـ`top: 0`
+   يُقصّ نصفه العلوي.
+
+   وقع هذا فعلًا: شريط تبويبات شاشة المادة ظهر مقطوعًا بعد أوّل تمرير، ولم
+   يظهر عند الوقوف على القمّة — فبدا عطلًا في التمرير لا في الإزاحة، وكلّف
+   جولتَي تشخيص. وكان **العنصر الوحيد** في الملفّ الذي لا يحسبها.
+
+   الحارس يقرأ الملفّ كلّه لا هذا العنصر: الغرض منع الثاني لا إصلاح الأوّل. */
+{
+  const clean = cssSrc.replace(/\/\*[\s\S]*?\*\//g, '');
+  /* استثناءات، ولكلٍّ سببٌ مكتوب — قائمةٌ بلا أسباب تصير مقبرةَ أعطال:
+       .chero__band  — الغلاف **يُقصد** أن يمتدّ تحت الشريط (صورة مبلَّغة)
+       .chero__scrim — هو نفسه ساترُ الحاشية، فإزاحته صفرٌ بالتعريف
+       .dash__side / .exam-side — داخل @media حاسوب، والحاشية هناك صفر
+       .doc__bar     — أسفل شريط تطبيقٍ يحسبها بحشوته أصلًا */
+  const allow = ['.chero__band', '.chero__scrim', '.dash__side', '.exam-side', '.doc__bar'];
+  const bad = [];
+  for (const [, sel, body] of clean.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (!/position:\s*(sticky|fixed)/.test(body)) continue;
+    const top = (body.match(/(?:^|;)\s*top:\s*([^;]+)/) || [])[1];
+    if (top === undefined) continue;
+    const one = sel.trim().replace(/\s+/g, ' ');
+    if (allow.some((a) => one.endsWith(a))) continue;
+    if (!/safe-area-inset-top/.test(top)) bad.push(`${one} → top:${top.trim()}`);
+  }
+  ok('كل عنصر لاصق بالأعلى يحسب شريط الحالة', bad.length === 0, bad.join(' · '));
+  // ولو أفرغت القائمة الاستثناءات لما فحص شيئًا — نتأكّد أنه رأى عناصر فعلًا
+  const seen = [...clean.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, , b]) => /position:\s*(sticky|fixed)/.test(b) && /(?:^|;)\s*top:/.test(b));
+  ok('والحارس رأى عناصر لاصقة فعلًا', seen.length >= 5, `${seen.length} عنصرًا`);
+}
+
+/* وساترُ الحاشية: شريطٌ بلون السطح يملأ ما تحت شريط الحالة **حين يلتصق شريط
+   التبويبات وحده**. بلا الشفافية المشروطة كان الحلّ يكلّف ~٤٤ بكسل بياضٍ
+   دائم فوق التبويبات حتى عند الوقوف على القمّة. */
+ok('ساترُ الحاشية موجود ولا يحجز مساحة',
+   /chero__scrim/.test(courseSrc)
+   && /\.chero__scrim \{[^}]*height: env\(safe-area-inset-top\)/.test(cssSrc)
+   && /\.chero__scrim \{[^}]*margin-bottom: calc\(-1 \* env\(safe-area-inset-top\)\)/.test(cssSrc));
+ok('ويظهر بالشفافية مع اسم المادة نفسه',
+   /\.chero__scrim \{[^}]*opacity: 0/.test(cssSrc)
+   && /\.chero__scrim\.is-on \{[^}]*opacity: 1/.test(cssSrc)
+   && /scrim\.classList\.toggle\('is-on'/.test(courseSrc));
+// وفوق شريط التبويبات وإلّا ظهر تحته بلا فائدة
+ok('وطبقتُه فوق شريط التبويبات',
+   /\.chero__scrim \{[^}]*z-index: 4/.test(cssSrc));
+// ولا يبتلع النقرات على الغلاف وهو شفّاف
+ok('ولا يبتلع اللمس وهو شفّاف',
+   /\.chero__scrim \{[^}]*pointer-events: none/.test(cssSrc));
+/* توقيت الظهور يزيح بمقدار الحاشية: شريط التبويبات صار يلتصق أبكر بها،
+   فبلا الإزاحة يتأخّر اسم المادة ٤٤ بكسل عن لحظته. والقيمة تُقرأ من ارتفاع
+   الساتر نفسه لا تُكتب رقمًا — الحاشية تختلف من جهازٍ لآخر. */
+ok('وتوقيت الظهور مزاحٌ بالحاشية المقروءة لا برقمٍ مكتوب',
+   /getComputedStyle\(scrim\)/.test(courseSrc)
+   && /rootMargin: `-\$\{inset\}px 0px 0px 0px`/.test(courseSrc));
 ok('الصورة ثابتة بـsticky لا محسوبة بجافاسكربت',
    /\.chero__band \{[^}]*position: sticky/.test(cssSrc));
 {

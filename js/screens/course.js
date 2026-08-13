@@ -52,6 +52,9 @@ window.Screens = window.Screens || {};
     const tabs = h('div.chero__tabs', nameBar, seg);
     // خروجه من أعلى منطقة التمرير = لحظة التصاق شريط التبويبات بالضبط
     const sentinel = h('div.chero__sentinel');
+    /* ساتر شريط حالة النظام: يظهر مع اسم المادة ويغيب معه، فيبقى الغلاف
+       مبلَّغًا تحت الشريط على القمّة ولا يُقصّ شريط التبويبات بعد التمرير. */
+    const scrim = h('div.chero__scrim');
     const body = h('div.screen__body');   // كل شيء يمرّ داخلها، الغلاف أوّلًا
     const pane = h('div');                // وحده يتبدّل مع التبويب
 
@@ -485,7 +488,8 @@ window.Screens = window.Screens || {};
 
     drawSeg();
     drawBody();
-    body.append(courseHero(), sentinel, tabs, pane);
+    // الساتر أوّلًا: هامشه السالب يلغي مساحته، فوجوده هنا لا يزيح الغلاف
+    body.append(scrim, courseHero(), sentinel, tabs, pane);
     wrap.append(body);
 
     /* --- إظهار اسم المادة حين تُغطّى الصورة -------------------------------------
@@ -496,9 +500,16 @@ window.Screens = window.Screens || {};
        ولا حدود يدوية ولا فجوة ضدّ الرفرفة: الحارس النقطي في نهاية الورقة،
        فخروجه من الأعلى هو **بعينه** لحظة التصاق شريط التبويبات. */
     if (typeof IntersectionObserver === 'function') {
+      /* الحاشية تُقرأ من ارتفاع الساتر لا تُكتب رقمًا: تختلف من جهازٍ لآخر
+         (وتساوي صفرًا على الحاسوب). وبدونها يتأخّر اسم المادة بمقدارها، لأن
+         شريط التبويبات صار يلتصق أبكر بها. */
+      const inset = (typeof getComputedStyle === 'function'
+        && parseFloat(getComputedStyle(scrim).height)) || 0;
       new IntersectionObserver(([e]) => {
-        nameBar.classList.toggle('is-on', !e.isIntersecting);
-      }, { root: body, threshold: 0 }).observe(sentinel);
+        const on = !e.isIntersecting;
+        nameBar.classList.toggle('is-on', on);
+        scrim.classList.toggle('is-on', on);
+      }, { root: body, rootMargin: `-${inset}px 0px 0px 0px`, threshold: 0 }).observe(sentinel);
     }
 
     return wrap;
