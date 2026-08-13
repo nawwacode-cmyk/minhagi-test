@@ -36,6 +36,21 @@ window.Screens = window.Screens || {};
     return null;
   }
 
+  /**
+   * «٧ وحدات» — بصيغة العدد العربية الصحيحة.
+   *
+   * العربية تميّز المفرد والمثنّى والجمع، و`${n} وحدات` تُنتج «وحدة ١ وحدات»
+   * و«٢ وحدات» — ركاكةٌ يلاحظها القارئ العربي فورًا وإن لم يسمّها. والعشرة
+   * فما فوق تُميَّز أيضًا: «١١ وحدة» لا «١١ وحدات».
+   */
+  function unitsLabel(subjectId) {
+    const n = (SEED.units || []).filter((u) => u.subject === subjectId).length;
+    if (!n) return 'لا وحدات بعد';
+    if (n === 1) return 'وحدة واحدة';
+    if (n === 2) return 'وحدتان';
+    return `${ar(n)} ${n <= 10 ? 'وحدات' : 'وحدة'}`;
+  }
+
   /* ===========================================================================
      كومة بطاقات الأخبار — أحدث عشرة
 
@@ -183,10 +198,10 @@ window.Screens = window.Screens || {};
     const subjList = h('div.slist');
     function drawSubjList() {
       subjList.replaceChildren(...subjects.map((sub, i) => {
-        const p = Store.subjectProgress(sub.id);
         const t = teachers.find((x) => (x.subjects || []).includes(sub.id));
         const open = !closedSubjects.has(sub.id);
         const photo = t && Api.publicUrl(t.photo);
+        const cover = sub.icon && Api.publicUrl(sub.icon);
         const goSubject = () => App.go('course', { subject: sub.id });
 
         return h('div.subjcard',
@@ -196,19 +211,33 @@ window.Screens = window.Screens || {};
               drawSubjList();
             },
           },
-            h('span.ghost-btn.chev' + (open ? '.is-open' : ''), icon.chevron(16)),
+            /* الترتيب: صورة المادة يمينًا ثم الاسم ثم السهم يسارًا.
+               الصفحة RTL فأوّل عنصرٍ في الـDOM هو الأيمن. */
+            cover
+              /* الصورة المرفوعة **تملأ** البلاطة ولا تُصغَّر داخلها.
+                 كانت تُرسم بمقاس ٢٢ داخل مربّعٍ بنفسجي ٤٢، فتبدو ملصقًا
+                 صغيرًا وسط لونٍ لا علاقة له بها — والمقصود من رفعها أن
+                 تحلّ محلّه لا أن تسكن فيه. */
+              ? h('span.subjcard__badge.subjcard__badge--img',
+                  h('img', { src: cover, alt: '', loading: 'lazy' }))
+              : h('span.subjcard__badge.subj--c' + (i % 4), subjectIconEl(sub.id, 22)),
             h('span.grow', sub.name),
-            h('span.subjcard__badge.subj--c' + (i % 4), subjectIconEl(sub.id, 22, Api.publicUrl(sub.icon)))),
+            h('span.ghost-btn.chev' + (open ? '.is-open' : ''), icon.chevron(16))),
           open ? h('div.subjcard__row', { onclick: goSubject },
             h('div.subjcard__ph.subj--c' + (i % 4),
               photo ? h('img', { src: photo, alt: '', loading: 'lazy' })
                     : subjectIconEl(sub.id, 40, Api.publicUrl(sub.icon))),
             h('div.subjcard__b',
               h('div.subjcard__t', sub.name),
+              /* بلا دائرة الحرف الأوّل: صورة الأستاذ كاملةً إلى جانبها مباشرةً،
+                 فحرفٌ مصغَّر يكرّر ما تقوله الصورة ويزاحم الاسم. */
               t ? h('div.subjcard__teacher',
-                    h('span.subjcard__tav', t.name[0]),
                     h('span.subjcard__tn', `أ. ${t.name}`)) : null,
-              h('span.subjcard__pill', `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا · ${ar(p.percent)}٪`))) : null,
+              /* عدد وحدات المادة لا «٠ من ٣٨ درسًا»: الأخير يعرض صفرًا لكل
+                 طالبٍ لم يبدأ — أي لكل من يفتح التطبيق أوّل مرّة — فيبدو
+                 المحتوى فارغًا وهو ممتلئ. العدد يقول ما في المادة لا ما
+                 أنجزه هو، والتقدّم مكانه «تقدّمي». */
+              h('span.subjcard__pill', unitsLabel(sub.id)))) : null,
           open ? h('div.subjcard__foot', { onclick: goSubject }, 'تفاصيل المادة ‹') : null);
       }));
     }

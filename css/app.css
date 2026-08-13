@@ -432,6 +432,11 @@ img, svg { max-width: 100%; display: block; }
   flex: none; width: 42px; height: 42px; border-radius: 12px;
   display: grid; place-items: center; color: #FFF; box-shadow: var(--sh-1);
 }
+/* الصورة المرفوعة تملأ البلاطة: لا خلفية ملوّنة تحتها ولا هامش حولها —
+   رُفعت لتحلّ محلّ المربّع لا لتسكن فيه. و`cover` لا `contain`: البلاطة
+   مربّعة والصورة قد لا تكون، وهوامشُ بيضاء داخل مربّعٍ صغير تبدو عطلًا. */
+.subjcard__badge--img { overflow: hidden; background: var(--surf2); }
+.subjcard__badge--img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* صفّ التفاصيل: يظهر عند فتح الرأس، ويحمل نقرة مستقلّة تفتح المادة —
    بلا وجهة صفحة أستاذ مستقلّة (البطاقة اعتماد على الأستاذ لا تصفّح له). */

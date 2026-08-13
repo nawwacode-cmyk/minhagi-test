@@ -50,5 +50,79 @@ const ok = (n, c, x = '') => { console.log((c ? 'ok   ' : 'FAIL ') + n + (x ? ' 
   SEED.subjects = realSubjects;
 }
 
+// =============================================================================
+// ترتيب رأس البطاقة، وصورة المادة، وسطر الأستاذ
+//
+// الترتيب المطلوب — والصفحة RTL فأوّل عنصرٍ في الـDOM هو **الأيمن**:
+//     صورة المادة (يمينًا) · الاسم · السهم (يسارًا)
+//
+// الترتيب لا يظهر في أي فحصٍ يسأل «هل العنصر موجود؟»، فكلاهما موجود في
+// الحالتين. المقياس هو التسلسل نفسه.
+// =============================================================================
+{
+  const realIcon = SEED.subjects[0].icon;
+  const realName = SEED.teachers[0].name;
+  const realSubs = SEED.teachers[0].subjects;
+  SEED.subjects[0].icon = 'subjects/fr.jpg';
+  SEED.teachers[0].name = 'نوار بشناق';
+  SEED.teachers[0].subjects = [SEED.subjects[0].id];
+
+  const html = Screens.home().outerHTML;
+  const head = html.slice(html.indexOf('subjcard__head'), html.indexOf('subjcard__row'));
+  const order = [...head.matchAll(/class="(subjcard__badge|grow|ghost-btn)/g)].map((m) => m[1]);
+
+  ok('صورة المادة يمينًا ثم الاسم ثم السهم يسارًا',
+     order.join(',') === 'subjcard__badge,grow,ghost-btn', order.join(','));
+
+  /* الصورة المرفوعة **تملأ** البلاطة. كانت تُرسم بمقاس ٢٢ داخل مربّعٍ بنفسجي
+     ٤٢، فتبدو ملصقًا صغيرًا وسط لونٍ لا علاقة له بها. */
+  ok('والصورة المرفوعة تملأ البلاطة بلا مربّع تحتها',
+     /subjcard__badge--img/.test(html) && !/subjcard__badge subj--c/.test(head));
+
+  // بلا صورة مرفوعة: البلاطة الملوّنة بأيقونة المادة تبقى كما كانت
+  SEED.subjects[0].icon = null;
+  const noIcon = Screens.home().outerHTML;
+  ok('وبلا صورة تبقى البلاطة الملوّنة',
+     /subjcard__badge subj--c/.test(noIcon) && !/subjcard__badge--img/.test(noIcon));
+
+  SEED.subjects[0].icon = 'subjects/fr.jpg';
+  const withIcon = Screens.home().outerHTML;
+
+  /* دائرة الحرف الأوّل أُزيلت: صورة الأستاذ كاملةً إلى جانبها مباشرةً،
+     فحرفٌ مصغَّر يكرّر ما تقوله الصورة ويزاحم الاسم. */
+  ok('ولا دائرة حرفٍ قبل اسم الأستاذ', !/subjcard__tav/.test(withIcon));
+  ok('والاسم كاملًا بلقبه', /أ\. نوار بشناق/.test(withIcon));
+
+  /* الوسم يقول ما في المادة لا ما أنجزه الطالب: «٠ من ٣٨ درسًا» تعرض صفرًا
+     لكل من يفتح التطبيق أوّل مرّة، فيبدو المحتوى فارغًا وهو ممتلئ. */
+  const pill = (withIcon.match(/subjcard__pill">([^<]*)/) || [])[1] || '';
+  ok('والوسم عدد الوحدات لا تقدّم الطالب',
+     /وحد/.test(pill) && !/درس/.test(pill) && !/٪/.test(pill), pill);
+
+  SEED.subjects[0].icon = realIcon;
+  SEED.teachers[0].name = realName;
+  SEED.teachers[0].subjects = realSubs;
+}
+
+// صيغة العدد العربية: مفرد ومثنّى وجمع — «٢ وحدات» ركاكةٌ تُلاحَظ
+{
+  const realUnits = SEED.units;
+  const subId = SEED.subjects[0].id;
+  const mk = (n) => Array.from({ length: n }, (_, k) => ({
+    id: 'tu' + k, title: 'و' + k, subject: subId, grade: 'g9', lessons: [],
+  }));
+  const pill = () => (Screens.home().outerHTML.match(/subjcard__pill">([^<]*)/) || [])[1];
+
+  for (const [n, want] of [[1, 'وحدة واحدة'], [2, 'وحدتان'], [5, '٥ وحدات'], [12, '١٢ وحدة']]) {
+    SEED.units = mk(n);
+    ok(`${n} ⇒ «${want}»`, pill() === want, pill());
+  }
+  SEED.units = [];
+  ok('وبلا وحدات: نصٌّ صريح لا صفرٌ عارٍ', pill() === 'لا وحدات بعد', pill());
+
+  SEED.units = realUnits;
+}
+
+
 console.log('\n' + (bad ? `${bad} فشل` : 'قائمة موادّي سليمة'));
 process.exit(bad ? 1 : 0);
