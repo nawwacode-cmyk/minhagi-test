@@ -957,6 +957,38 @@ ok('لا دالة تبويب تقدّم يتيمة', !/function tabProgress/.tes
 ok('الافتراضي «الدروس» لا شاشة بلا زرّ', /: tabLessons\(\),/.test(courseSrc));
 ok('«شوف تقدّمك» يودّي للوجهة المستقلّة', /onclick: \(\) => App\.go\('progress'\)/.test(courseSrc));
 
+/* --- شاشة المادة: وصفٌ وملفّات، وصورةُ أستاذٍ واحدة لا اثنتان ------------------
+   الغلاف يعرض صورة الأستاذ بعرض الشاشة وارتفاع ٢٤٠ بكسل، ثم كان صفّ اسمه
+   تحته يعرض **نفس الصورة** في دائرة ٣٨ بكسل. تكرارٌ لا يضيف معلومة ويسرق
+   عرضًا من الاسم على هاتفٍ ضيّق. */
+ok('لا صورة أستاذ مصغّرة تكرّر صورة الغلاف',
+   !/chero__av/.test(courseSrc) && !/\.chero__av/.test(cssSrc));
+ok('واسم الأستاذ باقٍ', /chero__tb/.test(courseSrc) && /الأستاذ/.test(courseSrc));
+
+// وصف المادة: سطران ثم «المزيد». بلا وصفٍ لا يظهر القسم أصلًا — عنصرٌ فارغ
+// يترك فجوةً تبدو عطلًا.
+ok('وصف المادة سطران قابلان للتوسيع',
+   /chero__desc/.test(courseSrc) && /-webkit-line-clamp: 2/.test(cssSrc));
+ok('و«المزيد» لا يظهر إلّا إن كان هناك ما يُخفى',
+   /scrollHeight[\s\S]{0,80}clientHeight/.test(courseSrc));
+ok('وبلا وصف لا يُرسم القسم', /if \(!text\) return null/.test(courseSrc));
+
+/* «ملفّات» تبويبٌ رابع لا قسمٌ داخل «الدروس»: نوطة المادة يفتحها الطالب
+   مباشرةً بلا أن يمرّ على شجرة الوحدات. وشرطه وجود ملفٍّ فعلًا — تبويبٌ
+   يُفتح على فراغ يبدو عطلًا. */
+ok('«ملفّات» تبويبٌ رابع', /\['files',\s*'ملفّات'\]/.test(courseSrc));
+ok('وشرطه وجود ملفّ', /subjectDocs\.length \? \[\['files'/.test(courseSrc));
+ok('ورابطٌ قديم لتبويبٍ لا ملفّ فيه يسقط إلى الدروس',
+   /tab === 'files' && !subjectDocs\.length[\s\S]{0,40}tab = 'lessons'/.test(courseSrc));
+ok('ويعيد استعمال عارض الملفّات نفسه', /tab === 'files'\s*\? tabFiles\(\)/.test(courseSrc));
+
+// المزامنة: الوصف والملفّات يصلان أصلًا، وملفٌّ بلا مالك لا يُعرض
+ok('sync يجلب وصف المادة', /icon_pos,description/.test(syncSrc) && /desc: s\.description/.test(syncSrc));
+ok('و ملفّات المادة مفصولةً عن ملفّات الدرس',
+   /docsBySubject/.test(syncSrc) && /select: 'id,title,lesson_id,subject_id/.test(syncSrc));
+ok('وملفٌّ بلا مالك لا يُنسب لأحد',
+   /else if \(d\.subject_id\)/.test(syncSrc));
+
 // --- مبدّل المقاطع بأسلوب iOS ------------------------------------------------------
 ok('المضمار خلفية هادئة', /\.seg \{[^}]*background: var\(--surf2\)/.test(cssSrc));
 ok('المقطع النشط مرفوع بظلّ', /\.seg button\[aria-selected="true"\] \{[^}]*box-shadow/.test(cssSrc));

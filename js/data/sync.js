@@ -103,7 +103,7 @@ window.Sync = (function () {
     const [subjects, grades, units, lessons,
            questions, options, exams, examQuestions, videos,
            lessonDocs, teachers, teacherCourses, banners] = await Promise.all([
-      Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order,icon,icon_pos' }),
+      Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order,icon,icon_pos,description' }),
       Api.from('grades',    { select: 'id,code,name_ar,sort_order' }),
       Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order,courses(subject_id,grade_id)', order: 'sort_order' }),
       Api.from('lessons',   { select: 'id,code,title_ar,body_html,est_minutes,is_free,unit_id,video_id,doc_id,body_mode,sort_order', order: 'sort_order' }),
@@ -118,8 +118,11 @@ window.Sync = (function () {
       Api.from('exam_questions', { select: 'exam_id,question_id,sort_order,points',
                                    pageKey: 'exam_id,question_id' }),
       Api.from('videos',    { select: 'id,title,quality,duration_s,size_bytes' }).catch(() => []),
-      // ملفّات الدرس: البيانات الوصفية فقط — الملفّ خلف رابط موقّع يُطلب عند الفتح
-      Api.from('lesson_docs', { select: 'id,title,lesson_id,sort_order,pages,size_bytes',
+      /* ملفّات الدرس **والمادة**: البيانات الوصفية فقط — الملفّ خلف رابط موقّع
+         يُطلب عند الفتح. ملفّ المادة (نوطة، ملحق) يتبع `subject_id` بدل
+         `lesson_id`، وسياسة RLS تحرسه بنفس بوّابة الوحدات (`has_course_access`)
+         فما يصل هنا هو ما يجوز عرضه — لا تصفية صلاحية في العميل. */
+      Api.from('lesson_docs', { select: 'id,title,lesson_id,subject_id,sort_order,pages,size_bytes',
                                 order: 'sort_order' }).catch(() => []),
       Api.from('teachers',  { select: 'id,code,name,bio,photo_path,photo_pos', order: 'sort_order' }).catch(() => []),
       Api.from('courses',   { select: 'teacher_id,subject_id' }).catch(() => []),
@@ -139,13 +142,13 @@ window.Sync = (function () {
     const subjectByUuid = byId(subjects);
     const L = byId(lessons), Q = byId(questions), V = byId(videos || []);
 
-    // ملفّات كل درس، مرتّبةً كما رتّبها المحرِّر
-    const docsByLesson = {};
+    // ملفّات كل درس وكل مادة، مرتّبةً كما رتّبها المحرِّر
+    const docsByLesson = {}, docsBySubject = {};
     for (const d of (lessonDocs || [])) {
-      if (!d.lesson_id) continue;                 // ملفٌّ يتيم لا يُعرض
-      (docsByLesson[d.lesson_id] ||= []).push({
-        id: d.id, title: d.title, pages: d.pages || null, size: d.size_bytes || null,
-      });
+      const slim = { id: d.id, title: d.title, pages: d.pages || null, size: d.size_bytes || null };
+      if (d.lesson_id) (docsByLesson[d.lesson_id] ||= []).push(slim);
+      else if (d.subject_id) (docsBySubject[d.subject_id] ||= []).push(slim);
+      // بلا مالك: ملفٌّ يتيم لا يُعرض — القيد على القاعدة يمنع الجديد منه
     }
     const idMap = {};                       // 'lesson:salutations' → uuid
     const put = (kind, code, id) => { idMap[`${kind}:${code}`] = id; };
@@ -239,6 +242,9 @@ window.Sync = (function () {
         icon: s.icon || null,
         // موضع التركيز يُطبَّق كـobject-position أينما عُرضت الصورة بـcover
         iconPos: s.icon_pos || null,
+        desc: s.description || '',
+        // نوطة المادة وملحقاتها — ملفّاتٌ لا تتبع درسًا بعينه
+        docs: docsBySubject[s.id] || [],
         entitled: entitledSubjectCodes.has(s.code),
       })),
       grades: grades.sort((a, b) => a.sort_order - b.sort_order)

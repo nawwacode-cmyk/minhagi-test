@@ -296,16 +296,24 @@ img, svg { max-width: 100%; display: block; }
   display: flex; align-items: center; gap: 10px; margin-top: 12px;
   padding: 10px 12px; background: var(--surf2); border-radius: var(--r-lg);
 }
-.chero__av {
-  flex: 0 0 38px; width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
-  background: var(--acc-soft); color: var(--acc-tx); display: grid; place-items: center;
-  font-size: 14px; font-weight: 600;
-}
 .chero__tb i { display: block; font-style: normal; font-size: 10px; color: var(--txf); }
 .chero__tb b { display: block; font-size: 12.5px; font-weight: 600; }
 /* .seg يحمل margin خاص بسياقه المعتاد (تحت appbar مباشرة) — هنا داخل
    حشوة الورقة أصلًا، فنصفّره ونضيف مسافة علوية بس. */
 .chero__sheet .seg { margin: 16px 0 0; }
+
+/* وصف المادة: سطران ثم «المزيد». `-webkit-line-clamp` مدعوم في كل المتصفّحات
+   المستهدفة (بادئةً كما هي — النسخة بلا بادئة ما زالت غير مدعومة على iOS). */
+.chero__descw { margin-top: 10px; }
+.chero__desc {
+  margin: 0; font-size: 12.5px; line-height: 1.7; color: var(--txm);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.chero__desc.is-open { -webkit-line-clamp: unset; overflow: visible; }
+.chero__more {
+  margin-top: 3px; padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--acc-tx);
+}
 
 .avatar {
   width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%;

@@ -20,6 +20,9 @@ window.Screens = window.Screens || {};
     const subject = SEED.subjects.find((s) => s.id === subjectId);
     const subjectUnits = SEED.units.filter((u) => u.subject === subjectId);
     const subjectLessonIds = subjectUnits.flatMap((u) => u.lessons || []);
+    // نوطة المادة وملحقاتها — ملفّاتٌ لا تتبع درسًا بعينه. ما يصل هنا مرّ
+    // بسياسة RLS نفسها التي تحرس الوحدات، فلا تصفية صلاحية في هذه الشاشة.
+    const subjectDocs = subject?.docs || [];
 
     const seg = h('div.seg');
     const body = h('div.screen__body');
@@ -28,9 +31,16 @@ window.Screens = window.Screens || {};
       ['lessons',  'الدروس'],
       ['practice', 'تمارين'],
       ['exams',    'امتحانات'],
+      /* «ملفّات» تبويبٌ رابع لا قسمٌ داخل «الدروس»: النوطة يفتحها الطالب
+         مباشرةً بلا أن يمرّ على شجرة الوحدات. وشرطه وجود ملفٍّ فعلًا —
+         تبويبٌ يُفتح على فراغ يبدو عطلًا لا ميزةً غير مستعملة. */
+      ...(subjectDocs.length ? [['files', 'ملفّات']] : []),
       // «تقدّمي» ليست هنا: هي وجهة ثابتة بشريط التنقّل السفلي، ووجودها في
       // الموضعين يجعل الطالب يرى نفس الشاشة بمسارين ولا يعرف أيّهما «مكانها».
     ];
+
+    // رابطٌ محفوظ بـ?tab=files لمادةٍ حُذفت ملفّاتها يُظهر تبويبًا لا زرَّ له
+    if (tab === 'files' && !subjectDocs.length) tab = 'lessons';
 
     function drawSeg() {
       seg.replaceChildren(...TABS.map(([id, label]) =>
@@ -48,6 +58,7 @@ window.Screens = window.Screens || {};
         // بـ ?tab=progress كان سيعرض شاشة لا يقابلها زرّ في الشريط.
         tab === 'practice'  ? tabPractice()
         : tab === 'exams'   ? tabExams()
+        : tab === 'files'   ? tabFiles()
         : tabLessons(),
       );
       body.scrollTop = 0;
@@ -349,6 +360,26 @@ window.Screens = window.Screens || {};
     }
 
 
+    /* --- تبويب الملفّات: نوطة المادة وملحقاتها ---------------------------------
+       نفس مكوّن `Doc.fileList` الذي يعرض ملفّات الدرس حرفيًّا — لا نسخة ثانية:
+       أوّل تعديل على أحدهما (الطيّ، ملء الشاشة، التكبير) كان سينسى الأخرى.
+
+       ويحتاج اتصالًا صراحةً: الملفّ خلف رابطٍ موقّع يُطلب عند الفتح، فبلا
+       إنترنت تبقى البطاقات تدور بلا نهاية ويظنّ الطالب أن الملفّ معطوب. */
+    function tabFiles() {
+      const s = Store.get();
+      return h('div.dash', h('div.dash__main',
+        !s.online
+          ? h('div.card.card--pad.doc__off',
+              icon.wifiOff(20),
+              h('div', h('b', 'ملفّات المادة تحتاج اتصالًا'),
+                h('span', 'افتح القسم وأنت متصل لتُحمَّل ملفّاته.')))
+          : h('div',
+              h('div.sec-label', { style: 'margin:0 4px 8px' },
+                `ملفّات المادة (${ar(subjectDocs.length)})`),
+              Doc.fileList(subjectDocs))));
+    }
+
     // صفّ هذه المادة من وحداتها هي، لا صفّ الطالب العام: كان الأخير قيمة
     // مثبَّتة ('g9') فكانت شاشة كورس البكالوريا تحمل عنوان «الصف التاسع».
     const unitGrades = [...new Set(subjectUnits.map((u) => u.grade).filter(Boolean))];
@@ -380,11 +411,41 @@ window.Screens = window.Screens || {};
           h('div.chero__title', subject?.name || 'مادتي'),
           pillParts ? h('span.chero__pill', pillParts) : null,
           seg,
+          /* بلا صورةٍ مصغّرة قبل الاسم: الغلاف فوقها يعرض **نفس** الصورة
+             بعرض الشاشة كاملًا، فدائرةُ ٣٨ بكسل تكرارٌ لا يضيف معلومة
+             ويسرق عرضًا من الاسم على هاتفٍ ضيّق (طلبٌ صريح). */
           teacher ? h('div.chero__teacher',
-            photo
-              ? h('img.chero__av', { src: photo, alt: '', loading: 'lazy', style: UI.focusStyle(teacher.photoPos) })
-              : h('span.chero__av', teacher.name[0]),
-            h('div.chero__tb', h('i', 'الأستاذ'), h('b', teacher.name))) : null));
+            h('div.chero__tb', h('i', 'الأستاذ'), h('b', teacher.name))) : null,
+          descBlock()));
+    }
+
+    /* وصف المادة — سطران ثم «المزيد».
+       الورقة (`chero__sheet`) ثابتة فوق المحتوى المتمرّر، فكل سطرٍ فيها يُقتطع
+       من ارتفاع الدروس في **كل** تبويب. القصّ عند سطرين يبقيها تعريفًا لا
+       مقالًا، والتوسيع باختيار الطالب لا مفروضًا عليه. */
+    function descBlock() {
+      const text = (subject?.desc || '').trim();
+      if (!text) return null;              // فراغٌ محجوز يبدو عطلًا لا وصفًا ناقصًا
+
+      const p = h('p.chero__desc', text);
+      const box = h('div.chero__descw', p);
+      const more = h('button.chero__more', {
+        onclick: () => {
+          const open = p.classList.toggle('is-open');
+          more.textContent = open ? 'أقلّ' : 'المزيد';
+        },
+      }, 'المزيد');
+
+      /* الزرّ يُضاف بعد القياس لا قبله: «المزيد» الذي يفتح سطرين على سطرين
+         كذبةٌ صغيرة تُفقد الطالب الثقة بالزرّ. والقياس بعد الإدراج في DOM —
+         قبله `scrollHeight` صفر — فيُؤجَّل إلى الإطار التالي. */
+      const measure = () => {
+        if (p.scrollHeight - p.clientHeight > 2 && !more.isConnected) box.appendChild(more);
+      };
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(measure);
+      else measure();
+
+      return box;
     }
 
     drawSeg();
