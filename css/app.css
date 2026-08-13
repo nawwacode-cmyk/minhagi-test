@@ -375,23 +375,35 @@ img, svg { max-width: 100%; display: block; }
 }
 .warnbar .grow { font-weight: 600; }
 
-.trio {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  background: var(--surf); border-radius: 17px; overflow: hidden; box-shadow: var(--sh-2);
+/* =============================================================================
+   باقات المواد والأسعار — قسم تمهيدي بالرئيسية: تصميم جاهز، والأزرار
+   معطَّلة صراحةً لأنه لا تفعيل حقيقي بعد. راجع المعاينة المعتمدة قبل أي
+   تعديل على الألوان أو الأحجام هنا.
+   ============================================================================= */
+.pkgrail { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.pkg {
+  flex: 0 0 46%; background: var(--surf); border: 1.5px solid var(--brd);
+  border-radius: var(--r-lg); padding: 14px; position: relative;
 }
-.trio__c {
-  padding: 11px 5px; text-align: center; background: none; border: 0; cursor: pointer;
-  font: inherit; color: inherit; border-inline-start: 1px solid var(--line);
+.pkg--hi { border-color: var(--acc); background: linear-gradient(160deg, var(--acc-soft), var(--surf)); }
+.pkg__badge {
+  position: absolute; top: -9px; inset-inline-start: 12px;
+  font-size: 9.5px; font-weight: 600; background: var(--gold); color: #FFF;
+  padding: 3px 10px; border-radius: var(--r-full);
 }
-.trio__c:first-child { border-inline-start: 0; }
-.trio__c:hover { background: var(--surf2); }
-.trio__c b {
-  display: block; font-size: 17px; font-weight: 600; color: var(--acc);
-  font-variant-numeric: tabular-nums;
+.pkg__t { font-size: 12.5px; font-weight: 600; margin-top: 4px; }
+.pkg__p { font-size: 16px; font-weight: 600; margin-top: 8px; }
+.pkg__p small { display: block; font-size: 10px; font-weight: 400; color: var(--txf); margin-top: 2px; }
+.pkg__f { font-size: 10px; color: var(--txm); margin-top: 8px; line-height: 1.6; }
+.pkg__btn {
+  width: 100%; margin-top: 10px; padding: 8px; border: 1.5px solid var(--brd2);
+  border-radius: var(--r-full); background: transparent; color: var(--txf);
+  font-family: inherit; font-size: 11px; font-weight: 600; cursor: not-allowed;
 }
-.trio__c small { font-size: 10px; color: var(--txf); }
-.trio--ok { color: var(--ok) !important; }
-.trio--gold { color: var(--gold) !important; }
+.soon-note {
+  display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px;
+  color: var(--txf); background: var(--surf2); padding: 9px 12px; border-radius: var(--r-md);
+}
 
 /* =============================================================================
    قائمة «موادّي» بالرئيسية — صفٌّ لكل مادة بدل شريط حلقات أفقي: صورة/أيقونة
@@ -399,45 +411,53 @@ img, svg { max-width: 100%; display: block; }
    يفتح صفّ أستاذ المادة تحته. راجع المعاينة المعتمدة بملف الخطة قبل أي
    تعديل على الألوان أو الأحجام هنا.
    ============================================================================= */
-.slist { display: flex; flex-direction: column; gap: 8px; }
+.slist { display: flex; flex-direction: column; gap: 10px; }
 .srow {
-  background: var(--surf); border: 1px solid var(--brd); border-radius: 14px;
+  background: var(--surf); border: 1px solid var(--brd); border-radius: 18px;
   overflow: hidden; cursor: pointer;
 }
-.srow__head { display: flex; align-items: center; gap: 10px; padding: 11px 12px; }
+.srow.is-open { box-shadow: var(--sh-1); }
+.srow__head { display: flex; align-items: center; gap: 13px; padding: 13px; }
+/* ٥٨×٥٨ لا ٤٤: البلاطة القديمة كانت تعرض الأيقونة بحجم ٢٢px في وسطها —
+   نصف المساحة فاضية حول أيقونةٍ تايهة. أصول SUBJECT_IMG (راجع ui.js) رسومٌ
+   مقصوصة بإحكام أصلًا، مصمَّمة لتملأ لا لتصغَّر لنصفها. */
 .simg {
-  flex: 0 0 44px; width: 44px; height: 44px; border-radius: 13px;
-  display: grid; place-items: center; color: #FFF;
+  flex: 0 0 58px; width: 58px; height: 58px; border-radius: 18px;
+  display: grid; place-items: center; color: #FFF; box-shadow: var(--sh-1);
 }
 .srow__b { flex: 1; min-width: 0; }
-.srow__b b { display: block; font-size: 13.5px; font-weight: 600; }
+.srow__b b { display: block; font-size: 14.5px; font-weight: 600; }
 .srow__b small {
-  display: block; font-size: 10.5px; color: var(--txf); margin-top: 2px;
+  display: block; font-size: 11px; color: var(--txf); margin-top: 4px;
   font-variant-numeric: tabular-nums;
 }
-/* ٤٤×٤٤ لا ٣٠ — منطقة لمس حقيقية (Fitts/إتاحة الموبايل)، لا مجرّد شكل مرئي */
+.srow__prog { height: 4px; border-radius: var(--r-full); background: var(--surf3); margin-top: 8px; max-width: 160px; overflow: hidden; }
+.srow__prog i { display: block; height: 100%; background: var(--acc); border-radius: var(--r-full); }
+/* ٤٤×٤٤ لا ٣٠ — منطقة لمس حقيقية (Fitts/إتاحة الموبايل)، لا مجرّد شكل مرئي.
+   خلفيةٌ ثابتة اللون (لا شفّافة إلّا بالتحويم) — كانت تبدو زخرفةً بلا وظيفة
+   قبل النقر، فصار وضوح قابليتها للضغط جزءًا من الشكل نفسه لا حالة تحويم فقط. */
 .srow__chev {
   flex: none; display: grid; place-items: center; width: 44px; height: 44px;
-  border: 0; border-radius: 50%; background: transparent; color: var(--txf);
+  border: 0; border-radius: 50%; background: var(--acc-soft); color: var(--acc);
   transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
 }
-.srow__chev:hover { background: var(--surf2); }
-.srow.is-open .srow__chev { transform: rotate(180deg); color: var(--acc); }
+.srow__chev:hover { background: var(--surf3); }
+.srow.is-open .srow__chev { transform: rotate(180deg); }
 
 /* صفّ الأستاذ: يظهر عند فتح السهم، ويرث نقرة الصفّ كلّه (يفتح المادة) —
    بلا أي معالج نقر خاصّ به ولا وجهة مستقلّة (صفحة الأستاذ بره هذه البطاقة). */
 .steach {
-  display: flex; align-items: center; gap: 10px;
-  padding: 11px 12px 13px; border-top: 1px solid var(--brd); background: var(--surf2);
+  display: flex; align-items: center; gap: 11px;
+  padding: 12px 13px 14px; border-top: 1px solid var(--brd); background: var(--surf2);
 }
 .steach__av {
-  flex: 0 0 42px; width: 42px; height: 42px; border-radius: 50%; object-fit: cover;
+  flex: 0 0 46px; width: 46px; height: 46px; border-radius: 50%; object-fit: cover;
   background: var(--acc-soft); color: var(--acc-tx);
-  display: grid; place-items: center; font-size: 15px; font-weight: 600;
+  display: grid; place-items: center; font-size: 16px; font-weight: 600; box-shadow: var(--sh-1);
 }
 .steach__b { min-width: 0; line-height: 1.3; }
-.steach__b i { display: block; font-style: normal; font-size: 10px; color: var(--txf); }
-.steach__b b { display: block; font-size: 12.5px; font-weight: 600; }
+.steach__b i { display: block; font-style: normal; font-size: 10.5px; color: var(--txf); }
+.steach__b b { display: block; font-size: 13px; font-weight: 600; }
 
 /* صفّ خبر مختصر على الرئيسية — مدخلٌ إلى القسم لا نسخةٌ منه */
 .nrow {
@@ -2012,23 +2032,25 @@ img, svg { max-width: 100%; display: block; }
    وJS لا يغيّر غير الرقم، فكل الحركة على `transform`/`opacity` — لا إعادة
    تخطيطٍ للصفحة عند كل تبديل، وهو ما يجعلها ناعمة على هاتفٍ اقتصادي.
    ============================================================================= */
+/* أوّل قسم بالصفحة الآن (بعد التحية مباشرة) — كبّرت الكومة ~٣٥٪ (الصورة من
+   ٧٤ إلى ١٠٠px وما يتبعها) بلا تغيير الشكل نفسه، بطلب صاحب المنتج صراحةً. */
 .nstack { margin-top: 4px; }
 .nstack__w {
   position: relative;
   /* ارتفاعٌ ثابت: البطاقات مطلقة الموضع فلا ترفع الحاوية، وبدونه تنطبق
      على ارتفاع صفر ويختفي القسم. */
-  height: 132px;
+  height: 178px;
 }
 
 .scard {
   position: absolute; inset-inline: 0; top: 0;
-  display: flex; align-items: center; gap: 11px; width: 100%;
-  padding: 10px; border: 1px solid var(--brd); border-radius: 16px;
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 14px; border: 1px solid var(--brd); border-radius: 20px;
   background: var(--surf); box-shadow: var(--sh-2);
   font: inherit; color: inherit; text-align: start; cursor: pointer;
 
   /* الأبعد أصغر وأخفت وأنزل. `calc` على `--p` وحدها تكفي — لا صنف لكل موضع */
-  transform: translateY(calc(var(--p) * 11px)) scale(calc(1 - var(--p) * 0.05));
+  transform: translateY(calc(var(--p) * 15px)) scale(calc(1 - var(--p) * 0.05));
   opacity: calc(1 - var(--p) * 0.28);
   z-index: calc(3 - var(--p));
   transition: transform .32s var(--ease), opacity .32s var(--ease);
@@ -2043,27 +2065,27 @@ img, svg { max-width: 100%; display: block; }
 }
 
 .scard__i {
-  width: 74px; height: 74px; border-radius: 12px; object-fit: cover; flex: none;
+  width: 100px; height: 100px; border-radius: 16px; object-fit: cover; flex: none;
 }
 .scard__i--blank {
   display: grid; place-items: center; background: var(--acc-soft); color: var(--acc);
 }
-.scard__b { display: grid; gap: 5px; min-width: 0; }
+.scard__b { display: grid; gap: 7px; min-width: 0; }
 .scard__t {
-  font-size: 13px; font-weight: 600; line-height: 1.5;
+  font-size: 15px; font-weight: 600; line-height: 1.5;
   /* سطران ثم قصّ: عنوانٌ طويل كان يُطيل البطاقة فتخرج عن ارتفاع الكومة */
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.scard__m { font-size: 10.5px; color: var(--txf); }
+.scard__m { font-size: 12px; color: var(--txf); }
 
 .nstack__f {
   display: flex; align-items: center; justify-content: space-between;
-  margin-top: 10px;
+  margin-top: 14px;
 }
-.nstack__n { font-size: 11px; color: var(--txf); }
+.nstack__n { font-size: 11.5px; color: var(--txf); }
 .nstack__b {
-  width: 30px; height: 30px; border-radius: 10px; border: 0; cursor: pointer;
+  width: 36px; height: 36px; border-radius: 12px; border: 0; cursor: pointer;
   display: grid; place-items: center; background: var(--surf2); color: var(--acc);
 }
 .nstack__b:hover { background: var(--acc-soft); }

@@ -157,25 +157,8 @@ window.Screens = window.Screens || {};
   Screens.home = () => {
     const s = Store.get();
     const teachers = SEED.teachers || [];
-    const subjectName = (code) => (SEED.subjects || []).find((x) => x.id === code)?.name || code;
     const subjects = (SEED.subjects || []).filter((x) => x.entitled);
     const posts = SEED.banners || [];
-
-    /* --- الدرس التالي ------------------------------------------------------
-       ما حالته `doing` أوّلًا: الطالب تركه في منتصفه فهو أصدق جواب لسؤال
-       «وين كنت واقف». وإلّا فأوّل درس لم يُنجَز بترتيب المنهاج. */
-    const ordered = subjects
-      .flatMap((sub) => (SEED.units || []).filter((u) => u.subject === sub.id))
-      .flatMap((u) => (u.lessons || []).map((id) => ({ id, unit: u })));
-    const nextEntry = ordered.find((x) => s.lessons[x.id] === 'doing')
-      || ordered.find((x) => s.lessons[x.id] !== 'done');
-    const nextLesson = nextEntry && SEED.lessons[nextEntry.id];
-
-    // نسبة الإنجاز الكلّية — متوسط المواد المشترَك بها لا مادةً مفترَضة
-    const overall = subjects.length
-      ? Math.round(subjects.reduce((a, x) => a + Store.subjectProgress(x.id).percent, 0) / subjects.length)
-      : 0;
-    const bestExam = Math.max(0, ...Object.values(s.exams || {}).map((e) => e.best || 0));
 
     /* قائمة «موادّي»: صفٌّ لكل مادة، وسهمٌ يطوي/يفتح صفّ أستاذها تحته — بدل
        شريط حلقات أفقي ما كان يتّسع لصورة الأستاذ أصلًا. صفّ الأستاذ **مفتوح
@@ -198,10 +181,11 @@ window.Screens = window.Screens || {};
         return h('div.srow' + (open ? '.is-open' : ''),
           { onclick: () => App.go('course', { subject: sub.id }) },
           h('div.srow__head',
-            h('span.simg.subj--c' + (i % 4), subjectIconEl(sub.id, 22, Api.publicUrl(sub.icon))),
+            h('span.simg.subj--c' + (i % 4), subjectIconEl(sub.id, 36, Api.publicUrl(sub.icon))),
             h('div.srow__b',
               h('b', sub.name),
-              h('small', `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا · ${ar(p.percent)}٪`)),
+              h('small', `${ar(p.lessonsDone)} من ${ar(p.lessonsTotal)} درسًا · ${ar(p.percent)}٪`),
+              h('div.srow__prog', h('i', { style: `width:${p.percent}%` }))),
             t ? h('button.srow__chev', {
                   'aria-label': open ? 'إخفاء الأستاذ' : 'عرض الأستاذ',
                   onclick: (e) => {
@@ -235,32 +219,36 @@ window.Screens = window.Screens || {};
               icon.fwd(15, { width: 2.4 }))
           : null,
 
-        /* أهمّ عنصر في الصفحة: الطالب يفتح التطبيق ومعه سؤال واحد. بلا مادة
-           مشترَك بها لا بطاقة — لا نعرض زرًّا يقود إلى لا شيء. */
-        nextLesson
-          ? h('div', { style: 'margin-top:14px' },
-              C.continueCard({
-                eyebrow: s.lessons[nextEntry.id] === 'doing' ? 'تابِع من حيث وقفت' : 'ابدأ من هنا',
-                title: nextLesson.title,
-                meta: `${subjectName(nextEntry.unit.subject)} · ${nextEntry.unit.title}`,
-                pct: Store.unitProgress(nextEntry.unit).pct,
-                label: s.lessons[nextEntry.id] === 'doing' ? 'تابِع' : 'ابدأ',
-                onclick: () => App.go('lesson', { id: nextEntry.id, subject: nextEntry.unit.subject }),
-              }))
+        /* أهمّ عنصر بالصفحة الآن: آخر الأخبار أوّل ما يراه الطالب بعد التحية
+           مباشرة — قرار صاحب المنتج صراحةً، رغم أن الفعل الأساسي (متابعة
+           الدرس) لم يعد يتصدّر. مدخلٌ إلى القسم لا نسخةٌ منه: عشرة أخبار
+           بالكومة، وتبويب «آخر الأخبار» يبقى للقائمة الكاملة. */
+        posts.length
+          ? h('div',
+              h('div.sec-label.sec-label--row', { style: 'margin-top:14px' },
+                h('span', 'آخر الأخبار'),
+                h('button.sec-more', { onclick: () => App.go('news') }, 'الكل')),
+              newsStack(posts.slice(0, 10)))
           : null,
 
-        /* الشريط الثلاثي. أرقامه كلّها محسوبة من التخزين المحلّي، فالصفحة
-           تكتمل بلا إنترنت — وهو وعد التطبيق أصلًا. والأصفار تُعرض كما هي:
-           طالبٌ جديد يرى صفرًا صادقًا لا رقمًا مُجامِلًا. */
-        subjects.length
-          ? h('div.trio', { style: 'margin-top:14px' },
-              h('button.trio__c', { onclick: () => App.go('progress') },
-                h('b', ar(overall) + '٪'), h('small', 'إنجازك')),
-              h('button.trio__c', { onclick: () => App.go('progress') },
-                h('b.trio--ok', ar(bestExam) + '٪'), h('small', 'أفضل امتحان')),
-              h('button.trio__c', { onclick: () => App.go('plan') },
-                h('b.trio--gold', ar(s.daysLeft || 0)), h('small', 'يومًا متبقّيًا')))
-          : null,
+        /* باقات المواد والأسعار — قسم تمهيدي: التصميم جاهز والتفعيل المباشر
+           لاحقًا (لا أسعار حقيقية بعد)، فالأزرار معطَّلة صراحةً بدل أن تبدو
+           فعّالة وتقود إلى لا شيء. */
+        h('div', { style: 'margin-top:20px' },
+          h('div.sec-label', 'باقات المواد'),
+          h('div.pkgrail',
+            h('div.pkg',
+              h('div.pkg__t', 'مادة واحدة'),
+              h('div.pkg__p', 'تُحدَّد لاحقًا', h('small', 'لكامل الفصل')),
+              h('div.pkg__f', 'كل دروس وتمارين وامتحانات مادة واحدة'),
+              h('button.pkg__btn', { disabled: true }, 'قريبًا')),
+            h('div.pkg.pkg--hi',
+              h('span.pkg__badge', 'الأكثر طلبًا'),
+              h('div.pkg__t', 'كل المواد'),
+              h('div.pkg__p', 'تُحدَّد لاحقًا', h('small', 'لكامل الفصل')),
+              h('div.pkg__f', 'كل موادّك بكود واحد، وفر عن التفعيل المنفصل'),
+              h('button.pkg__btn', { disabled: true }, 'قريبًا'))),
+          h('div.soon-note', '🚧 قسم الباقات شكل أوّلي — الأسعار والتفعيل المباشر قيد التطوير.')),
 
         // موادّي: قائمة عمودية، صورة المادة بدل حلقة تقدّم، وسهم يفتح أستاذها
         subjects.length
@@ -274,16 +262,6 @@ window.Screens = window.Screens || {};
         /* قسم «معلمونا المميزون» انشال — الأستاذ صار ظاهرًا مباشرة تحت
            مادته بقائمة «موادّي» أعلاه (سهم يفتح صفّه)، فتكرار عرضه بشريط
            منفصل هون صار عرضًا لنفس المعنى بشكلين. */
-
-        /* مدخلٌ إلى القسم لا نسخةٌ منه: خبران فقط. عرضُ القائمة كاملةً هنا
-           يجعل تبويب «آخر الأخبار» بلا سبب لوجوده. */
-        posts.length
-          ? h('div',
-              h('div.sec-label.sec-label--row', { style: 'margin-top:20px' },
-                h('span', 'آخر الأخبار'),
-                h('button.sec-more', { onclick: () => App.go('news') }, 'الكل')),
-              newsStack(posts.slice(0, 10)))
-          : null,
 
         h('div', { style: 'height:20px' }),
       ),
