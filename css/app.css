@@ -421,11 +421,21 @@ img, svg { max-width: 100%; display: block; }
 .srow__head { display: flex; align-items: center; gap: 13px; padding: 13px; }
 /* ٥٨×٥٨ لا ٤٤: البلاطة القديمة كانت تعرض الأيقونة بحجم ٢٢px في وسطها —
    نصف المساحة فاضية حول أيقونةٍ تايهة. أصول SUBJECT_IMG (راجع ui.js) رسومٌ
-   مقصوصة بإحكام أصلًا، مصمَّمة لتملأ لا لتصغَّر لنصفها. */
+   مقصوصة بإحكام أصلًا، مصمَّمة لتملأ لا لتصغَّر لنصفها.
+
+   دائرة بيضاء بحلقة رفيعة لا بلاطة بتدرّج ملوّن قوي — كانت تبان "ملصقًا"
+   بجانب صورة الأستاذ الفوتوغرافية الهادئة تحتها. لون الحلقة/الأيقونة
+   (لا الخلفية) هو ما يميّز المواد عن بعضها الآن — نفس تدوير subj--c0…3
+   المستخدَم لبطاقات «موادّي» المستقلّة، بس كتلوينٍ خفيف لا خلفية صارخة. */
 .simg {
-  flex: 0 0 58px; width: 58px; height: 58px; border-radius: 18px;
-  display: grid; place-items: center; color: #FFF; box-shadow: var(--sh-1);
+  flex: 0 0 58px; width: 58px; height: 58px; border-radius: 50%;
+  background: var(--surf); border: 2px solid var(--brd);
+  display: grid; place-items: center; box-shadow: var(--sh-1);
 }
+.simg.subj--c0 { border-color: var(--acc-soft); color: var(--acc); }
+.simg.subj--c1 { border-color: var(--err-soft); color: var(--err); }
+.simg.subj--c2 { border-color: var(--gold-soft); color: var(--gold); }
+.simg.subj--c3 { border-color: var(--ok-soft); color: var(--ok); }
 .srow__b { flex: 1; min-width: 0; }
 .srow__b b { display: block; font-size: 14.5px; font-weight: 600; }
 .srow__b small {
