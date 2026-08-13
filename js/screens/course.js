@@ -25,7 +25,13 @@ window.Screens = window.Screens || {};
     const subjectDocs = subject?.docs || [];
 
     const seg = h('div.seg');
-    const body = h('div.screen__body');
+    /* شريط التبويبات خارج الورقة عمدًا: `position:sticky` محصورٌ بالكتلة
+       الحاوية، فلو بقي داخل `.chero__sheet` لالتصق حتى نهاية الورقة وحدها
+       ثم انزلق مع بقيّتها — أي لا يلتصق عمليًّا. كأخٍ مباشرٍ لمنطقة التمرير
+       يبقى في الأعلى طوال قائمة الدروس. */
+    const tabs = h('div.chero__tabs', seg);
+    const body = h('div.screen__body');   // كل شيء يمرّ داخلها، الغلاف أوّلًا
+    const pane = h('div');                // وحده يتبدّل مع التبويب
 
     const TABS = [
       ['lessons',  'الدروس'],
@@ -52,7 +58,7 @@ window.Screens = window.Screens || {};
 
     function drawBody() {
       const banner = C.syncBanner();
-      body.replaceChildren(
+      pane.replaceChildren(
         banner ? h('div', { style: 'padding:14px 16px 0' }, banner) : h('span'),
         // الافتراضي «الدروس» لا tabProgress: التبويب أُزيل، ورابط قديم محفوظ
         // بـ ?tab=progress كان سيعرض شاشة لا يقابلها زرّ في الشريط.
@@ -61,7 +67,10 @@ window.Screens = window.Screens || {};
         : tab === 'files'   ? tabFiles()
         : tabLessons(),
       );
-      body.scrollTop = 0;
+      /* بلا إعادة تمرير إلى القمّة: الغلاف صار داخل منطقة التمرير، فالقفز
+         إلى الصفر يدفعه في وجه الطالب بعد كل نقرة على تبويب. الشريط لاصقٌ
+         في مكانه ويتبدّل ما تحته — والمتصفّح يقصّ التمرير وحده إن قصر
+         المحتوى الجديد. */
     }
 
     // --- تبويب الدروس: مسار الوحدة الحالية + بقية الوحدات مفتوحة دون قفل -------
@@ -407,16 +416,21 @@ window.Screens = window.Screens || {};
           photo
             ? h('img.chero__photo', { src: photo, alt: '', loading: 'lazy', style: UI.focusStyle(teacher.photoPos) })
             : h('span.chero__badge', subjectIconEl(subjectId, 34))),
+        /* الترتيب نصٌّ صريح من صاحب المنتج مقابل لقطة مرجعية:
+           الاسم · عدد الوحدات · «الوصف» عريضًا ثم نصّه نحيفًا · «الأستاذ»
+           عريضًا ثم اسمه · والتبويبات **أخيرًا** (خارج الورقة، أدناه).
+           بُني مرّةً بالتبويبات فوق الوصف فرُدَّ — لا تُعِد ترتيبها. */
         h('div.chero__sheet',
           h('div.chero__title', subject?.name || 'مادتي'),
           pillParts ? h('span.chero__pill', pillParts) : null,
-          seg,
-          /* بلا صورةٍ مصغّرة قبل الاسم: الغلاف فوقها يعرض **نفس** الصورة
-             بعرض الشاشة كاملًا، فدائرةُ ٣٨ بكسل تكرارٌ لا يضيف معلومة
-             ويسرق عرضًا من الاسم على هاتفٍ ضيّق (طلبٌ صريح). */
-          teacher ? h('div.chero__teacher',
-            h('div.chero__tb', h('i', 'الأستاذ'), h('b', teacher.name))) : null,
-          descBlock()));
+          ...descBlock(),
+          /* الأستاذ نصٌّ عاديّ تحت عنوانه لا بطاقة: البطاقة الرماديّة كانت
+             تجعله يبدو عنصرًا قابلًا للنقر وهو ليس كذلك. وبلا صورةٍ مصغّرة
+             قبل الاسم — الغلاف فوقه يعرض **نفس** الصورة بعرض الشاشة، فدائرةُ
+             ٣٨ بكسل تكرارٌ لا يضيف معلومة (طلبان صريحان). */
+          ...(teacher
+            ? [h('div.chero__lbl', 'الأستاذ'), h('div.chero__teacher', teacher.name)]
+            : [])));
     }
 
     /* وصف المادة — سطران ثم «المزيد».
@@ -425,7 +439,7 @@ window.Screens = window.Screens || {};
        مقالًا، والتوسيع باختيار الطالب لا مفروضًا عليه. */
     function descBlock() {
       const text = (subject?.desc || '').trim();
-      if (!text) return null;              // فراغٌ محجوز يبدو عطلًا لا وصفًا ناقصًا
+      if (!text) return [];      // بلا وصف يغيب العنوان معه — فراغٌ محجوز يبدو عطلًا
 
       const p = h('p.chero__desc', text);
       const box = h('div.chero__descw', p);
@@ -445,12 +459,13 @@ window.Screens = window.Screens || {};
       if (typeof requestAnimationFrame === 'function') requestAnimationFrame(measure);
       else measure();
 
-      return box;
+      return [h('div.chero__lbl', 'الوصف'), box];
     }
 
     drawSeg();
     drawBody();
-    wrap.append(courseHero(), body);
+    body.append(courseHero(), tabs, pane);
+    wrap.append(body);
     return wrap;
   };
 

@@ -109,7 +109,8 @@ img, svg { max-width: 100%; display: block; }
      .teacher-back معه: هو `position: fixed` وفي RTL يقع على اليمين — أي فوق
      الشريط الجانبي تمامًا لو بقي ظاهرًا على الحاسوب. */
   .view .appbar__back,
-  .teacher-back { display: none; }
+  .teacher-back,
+  .chero__back { display: none; }
 
   /* اللابتوب يحتمل قياسًا أريح — الشاشة أبعد عن العين من الهاتف */
   body { font-size: 17px; }
@@ -273,11 +274,14 @@ img, svg { max-width: 100%; display: block; }
   background: linear-gradient(140deg, var(--acc-hi), var(--acc-tx));
 }
 .chero__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* `fixed` لا `absolute`: الغلاف صار داخل منطقة التمرير فيمرّ مع المحتوى،
+   ولو مرّ زرّ الرجوع معه لضاع مسار الرجوع الوحيد من الشاشة. نفس علاج
+   `.teacher-back` — وقد وقع الخلل هناك أوّلًا. */
 .chero__back {
-  position: absolute; top: calc(14px + env(safe-area-inset-top)); inset-inline-start: 14px;
-  width: 36px; height: 36px; border-radius: 50%; border: 0; z-index: 1;
+  position: fixed; top: calc(14px + env(safe-area-inset-top)); inset-inline-start: 14px;
+  width: 36px; height: 36px; border-radius: 50%; border: 0; z-index: 6;
   background: rgba(255, 255, 255, .92); color: var(--acc-tx); display: grid; place-items: center;
-  box-shadow: var(--sh-1);
+  box-shadow: var(--sh-1); backdrop-filter: blur(8px);
 }
 .chero__badge {
   position: absolute; inset: 0; display: grid; place-items: center; color: #FFF; opacity: .85;
@@ -285,28 +289,32 @@ img, svg { max-width: 100%; display: block; }
 .chero__sheet {
   position: relative; margin-top: -20px; flex: none;
   background: var(--surf); border-radius: var(--r-2xl) var(--r-2xl) 0 0;
-  padding: 18px 18px 4px; box-shadow: 0 -12px 20px -18px rgba(30, 24, 50, .18);
+  padding: 18px 18px 2px; box-shadow: 0 -12px 20px -18px rgba(30, 24, 50, .18);
 }
 .chero__title { font-size: 17px; font-weight: 600; }
 .chero__pill {
   display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 600;
   color: var(--acc-tx); background: var(--acc-soft); padding: 5px 13px; border-radius: var(--r-full);
 }
-.chero__teacher {
-  display: flex; align-items: center; gap: 10px; margin-top: 12px;
-  padding: 10px 12px; background: var(--surf2); border-radius: var(--r-lg);
+/* «الوصف» و«الأستاذ»: عنوانان بنفس الوزن تمامًا — اختلافهما يوحي بتفاوت
+   أهمّية لا وجود له، وقد طُلبا صراحةً عريضَين والنصّ تحتهما نحيفًا. */
+.chero__lbl { margin-top: 15px; font-size: 14px; font-weight: 600; }
+/* اسم الأستاذ نصٌّ عاديّ لا بطاقة: البطاقة الرماديّة كانت توحي بأنه يُنقر */
+.chero__teacher { margin-top: 4px; font-size: 13.5px; color: var(--txm); }
+
+/* شريط التبويبات — أخٌ مباشر لمنطقة التمرير كي يلتصق طوال قائمة الدروس.
+   خلفيةٌ صلبة إلزامية: بدونها تمرّ عناوين الدروس مرئيّةً خلف الأزرار. */
+.chero__tabs {
+  position: sticky; top: 0; z-index: 3;
+  background: var(--surf); padding: 14px 18px 10px;
 }
-.chero__tb i { display: block; font-style: normal; font-size: 10px; color: var(--txf); }
-.chero__tb b { display: block; font-size: 12.5px; font-weight: 600; }
-/* .seg يحمل margin خاص بسياقه المعتاد (تحت appbar مباشرة) — هنا داخل
-   حشوة الورقة أصلًا، فنصفّره ونضيف مسافة علوية بس. */
-.chero__sheet .seg { margin: 16px 0 0; }
+.chero__tabs .seg { margin: 0; }
 
 /* وصف المادة: سطران ثم «المزيد». `-webkit-line-clamp` مدعوم في كل المتصفّحات
    المستهدفة (بادئةً كما هي — النسخة بلا بادئة ما زالت غير مدعومة على iOS). */
-.chero__descw { margin-top: 10px; }
+.chero__descw { margin-top: 4px; }
 .chero__desc {
-  margin: 0; font-size: 12.5px; line-height: 1.7; color: var(--txm);
+  margin: 0; font-size: 13px; font-weight: 400; line-height: 1.7; color: var(--txm);
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
 }
 .chero__desc.is-open { -webkit-line-clamp: unset; overflow: visible; }
