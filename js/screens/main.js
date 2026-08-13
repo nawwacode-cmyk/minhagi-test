@@ -247,8 +247,7 @@ window.Screens = window.Screens || {};
               h('div.pkg__t', 'كل المواد'),
               h('div.pkg__p', 'تُحدَّد لاحقًا', h('small', 'لكامل الفصل')),
               h('div.pkg__f', 'كل موادّك بكود واحد، وفر عن التفعيل المنفصل'),
-              h('button.pkg__btn', { disabled: true }, 'قريبًا'))),
-          h('div.soon-note', '🚧 قسم الباقات شكل أوّلي — الأسعار والتفعيل المباشر قيد التطوير.')),
+              h('button.pkg__btn', { disabled: true }, 'قريبًا')))),
 
         // موادّي: قائمة عمودية، صورة المادة بدل حلقة تقدّم، وسهم يفتح أستاذها
         subjects.length
