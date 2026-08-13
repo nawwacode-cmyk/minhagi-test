@@ -6,6 +6,35 @@ window.Screens = window.Screens || {};
 (function () {
   const { h, fr, ar, icon, ring, bar, subjectIconEl } = UI;
 
+  /* ---------------------------------------------------------------------------
+     الترويسة المنكمشة — حساب الحالة من موضع التمرير
+
+     دالّةٌ صافية عمدًا: كل ما يُفحص هنا حسابٌ لا رسم، وفحصه بحدث تمرير
+     مصطنع داخل DOM لا يمرّر شيئًا يفحص المحاكاة لا الشيفرة.
+  --------------------------------------------------------------------------- */
+  const BAND_H  = 240;   // يطابق `.chero__band` في app.css — انحرافهما يترك شريطًا عالقًا
+  const BAR_ON  = 232;   // يظهر شريط الاسم مع اكتمال الانكماش تقريبًا
+  const BAR_OFF = 180;   // ويغيب أدنى من ذلك — الفجوة بينهما تمنع الرفرفة عند الحدّ
+
+  /**
+   * @param {number} y موضع التمرير
+   * @param {boolean} barShown هل الشريط ظاهرٌ الآن (الفجوة تحتاج الحالة السابقة)
+   */
+  function headerFx(y, barShown) {
+    return {
+      /* الصورة تُزاح **لأسفل** بمقدار ما مرّ من التمرير، فيبقى أعلاها (وجه
+         الأستاذ) ثابتًا بينما تنكمش نافذتها من تحت. بلا الإزاحة ينزلق
+         الغلاف لفوق فيبقى أسفل الصورة وحده — وهو أسوأ ما يمكن اقتطاعه.
+
+         والحدّ الأدنى ليس احتياطًا: التمرير المطّاطي على iOS يعطي قيمًا
+         سالبة عند السحب لأسفل من القمّة، فتُرفع الصورة وتظهر فجوةٌ فوقها. */
+      shift: Math.max(0, Math.min(BAND_H, y)),
+      bar: barShown ? y > BAR_OFF : y > BAR_ON,
+    };
+  }
+  // مكشوفة للفحص وحده — لا تُستدعى من خارج هذا الملفّ في التطبيق
+  Screens._headerFx = headerFx;
+
   // ===========================================================================
   // ٦. شاشة الكورس — الدروس · تمارين · تقدّمي
   // ===========================================================================
@@ -29,7 +58,11 @@ window.Screens = window.Screens || {};
        الحاوية، فلو بقي داخل `.chero__sheet` لالتصق حتى نهاية الورقة وحدها
        ثم انزلق مع بقيّتها — أي لا يلتصق عمليًّا. كأخٍ مباشرٍ لمنطقة التمرير
        يبقى في الأعلى طوال قائمة الدروس. */
-    const tabs = h('div.chero__tabs', seg);
+    /* شريط الاسم يسكن داخل نفس الحاوية اللاصقة لا في حاويةٍ ثانية فوقها:
+       لاصقان بـ`top:0` يتراكبان، والحاوية الواحدة تكبر بارتفاعه فينزلق كأنه
+       يدخل من فوق. */
+    const nameBar = h('div.chero__bar', subject?.name || 'مادتي');
+    const tabs = h('div.chero__tabs', nameBar, seg);
     const body = h('div.screen__body');   // كل شيء يمرّ داخلها، الغلاف أوّلًا
     const pane = h('div');                // وحده يتبدّل مع التبويب
 
@@ -398,11 +431,12 @@ window.Screens = window.Screens || {};
 
     /* غلاف صورة الأستاذ كاملةً (لا تدرّج مسطّح) + ورقة بيضاء تعلوه — شكلٌ
        مستوحًى من مرجع تصميم خارجي طلبه صاحب المنتج صراحةً (راجع
-       design-library بجذر المشروع). التبويبات صعدت لتصير مباشرة تحت وسم
-       عدد الوحدات (بطلب صريح)، لا بعد صفّ الأستاذ كما كانت.
+       design-library بجذر المشروع).
 
        بلا صورة أستاذ (أو بلا أستاذ مطابق أصلًا): يبقى الغلاف تدرّجًا
        ملوّنًا بأيقونة المادة كبيرة في وسطه — لا غلاف فارغ يبدو عطلًا. */
+    let media = null;    // الصورة (أو الأيقونة) التي تُزاح مع التمرير
+
     function courseHero() {
       const teacher = (SEED.teachers || []).find((t) => (t.subjects || []).includes(subjectId));
       const photo = teacher && Api.publicUrl(teacher.photo);
@@ -410,12 +444,14 @@ window.Screens = window.Screens || {};
       const pillParts = [gradeName, unitCount ? `${ar(unitCount)} ${unitCount === 1 ? 'وحدة' : 'وحدات'}` : null]
         .filter(Boolean).join(' · ');
 
+      media = photo
+        ? h('img.chero__photo', { src: photo, alt: '', loading: 'lazy', style: UI.focusStyle(teacher.photoPos) })
+        : h('span.chero__badge', subjectIconEl(subjectId, 34));
+
       return h('div.chero',
         h('div.chero__band',
           h('button.chero__back', { onclick: () => App.back(), 'aria-label': 'رجوع' }, icon.back(20)),
-          photo
-            ? h('img.chero__photo', { src: photo, alt: '', loading: 'lazy', style: UI.focusStyle(teacher.photoPos) })
-            : h('span.chero__badge', subjectIconEl(subjectId, 34))),
+          media),
         /* الترتيب نصٌّ صريح من صاحب المنتج مقابل لقطة مرجعية:
            الاسم · عدد الوحدات · «الوصف» عريضًا ثم نصّه نحيفًا · «الأستاذ»
            عريضًا ثم اسمه · والتبويبات **أخيرًا** (خارج الورقة، أدناه).
@@ -466,6 +502,37 @@ window.Screens = window.Screens || {};
     drawBody();
     body.append(courseHero(), tabs, pane);
     wrap.append(body);
+
+    /* --- ربط الانكماش بالتمرير -----------------------------------------------
+       الاستماع على `body` نفسها لا على `window`: العنصر يُرمى مع الشاشة عند
+       التنقّل فيذهب المستمع معه — ولا نقطة هدمٍ للشاشات في هذا التطبيق، فمستمعٌ
+       على `window` كان سيتراكم بكل زيارة.
+
+       والانزلاق المتوازي حركةٌ صريحة، فيُطفأ لمن طلب تقليل الحركة: يبقى
+       التمرير عاديًّا (الغلاف ينزلق لفوق) ويبقى شريط الاسم يعمل. */
+    const calm = typeof matchMedia === 'function'
+      && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let ticking = false, barShown = false;
+    const apply = () => {
+      ticking = false;
+      const fx = headerFx(body.scrollTop, barShown);
+      if (!calm && media) media.style.transform = `translateY(${fx.shift}px)`;
+      if (fx.bar === barShown) return;
+      barShown = fx.bar;
+      nameBar.classList.toggle('is-on', barShown);
+      // دائرةٌ بيضاء بظلّ فوق شريطٍ أبيض تبدو غلطةً لا زرًّا — تُسطَّح فتندمج
+      wrap.classList.toggle('is-collapsed', barShown);
+    };
+    /* الخنق بإطارٍ واحد: حدث التمرير يُطلق عشرات المرّات في الثانية، وحسابٌ
+       لكل إطارٍ يُرسم يكفي — ما زاد عمَلٌ لا يراه أحد. */
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(apply);
+    };
+    body.addEventListener('scroll', onScroll, { passive: true });
+
     return wrap;
   };
 

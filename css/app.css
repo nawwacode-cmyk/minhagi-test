@@ -310,6 +310,21 @@ img, svg { max-width: 100%; display: block; }
 }
 .chero__tabs .seg { margin: 0; }
 
+/* اسم المادة حين ينكمش الغلاف — الهويّة لا تضيع داخل قائمة الدروس.
+   `padding-inline-start` يُفرغ موضع زرّ الرجوع العائم: في RTL يقع يمينًا،
+   أي فوق أوّل حرفٍ من الاسم بالضبط. */
+.chero__bar {
+  height: 0; overflow: hidden; transition: height var(--dur) var(--ease);
+  display: flex; align-items: center; padding-inline-start: 44px;
+  font-size: 14px; font-weight: 600;
+}
+.chero__bar.is-on { height: 36px; }
+/* والزرّ يُسطَّح فيندمج بالشريط: دائرةٌ بيضاء بظلّ فوق شريطٍ أبيض تبدو غلطة */
+.is-collapsed .chero__back {
+  background: transparent; box-shadow: none; backdrop-filter: none; color: var(--tx);
+}
+@media (prefers-reduced-motion: reduce) { .chero__bar { transition: none; } }
+
 /* وصف المادة: سطران ثم «المزيد». `-webkit-line-clamp` مدعوم في كل المتصفّحات
    المستهدفة (بادئةً كما هي — النسخة بلا بادئة ما زالت غير مدعومة على iOS). */
 .chero__descw { margin-top: 4px; }
