@@ -2043,20 +2043,24 @@ img, svg { max-width: 100%; display: block; }
    وJS لا يغيّر غير الرقم، فكل الحركة على `transform`/`opacity` — لا إعادة
    تخطيطٍ للصفحة عند كل تبديل، وهو ما يجعلها ناعمة على هاتفٍ اقتصادي.
    ============================================================================= */
-/* أوّل قسم بالصفحة الآن (بعد التحية مباشرة) — كبّرت الكومة ~٣٥٪ (الصورة من
-   ٧٤ إلى ١٠٠px وما يتبعها) بلا تغيير الشكل نفسه، بطلب صاحب المنتج صراحةً. */
+/* تركيب بطاقة الأستاذ القديمة المحذوفة (راجع commit 87206c8) بدل الصفّ
+   الأفقي: صورة كبيرة تملأ عرض البطاقة فوق (٣:٢) والنصّ تحتها، لا مربّع
+   صغير جنب النص — الصورة أكبر عنصر بالبطاقة الآن لا الأصغر. */
 .nstack { margin-top: 4px; }
 .nstack__w {
   position: relative;
-  /* ارتفاعٌ ثابت: البطاقات مطلقة الموضع فلا ترفع الحاوية، وبدونه تنطبق
-     على ارتفاع صفر ويختفي القسم. */
-  height: 178px;
+  /* نسبة لا ارتفاعٌ ثابت: البطاقات مطلقة الموضع فلا ترفع الحاوية، وعرض
+     الشاشة يختلف بين الأجهزة فارتفاعٌ مطلق بالبكسل إمّا يقصّ الأطول أو
+     يترك فراغًا تحت الأقصر. النسبة (تقريب لصورة ٣:٢ + كتلة النصّ ثابتة
+     تقريبًا) تتبع عرض الشاشة الفعلي بلا حساب JS — مع هامش أمان (١ لا ١٫٠٥
+     المحسوبة تمامًا) كي لا يلامس ذيل البطاقة بعنوان سطرين شريط العدّاد تحتها. */
+  aspect-ratio: 1;
 }
 
 .scard {
   position: absolute; inset-inline: 0; top: 0;
-  display: flex; align-items: center; gap: 14px; width: 100%;
-  padding: 14px; border: 1px solid var(--brd); border-radius: 20px;
+  display: block; width: 100%; padding: 0;
+  border: 1px solid var(--brd); border-radius: 22px; overflow: hidden;
   background: var(--surf); box-shadow: var(--sh-2);
   font: inherit; color: inherit; text-align: start; cursor: pointer;
 
@@ -2075,20 +2079,25 @@ img, svg { max-width: 100%; display: block; }
   pointer-events: none;
 }
 
-.scard__i {
-  width: 100px; height: 100px; border-radius: 16px; object-fit: cover; flex: none;
-}
+.scard__i { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; }
+/* بلا صورة مرفوعة بعد: تدرّجٌ ملوّن كامل العرض بعلامة التصنيف عليه —
+   لا مربّع رمادي صغير يبان كخانة فارغة. */
 .scard__i--blank {
-  display: grid; place-items: center; background: var(--acc-soft); color: var(--acc);
+  aspect-ratio: 3 / 2; display: flex; align-items: flex-end; padding: 14px;
+  background: linear-gradient(135deg, var(--acc-hi), var(--acc-tx));
 }
-.scard__b { display: grid; gap: 7px; min-width: 0; }
+.scard__cat {
+  font-size: 11px; font-weight: 600; color: #FFF; background: rgba(255, 255, 255, .22);
+  padding: 5px 13px; border-radius: var(--r-full);
+}
+.scard__b { padding: 14px 15px 16px; }
 .scard__t {
-  font-size: 15px; font-weight: 600; line-height: 1.5;
-  /* سطران ثم قصّ: عنوانٌ طويل كان يُطيل البطاقة فتخرج عن ارتفاع الكومة */
+  font-size: 14.5px; font-weight: 600; line-height: 1.55;
+  /* سطران ثم قصّ: عنوانٌ طويل كان يُطيل البطاقة فتخرج عن نسبة الكومة */
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.scard__m { font-size: 12px; color: var(--txf); }
+.scard__m { font-size: 11.5px; color: var(--txf); margin-top: 6px; }
 
 .nstack__f {
   display: flex; align-items: center; justify-content: space-between;

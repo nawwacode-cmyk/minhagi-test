@@ -70,6 +70,10 @@ window.Screens = window.Screens || {};
       catch { return false; }
     };
 
+    /* تركيب بطاقة الأستاذ القديمة المحذوفة أُعيد استعماله هنا: صورة
+       كبيرة تملأ عرض البطاقة فوق (٣:٢) بدل مربّع ١٠٠×١٠٠px جنب النص — بلا
+       خبرٍ صورةً، تدرّجٌ ملوّن بعلامة التصنيف يحلّ محلّ الأيقونة الرمادية
+       الصغيرة القديمة كي لا يبان الكرت خانةً فارغة. */
     const cardEl = (p, pos) => {
       const img = p.image && Api.publicUrl(p.image);
       return h('button.scard', {
@@ -78,11 +82,13 @@ window.Screens = window.Screens || {};
         tabIndex: pos ? -1 : 0,
         onclick: () => { if (!pos) App.go('post', { id: p.id }); },
       },
-        img ? h('img.scard__i', { src: img, alt: '', loading: 'lazy' })
-            : h('span.scard__i.scard__i--blank', icon.news(22)),
-        h('span.scard__b',
-          h('span.scard__t', p.title),
-          h('span.scard__m', [since(p.at), CATS[p.category]].filter(Boolean).join(' · '))));
+        img
+          ? h('img.scard__i', { src: img, alt: '', loading: 'lazy' })
+          : h('div.scard__i.scard__i--blank',
+              CATS[p.category] ? h('span.scard__cat', CATS[p.category]) : null),
+        h('div.scard__b',
+          h('div.scard__t', p.title),
+          h('div.scard__m', [since(p.at), CATS[p.category]].filter(Boolean).join(' · '))));
     };
 
     function draw() {
