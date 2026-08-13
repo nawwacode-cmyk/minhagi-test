@@ -374,7 +374,7 @@ window.Screens = window.Screens || {};
         h('div.chero__band',
           h('button.chero__back', { onclick: () => App.back(), 'aria-label': 'رجوع' }, icon.back(20)),
           photo
-            ? h('img.chero__photo', { src: photo, alt: '', loading: 'lazy' })
+            ? h('img.chero__photo', { src: photo, alt: '', loading: 'lazy', style: UI.focusStyle(teacher.photoPos) })
             : h('span.chero__badge', subjectIconEl(subjectId, 34))),
         h('div.chero__sheet',
           h('div.chero__title', subject?.name || 'مادتي'),
@@ -382,7 +382,7 @@ window.Screens = window.Screens || {};
           seg,
           teacher ? h('div.chero__teacher',
             photo
-              ? h('img.chero__av', { src: photo, alt: '', loading: 'lazy' })
+              ? h('img.chero__av', { src: photo, alt: '', loading: 'lazy', style: UI.focusStyle(teacher.photoPos) })
               : h('span.chero__av', teacher.name[0]),
             h('div.chero__tb', h('i', 'الأستاذ'), h('b', teacher.name))) : null));
     }

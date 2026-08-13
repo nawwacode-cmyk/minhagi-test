@@ -218,7 +218,11 @@ badDocs.forEach((f) => console.log('   ← ترميز تالف: ' + f));
 // --- واجهة الاكتشاف: أساتذتنا ---------------------------------------------------
 // جلب teachers/courses اختياري ومتسامح (نفس نمط videos) — لا يجوز أن يُسقط
 // pullContent كله لو فشل، ولا أن يعيد ميتاداتا كورس كاملة أُزيلت عمدًا سابقًا.
-ok('sync يجلب teachers بأعمدة ضيّقة', /'teachers',\s*\{\s*select:\s*'id,code,name,bio,photo_path'/.test(syncSrc));
+/* الأعمدة تبقى محصورة بما تعرضه الواجهة فعلًا — والقصد منع عودة ميتاداتا
+   الكورس التي أُزيلت عمدًا، لا تجميد القائمة. `photo_pos` منها: موضع تركيز
+   الصورة يُطبَّق في كل مكان تُعرض فيه بـ`cover`. */
+ok('sync يجلب teachers بأعمدة ضيّقة',
+   /'teachers',\s*\{\s*select:\s*'id,code,name,bio,photo_path,photo_pos'/.test(syncSrc));
 ok('جلب teachers متسامح كـ videos', /Api\.from\('teachers',[^)]*\)\.catch\(\(\) => \[\]\)/.test(syncSrc));
 ok('sync يجلب courses بأعمدة ضيّقة فقط (teacher_id,subject_id)',
    /'courses',\s*\{\s*select:\s*'teacher_id,subject_id'/.test(syncSrc));

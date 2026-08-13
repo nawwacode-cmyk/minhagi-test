@@ -123,6 +123,47 @@ const ok = (n, c, x = '') => { console.log((c ? 'ok   ' : 'FAIL ') + n + (x ? ' 
   SEED.units = realUnits;
 }
 
+// =============================================================================
+// نقطة تركيز الصورة تصل الواجهة فعلًا
+//
+// أداةُ ضبطٍ في اللوحة لا يقرؤها التطبيق = محرِّرٌ يضبط ويحفظ ولا يتغيّر شيء،
+// وهو أسوأ من غياب الأداة: يظنّ العطل في صورته فيرفع أخرى ثم أخرى.
+// =============================================================================
+{
+  const realIcon = SEED.subjects[0].icon;
+  const realPhoto = SEED.teachers[0].photo;
+  const realSubs = SEED.teachers[0].subjects;
+
+  SEED.subjects[0].icon = 'subjects/fr.jpg';
+  SEED.subjects[0].iconPos = '50% 20%';
+  SEED.teachers[0].photo = 'teachers/n.jpg';
+  SEED.teachers[0].photoPos = '40% 15%';
+  SEED.teachers[0].subjects = [SEED.subjects[0].id];
+
+  let html = Screens.home().outerHTML;
+  ok('موضع صورة المادة يصل البلاطة', /object-position:50% 20%/.test(html));
+  ok('وموضع صورة الأستاذ يصل صورته', /object-position:40% 15%/.test(html));
+
+  /* القيمة تُحقن في سمة `style`، فتُفحص في العميل أيضًا لا في القاعدة وحدها:
+     جهازٌ زامن محتواه قبل إضافة القيد قد يحمل قيمةً لم تمرّ عليه. */
+  SEED.subjects[0].iconPos = 'top left; background:url(x)';
+  html = Screens.home().outerHTML;
+  ok('وقيمةٌ فاسدة تُهمَل ولا تُحقن',
+     !/object-position:top/.test(html) && !/background:url/.test(html));
+
+  // بلا موضعٍ محفوظ: لا سمة أصلًا، فيبقى السلوك الافتراضي (الوسط) كما كان
+  SEED.subjects[0].iconPos = null;
+  SEED.teachers[0].photoPos = null;
+  ok('وبلا موضع لا سمة نمط زائدة',
+     !/object-position/.test(Screens.home().outerHTML));
+
+  SEED.subjects[0].icon = realIcon;
+  SEED.teachers[0].photo = realPhoto;
+  SEED.teachers[0].subjects = realSubs;
+  delete SEED.subjects[0].iconPos;
+  delete SEED.teachers[0].photoPos;
+}
+
 
 console.log('\n' + (bad ? `${bad} فشل` : 'قائمة موادّي سليمة'));
 process.exit(bad ? 1 : 0);

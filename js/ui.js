@@ -177,6 +177,16 @@ window.UI = (function () {
     return h('div.prose', { html: wrapped });
   }
 
+  /**
+   * نمط `object-position` من موضعٍ محفوظ — أو `null` فلا سمة أصلًا.
+   *
+   * القيمة تأتي من القاعدة وتُحقن في سمة `style`، فتُفحص هنا أيضًا لا في
+   * القاعدة وحدها: جهازٌ زامن محتواه قبل إضافة القيد قد يحمل قيمةً لم تمرّ
+   * عليه. والنمط الوحيد المقبول «رقم% رقم%» — ما عداه يُهمَل بلا أثر.
+   */
+  const focusStyle = (pos) =>
+    (/^\d{1,3}% \d{1,3}%$/.test(String(pos || '')) ? `object-position:${pos}` : null);
+
   /** أرقام عربية شرقية — للعدّ في الواجهة العربية */
   const AR = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
   const ar = (n) => String(n).replace(/[0-9]/g, (d) => AR[+d]);
@@ -506,5 +516,6 @@ window.UI = (function () {
     return el;
   }
 
-  return { h, fr, rich, prose, ar, icon, subjectIcon, subjectIconEl, svg, ring, bar, mount, swipe };
+  return { h, fr, rich, prose, ar, icon, subjectIcon, subjectIconEl, svg, ring, bar,
+           mount, swipe, focusStyle };
 })();

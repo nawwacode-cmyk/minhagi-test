@@ -219,13 +219,13 @@ window.Screens = window.Screens || {};
                  صغيرًا وسط لونٍ لا علاقة له بها — والمقصود من رفعها أن
                  تحلّ محلّه لا أن تسكن فيه. */
               ? h('span.subjcard__badge.subjcard__badge--img',
-                  h('img', { src: cover, alt: '', loading: 'lazy' }))
+                  h('img', { src: cover, alt: '', loading: 'lazy', style: UI.focusStyle(sub.iconPos) }))
               : h('span.subjcard__badge.subj--c' + (i % 4), subjectIconEl(sub.id, 22)),
             h('span.grow', sub.name),
             h('span.ghost-btn.chev' + (open ? '.is-open' : ''), icon.chevron(16))),
           open ? h('div.subjcard__row', { onclick: goSubject },
             h('div.subjcard__ph.subj--c' + (i % 4),
-              photo ? h('img', { src: photo, alt: '', loading: 'lazy' })
+              photo ? h('img', { src: photo, alt: '', loading: 'lazy', style: UI.focusStyle(t.photoPos) })
                     : subjectIconEl(sub.id, 40, Api.publicUrl(sub.icon))),
             h('div.subjcard__b',
               h('div.subjcard__t', sub.name),
@@ -393,7 +393,7 @@ window.Screens = window.Screens || {};
                     // الأستاذ: صورة دائرية صغيرة واسمه بجانبها — كما في المرجع
                     t ? h('span.subj__teacher',
                           photo
-                            ? h('img', { src: photo, alt: '', loading: 'lazy' })
+                            ? h('img', { src: photo, alt: '', loading: 'lazy', style: UI.focusStyle(t.photoPos) })
                             : h('span.subj__init', t.name[0]),
                           h('span.subj__tn',
                             h('i', 'الأستاذ'),
@@ -508,7 +508,7 @@ window.Screens = window.Screens || {};
         // تُحدّ عرضًا على الشاشات الواسعة (CSS) فلا تبتلع الشاشة.
         // وهي داخل منطقة التمرير ⇒ تمرير طبيعي لا ترويسة مثبّتة.
         photo
-          ? h('div.teacher-hero-img', h('img', { src: photo, alt: t.name }))
+          ? h('div.teacher-hero-img', h('img', { src: photo, alt: t.name, style: UI.focusStyle(t.photoPos) }))
           : h('div.teacher-cover'),
 
         h('div.teacher-head' + (photo ? '.teacher-head--flat' : ''),

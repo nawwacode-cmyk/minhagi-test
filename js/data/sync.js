@@ -103,7 +103,7 @@ window.Sync = (function () {
     const [subjects, grades, units, lessons,
            questions, options, exams, examQuestions, videos,
            lessonDocs, teachers, teacherCourses, banners] = await Promise.all([
-      Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order,icon' }),
+      Api.from('subjects',  { select: 'id,code,name_ar,name_native,color_hex,sort_order,icon,icon_pos' }),
       Api.from('grades',    { select: 'id,code,name_ar,sort_order' }),
       Api.from('units',     { select: 'id,code,title_ar,course_id,sort_order,courses(subject_id,grade_id)', order: 'sort_order' }),
       Api.from('lessons',   { select: 'id,code,title_ar,body_html,est_minutes,is_free,unit_id,video_id,doc_id,body_mode,sort_order', order: 'sort_order' }),
@@ -121,7 +121,7 @@ window.Sync = (function () {
       // ملفّات الدرس: البيانات الوصفية فقط — الملفّ خلف رابط موقّع يُطلب عند الفتح
       Api.from('lesson_docs', { select: 'id,title,lesson_id,sort_order,pages,size_bytes',
                                 order: 'sort_order' }).catch(() => []),
-      Api.from('teachers',  { select: 'id,code,name,bio,photo_path', order: 'sort_order' }).catch(() => []),
+      Api.from('teachers',  { select: 'id,code,name,bio,photo_path,photo_pos', order: 'sort_order' }).catch(() => []),
       Api.from('courses',   { select: 'teacher_id,subject_id' }).catch(() => []),
       // البانرات: RLS تحصرها بالمفعَّل ضمن نافذته الزمنية، فما يصل هنا هو
       // بالضبط ما يجوز عرضه — لا تصفية تواريخ في العميل.
@@ -237,6 +237,8 @@ window.Sync = (function () {
         // معاملة صورة الأستاذ (teacher.photo). غياب صورة مرفوعة يدويًا من
         // اللوحة يعني الاعتماد على SUBJECT_IMG/subjectIcon المحليّة كما اليوم.
         icon: s.icon || null,
+        // موضع التركيز يُطبَّق كـobject-position أينما عُرضت الصورة بـcover
+        iconPos: s.icon_pos || null,
         entitled: entitledSubjectCodes.has(s.code),
       })),
       grades: grades.sort((a, b) => a.sort_order - b.sort_order)
@@ -320,6 +322,7 @@ window.Sync = (function () {
 
       teachers: (teachers || []).map((t) => ({
         id: t.code, name: t.name, bio: t.bio || null, photo: t.photo_path || null,
+        photoPos: t.photo_pos || null,
         subjects: [...new Set((teacherCourses || [])
           .filter((c) => c.teacher_id === t.id)
           .map((c) => subjectByUuid[c.subject_id]?.code)
