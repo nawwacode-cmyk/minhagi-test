@@ -58,6 +58,13 @@ img, svg { max-width: 100%; display: block; }
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   scrollbar-width: none;            /* Firefox */
   -ms-overflow-style: none;         /* Edge القديم */
+  /* الشدّ المطّاطي عند النهاية يمطّ محتوى المُمرِّر كلّه — والعناصر اللاصقة
+     تُمطّ معه فتنزلق الترويسة عن مكانها ثم ترتدّ. القاعدة على `body` تمنع
+     سحبَ الصفحة للتحديث ولا تمسّ هذا المُمرِّر.
+
+     و`none` لا `contain`: الأخيرة تمنع تسلسل التمرير إلى الأب وتُبقي
+     الارتداد المحلّي — وهو بعينه ما يمطّ الترويسة. */
+  overscroll-behavior-y: none;
 }
 .screen__body::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
