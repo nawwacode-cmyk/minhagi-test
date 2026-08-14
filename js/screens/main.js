@@ -378,16 +378,13 @@ window.Screens = window.Screens || {};
 
                   return h('button.subj', {
                     class: 'subj--c' + (i % 4),
-                    onclick: () => App.go('course', { subject: subject.id }),
+                    /* `atContent` لأن من فتحها من هنا اختارها وسدّد ثمنها
+                       ويريد درسه — لا تعريفًا بأستاذها في كل مرّة. وهي وحدها
+                       دون بقيّة المداخل: الوصول من بانرٍ أو من صفحة أستاذٍ
+                       استكشافٌ، والغلاف هناك هو المقصود. */
+                    onclick: () => App.go('course', { subject: subject.id, atContent: 1 }),
                     'aria-label': subject.name,
                   },
-                    h('span.subj__top',
-                      h('span.subj__ico', subjectIconEl(subject.id, 20, Api.publicUrl(subject.icon))),
-                      /* موضع «علامة الحفظ» في المرجع — شغلناه بالتقدّم بدل
-                         أيقونة زخرفية: نفس التوازن البصري، ومعلومةٌ يقصدها
-                         الطالب فعلًا. (وقد سبق أن رُفضت علامة الحفظ.) */
-                      h('span.subj__pct', ar(p.percent) + '٪')),
-
                     h('span.subj__name', subject.name),
 
                     // الأستاذ: صورة دائرية صغيرة واسمه بجانبها — كما في المرجع
@@ -402,6 +399,16 @@ window.Screens = window.Screens || {};
                           [gradeOfSubject(subject.id),
                            `${ar(p.lessonsTotal)} ${p.lessonsTotal === 1 ? 'درس' : 'درسًا'}`]
                             .filter(Boolean).join(' · ')),
+
+                    /* التقدّم: شريطٌ بعرض البطاقة والنسبة في طرفه.
+
+                       حلّ محلّ أيقونةٍ ونسبةٍ في قرصٍ أعلى البطاقة: الأيقونة
+                       تكرّر ما يقوله الاسم واللون على بطاقةٍ عرضها ١٥٢ بكسل،
+                       والقرص يقول رقمًا بلا مقياسٍ يُقارَن به. الشريط يقول
+                       الرقم **ويُريه**. */
+                    h('span.subj__prog',
+                      h('span.subj__bar', h('i', { style: `width:${p.percent}%` })),
+                      h('span.subj__pct', ar(p.percent) + '٪')),
 
                     // قصّة الحافّة بسهم — بديل «طيّة الكتاب» في المرجع
                     h('span.subj__notch', icon.fwd(13, { width: 2.6 })));
